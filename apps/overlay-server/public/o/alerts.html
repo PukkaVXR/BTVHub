@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BTV Alerts</title>
+  <link rel="stylesheet" href="/styles/overlay.css" />
+</head>
+<body>
+  <div id="alerts"></div>
+  <div id="media-layer"></div>
+  <div id="effect-layer"></div>
+  <div class="demo-overlay">BTV Alerts</div>
+  <script type="module">
+    import {
+      OverlayClient,
+      renderAlert,
+      playMediaEffect,
+      playSoundEffect,
+      playVisualEffect,
+    } from "/js/overlay-client.js";
+    let alertCleanup = null;
+    const mediaLayer = document.getElementById("media-layer");
+    const client = new OverlayClient({
+      channels: ["alerts", "effects", "*"],
+      onMessage: (msg) => {
+        if (msg.kind === "alert:play") {
+          alertCleanup?.();
+          alertCleanup = renderAlert(document.getElementById("alerts"), msg.alert);
+        }
+        if (msg.kind === "effect:play") {
+          const layer = document.getElementById("effect-layer");
+          if (msg.effect.type === "media") {
+            playMediaEffect(mediaLayer, msg.effect.config ?? {});
+          } else if (msg.effect.type === "visual") {
+            playVisualEffect(layer, msg.effect.config ?? {});
+          } else if (msg.effect.type === "soundboard") {
+            playSoundEffect(msg.effect.config ?? {});
+          }
+        }
+      },
+      onStateChange: (s) => document.body.dataset.wsState = s,
+    });
+    client.connect();
+  </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BTV Now Playing</title>
+  <link rel="stylesheet" href="/styles/overlay.css" />
+</head>
+<body>
+  <div class="now-playing-widget" id="now-playing">
+    <span class="np-idle">Nothing playing</span>
+  </div>
+  <script type="module">
+    import { OverlayClient } from "/js/overlay-client.js";
+    const el = document.getElementById("now-playing");
+    const client = new OverlayClient({
+      channels: ["nowPlaying"],
+      onMessage: (msg) => {
+        if (msg.kind !== "widget:nowPlaying") return;
+        const track = msg.track;
+        if (!track) {
+          el.innerHTML = '<span class="np-idle">Nothing playing</span>';
+          return;
+        }
+        el.innerHTML = `
+          ${track.albumArtUrl ? `<img class="np-art" src="${track.albumArtUrl}" alt="" />` : ""}
+          <div class="np-info">
+            <div class="np-title">${track.title.replace(/</g,"&lt;")}</div>
+            <div class="np-artist">${track.artist.replace(/</g,"&lt;")}</div>
+          </div>`;
+      },
+    });
+    client.connect();
+  </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BTV Demo</title>
+  <link rel="stylesheet" href="/styles/overlay.css" />
+</head>
+<body>
+  <div class="demo-overlay" id="log">BTV Demo — waiting for events…</div>
+  <script type="module">
+    import { OverlayClient } from "/js/overlay-client.js";
+    const log = document.getElementById("log");
+    const client = new OverlayClient({
+      channels: ["*"],
+      onMessage: (msg) => {
+        log.textContent = `${new Date().toLocaleTimeString()} ${msg.kind} ${JSON.stringify(msg).slice(0, 120)}`;
+      },
+      onStateChange: (s) => document.body.dataset.wsState = s,
+    });
+    client.connect();
+  </script>
+</body>
+</html>

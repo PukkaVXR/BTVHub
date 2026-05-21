@@ -1,0 +1,15 @@
+{
+  "name": "project-btv",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "pnpm run build:packages && pnpm --filter @btv/hub --filter @btv/overlay-server --parallel dev",
+    "build:packages": "pnpm --filter @btv/shared --filter @btv/twitch --filter @btv/overlay-sdk build",
+    "build": "pnpm run build:packages && pnpm --filter @btv/hub --filter @btv/overlay-server build",
+    "typecheck": "pnpm run -r typecheck",
+    "free-ports": "powershell -ExecutionPolicy Bypass -File scripts/free-ports.ps1"
+  },
+  "engines": {
+    "node": ">=22.5"
+  }
+}

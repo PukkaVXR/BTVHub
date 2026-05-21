@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BTV Chat</title>
+  <link rel="stylesheet" href="/styles/overlay.css" />
+</head>
+<body>
+  <div class="chat-widget"><div id="chat-messages"></div></div>
+  <script type="module">
+    import { OverlayClient } from "/js/overlay-client.js";
+
+    let maxMessages = 20;
+    let fadeMs = 8000;
+    const fadeStartMs = () => Math.max(0, fadeMs - 1000);
+
+    try {
+      const cfg = await fetch("/api/widgets/chat-config").then((r) => r.json());
+      maxMessages = Number(cfg.maxMessages) || 20;
+      fadeMs = Number(cfg.fadeMs) || 8000;
+    } catch {
+      /* defaults */
+    }
+
+    const box = document.getElementById("chat-messages");
+    const client = new OverlayClient({
+      channels: ["chat"],
+      onMessage: (msg) => {
+        if (msg.kind !== "chat:message") return;
+        const el = document.createElement("div");
+        el.className = "chat-line";
+        const m = msg.message;
+        const text = m.text.replace(/</g, "&lt;");
+        const userStyle = m.color ? ` style="color:${m.color}"` : "";
+        el.innerHTML = `<span class="chat-user"${userStyle}>${m.user.displayName}:</span> ${text}`;
+        if (m.user.id === "btv-effect") el.classList.add("chat-system");
+        box.appendChild(el);
+        while (box.children.length > maxMessages) box.firstChild?.remove();
+        setTimeout(() => el.classList.add("fade-out"), fadeStartMs());
+        setTimeout(() => el.remove(), fadeMs);
+      },
+    });
+    client.connect();
+  </script>
+</body>
+</html>

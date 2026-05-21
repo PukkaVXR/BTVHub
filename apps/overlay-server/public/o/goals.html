@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BTV Goals</title>
+  <link rel="stylesheet" href="/styles/overlay.css" />
+</head>
+<body>
+  <div class="goal-widget">
+    <div class="goal-header">
+      <span id="goal-label">Goal</span>
+      <span><span id="goal-current">0</span> / <span id="goal-target">100</span></span>
+    </div>
+    <div class="goal-track"><div id="goal-fill" class="goal-fill"></div></div>
+  </div>
+  <script type="module">
+    import { OverlayClient } from "/js/overlay-client.js";
+    const client = new OverlayClient({
+      channels: ["goal"],
+      onMessage: (msg) => {
+        if (msg.kind !== "goal:update") return;
+        const g = msg.goal;
+        document.getElementById("goal-label").textContent = g.label;
+        document.getElementById("goal-current").textContent = g.current;
+        document.getElementById("goal-target").textContent = g.target;
+        document.getElementById("goal-fill").style.width =
+          `${Math.min(100, (g.current / g.target) * 100)}%`;
+      },
+    });
+    client.connect();
+  </script>
+</body>
+</html>

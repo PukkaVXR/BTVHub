@@ -1,0 +1,12 @@
+node_modules/
+pnpm.exe
+dist/
+data/
+!data/.gitkeep
+!data/certs/.gitkeep
+.env
+.env.local
+*.db
+*.db-journal
+.DS_Store
+*.log
