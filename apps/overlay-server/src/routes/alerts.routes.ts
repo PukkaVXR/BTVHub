@@ -1,5 +1,6 @@
 import type { AlertRule, StreamEventType } from "@btv/shared";
 import { getActivity, getAlertRules, upsertAlertRule } from "../db.js";
+import { broadcastVisualAlertTest, findTestAlertProject } from "../visual-alert-test.js";
 import type { RouteModule } from "./types.js";
 
 export const registerAlertsRoutes: RouteModule = (app, ctx) => {
@@ -28,8 +29,10 @@ export const registerAlertsRoutes: RouteModule = (app, ctx) => {
   app.post("/api/test/alert/:eventType", async (req, reply) => {
     const { eventType } = req.params as { eventType: StreamEventType };
     try {
-      await ctx.rulesEngine.fireTestAlert(eventType);
-      return { ok: true };
+      const project = findTestAlertProject(eventType);
+      if (!project) return reply.status(404).send({ error: "No visual alert project found" });
+      const event = broadcastVisualAlertTest(ctx.bus, project, eventType);
+      return { ok: true, event, projectId: project.id };
     } catch (err) {
       app.log.error(err);
       return reply.status(500).send({ error: err instanceof Error ? err.message : "Test alert failed" });

@@ -18,6 +18,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       "/api": { target: overlayHttp, changeOrigin: true },
+      "/assets": { target: overlayHttp, changeOrigin: true },
       "/hooks": { target: overlayHttp, changeOrigin: true },
       "/auth/twitch": { target: oauthHttps, changeOrigin: true, secure: false },
       "/auth/spotify": { target: overlayHttp, changeOrigin: true },

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { getAuthorizeUrl } from "@btv/twitch";
 import {
   deleteSetting,
+  getEncryptedSetting,
   getSetting,
   setEncryptedSetting,
   setSetting,
@@ -51,6 +52,9 @@ export function registerIntegrationsRoutes(app: FastifyInstance, oauthApp: Fasti
           authStartUrl: getSpotifyAuthStartUrl(),
         },
         obs: getObsStatus(),
+        giphy: {
+          configured: Boolean(getEncryptedSetting("giphy_api_key")),
+        },
       };
     } catch (err) {
       app.log.error(err);
@@ -97,6 +101,15 @@ export function registerIntegrationsRoutes(app: FastifyInstance, oauthApp: Fasti
       hasPassword: Boolean(body.password?.trim()),
     });
     return { ok };
+  });
+
+  app.put("/api/integrations/giphy", async (req) => {
+    const body = req.body as { apiKey?: string };
+    if (body.apiKey?.trim()) {
+      setEncryptedSetting("giphy_api_key", body.apiKey.trim());
+      logSystem("giphy", "info", "GIPHY API key saved", { configured: true });
+    }
+    return { ok: true, configured: Boolean(getEncryptedSetting("giphy_api_key")) };
   });
 
   app.post("/api/integrations/twitch/disconnect", async () => {

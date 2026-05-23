@@ -92,6 +92,26 @@ export const api = {
 
   themes: () => request<import("@btv/shared").Theme[]>("/themes"),
 
+  alertProjects: () => request<import("@btv/shared").AlertProject[]>("/alert-projects"),
+
+  alertProject: (id: string) =>
+    request<import("@btv/shared").AlertProject>("/alert-projects/" + encodeURIComponent(id)),
+
+  saveAlertProject: (project: import("@btv/shared").AlertProject) =>
+    request<{ ok: boolean; project: import("@btv/shared").AlertProject }>("/alert-projects/" + encodeURIComponent(project.id), {
+      method: "PUT",
+      body: JSON.stringify(project),
+    }),
+
+  deleteAlertProject: (id: string) =>
+    request("/alert-projects/" + encodeURIComponent(id), { method: "DELETE" }),
+
+  testAlertProject: (id: string, eventType: import("@btv/shared").StreamEventType) =>
+    request<{ ok: boolean; event: import("@btv/shared").StreamEvent }>("/alert-projects/" + encodeURIComponent(id) + "/test", {
+      method: "POST",
+      body: JSON.stringify({ eventType }),
+    }),
+
   saveTheme: (theme: import("@btv/shared").Theme) =>
 
     request(`/themes/${theme.id}`, { method: "PUT", body: JSON.stringify(theme) }),
@@ -277,7 +297,7 @@ export const api = {
       body: JSON.stringify(event),
     }),
 
-  testAlert: (eventType: string) =>
+  testVisualAlert: (eventType: string) =>
 
     request(`/test/alert/${eventType}`, { method: "POST" }),
 
@@ -309,6 +329,12 @@ export const api = {
         clientId,
         ...(clientSecret ? { clientSecret } : {}),
       }),
+    }),
+
+  saveGiphyConfig: (apiKey?: string) =>
+    request<{ ok: boolean; configured: boolean }>("/integrations/giphy", {
+      method: "PUT",
+      body: JSON.stringify({ apiKey }),
     }),
 
   saveObsConfig: (host: string, port: number, password?: string) =>
@@ -380,6 +406,17 @@ export const api = {
   deleteMedia: (name: string) =>
     request(`/assets/media/${encodeURIComponent(name)}`, { method: "DELETE" }),
 
+  giphySearch: (q: string) =>
+    request<{ results: GiphyResult[] }>(`/assets/giphy/search?q=${encodeURIComponent(q)}&limit=12`),
+
+  giphyTrending: () => request<{ results: GiphyResult[] }>("/assets/giphy/trending?limit=12"),
+
+  importGiphy: (gif: Pick<GiphyResult, "id" | "title" | "originalUrl">) =>
+    request<{ name: string; url: string; kind: "gif"; source: string; sourceId: string }>("/assets/giphy/import", {
+      method: "POST",
+      body: JSON.stringify(gif),
+    }),
+
 };
 
 
@@ -424,6 +461,18 @@ export interface ActionResponse {
   icon: string;
   retryable?: boolean;
   state?: Record<string, unknown>;
+}
+
+export interface GiphyResult {
+  id: string;
+  title: string;
+  url: string;
+  previewUrl: string;
+  originalUrl: string;
+  width: number;
+  height: number;
+  sourceUrl?: string;
+  username?: string;
 }
 
 export type MacroStep =
@@ -757,6 +806,8 @@ export interface IntegrationsInfo {
   };
 
   obs: { host: string; port: number; hasPassword: boolean; connected: boolean };
+
+  giphy?: { configured: boolean };
 
 }
 

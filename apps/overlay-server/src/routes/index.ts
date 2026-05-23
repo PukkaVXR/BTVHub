@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { registerAlertProjectsRoutes } from "./alert-projects.routes.js";
 import { registerAlertsRoutes } from "./alerts.routes.js";
 import { registerAssetsRoutes } from "./assets.routes.js";
 import { registerAutomationsRoutes } from "./automations.routes.js";
@@ -28,6 +29,7 @@ export function registerRoutes(app: FastifyInstance, oauthApp: FastifyInstance, 
   registerStreamDeckRoutes(app, ctx);
   registerOverlaysRoutes(app, ctx);
   registerThemesRoutes(app, ctx);
+  registerAlertProjectsRoutes(app, ctx);
   registerAssetsRoutes(app, ctx);
   registerAlertsRoutes(app, ctx);
   registerWidgetsRoutes(app, ctx);

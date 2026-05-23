@@ -1,5 +1,5 @@
 import { createStreamEvent, type StreamEvent } from "@btv/shared";
-import { getEffects, getSetting, getTheme } from "./db.js";
+import { getAlertProject, getEffects, getSetting, getTheme } from "./db.js";
 import type { OverlayBus } from "./bus.js";
 import { runLocalCommand } from "./command-runner.js";
 import { sendTwitchChatMessage } from "./twitch-service.js";
@@ -156,8 +156,9 @@ export class EffectRunner {
 
     if (type === "alert" && event) {
       const themeId = String(config.themeId ?? "default");
-      const theme = getTheme(themeId);
-      if (!theme) return false;
+      const visualProject = getAlertProject(themeId) ?? getAlertProject(`alert-${themeId}`) ?? undefined;
+      const theme = getTheme(themeId) ?? getTheme("default");
+      if (!theme && !visualProject) return false;
       const alertEvent = createStreamEvent({
         source: "manual",
         type: (config.eventType as StreamEvent["type"]) ?? "channel_points",
@@ -175,12 +176,13 @@ export class EffectRunner {
           alert: {
             id: crypto.randomUUID(),
             event: alertEvent,
-            themeId: theme.id,
-            html: theme.html,
-            css: theme.css,
-            js: theme.js,
+            themeId: visualProject?.id ?? theme!.id,
+            html: theme?.html ?? "",
+            css: theme?.css ?? "",
+            js: theme?.js ?? "",
             soundUrl: soundAsset ? `/assets/${soundAsset.replace(/^\//, "")}` : undefined,
-            durationMs: theme.durationMs,
+            durationMs: visualProject?.durationMs ?? theme?.durationMs ?? 5000,
+            visualProject,
           },
         },
         "alerts",

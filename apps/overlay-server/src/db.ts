@@ -10,8 +10,9 @@ import type {
   WidgetConfig,
   StreamEvent,
   AutomationRule,
+  AlertProject,
 } from "@btv/shared";
-import { AutomationRuleSchema } from "@btv/shared";
+import { AlertProjectSchema, AutomationRuleSchema } from "@btv/shared";
 import { decrypt, encrypt } from "./crypto.js";
 
 const DB_PATH = join(
@@ -78,6 +79,18 @@ export function initDb(): DatabaseSync {
       effect_config TEXT NOT NULL DEFAULT '{}',
       cooldown_ms INTEGER DEFAULT 5000,
       enabled INTEGER DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS alert_projects (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      duration_ms INTEGER NOT NULL,
+      canvas_json TEXT NOT NULL DEFAULT '{}',
+      layers_json TEXT NOT NULL DEFAULT '[]',
+      tags_json TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS macros (
@@ -212,6 +225,7 @@ export function initDb(): DatabaseSync {
 
   migrateThemesLayoutColumn();
   seedDefaults();
+  seedAlertProjects();
   return db;
 }
 
@@ -341,6 +355,91 @@ function seedDefaults(): void {
   }
 }
 
+function rowToAlertProject(row: Record<string, unknown>): AlertProject {
+  return AlertProjectSchema.parse({
+    id: String(row.id),
+    name: String(row.name),
+    eventType: String(row.event_type),
+    durationMs: Number(row.duration_ms ?? 5000),
+    canvas: parseJsonValue(row.canvas_json, {}),
+    layers: parseJsonValue(row.layers_json, []),
+    tags: parseJsonValue(row.tags_json, []),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  });
+}
+
+function defaultAlertProjectFromTheme(theme: Theme): AlertProject {
+  const now = new Date().toISOString();
+  return AlertProjectSchema.parse({
+    id: `alert-${theme.id}`,
+    name: `${theme.name} Visual`,
+    eventType: "follow",
+    durationMs: theme.durationMs,
+    canvas: {
+      width: 1920,
+      height: 1080,
+      background: "transparent",
+      backgroundColor: "transparent",
+    },
+    layers: [
+      {
+        id: "card",
+        type: "shape",
+        name: "Alert card",
+        x: 660,
+        y: 400,
+        width: 600,
+        height: 220,
+        fill: "rgba(91, 140, 255, 0.88)",
+        radius: 22,
+        startMs: 0,
+        endMs: theme.durationMs,
+      },
+      {
+        id: "title",
+        type: "text",
+        name: "Title",
+        text: "{user}",
+        x: 700,
+        y: 455,
+        width: 520,
+        height: 72,
+        fontSize: 58,
+        fontWeight: 900,
+        color: "#ffffff",
+        startMs: 0,
+        endMs: theme.durationMs,
+      },
+      {
+        id: "subtitle",
+        type: "text",
+        name: "Subtitle",
+        text: "Thanks for the {event}!",
+        x: 740,
+        y: 535,
+        width: 440,
+        height: 48,
+        fontSize: 30,
+        fontWeight: 700,
+        color: "#dbe6ff",
+        startMs: 250,
+        endMs: theme.durationMs,
+      },
+    ],
+    tags: ["migration", "starter"],
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+function seedAlertProjects(): void {
+  const count = db.prepare("SELECT COUNT(*) as c FROM alert_projects").get() as { c: number };
+  if (count.c > 0) return;
+  const defaultTheme = getTheme("default");
+  if (defaultTheme) upsertAlertProject(defaultAlertProjectFromTheme(defaultTheme));
+}
+
 export function getSetting(key: string): string | null {
   const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(key) as
     | { value: string }
@@ -411,6 +510,50 @@ export function upsertTheme(theme: Theme): void {
 
 export function deleteTheme(id: string): void {
   db.prepare("DELETE FROM themes WHERE id = ?").run(id);
+}
+
+export function getAlertProjects(): AlertProject[] {
+  return (db.prepare("SELECT * FROM alert_projects ORDER BY updated_at DESC").all() as Array<Record<string, unknown>>).map(
+    rowToAlertProject,
+  );
+}
+
+export function getAlertProject(id: string): AlertProject | null {
+  const row = db.prepare("SELECT * FROM alert_projects WHERE id = ?").get(id) as
+    | Record<string, unknown>
+    | undefined;
+  return row ? rowToAlertProject(row) : null;
+}
+
+export function upsertAlertProject(project: AlertProject): void {
+  const parsed = AlertProjectSchema.parse(project);
+  db.prepare(
+    `INSERT INTO alert_projects
+      (id, name, event_type, duration_ms, canvas_json, layers_json, tags_json, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+      name=excluded.name,
+      event_type=excluded.event_type,
+      duration_ms=excluded.duration_ms,
+      canvas_json=excluded.canvas_json,
+      layers_json=excluded.layers_json,
+      tags_json=excluded.tags_json,
+      updated_at=excluded.updated_at`,
+  ).run(
+    parsed.id,
+    parsed.name,
+    parsed.eventType,
+    parsed.durationMs,
+    JSON.stringify(parsed.canvas),
+    JSON.stringify(parsed.layers),
+    JSON.stringify(parsed.tags),
+    parsed.createdAt,
+    parsed.updatedAt,
+  );
+}
+
+export function deleteAlertProject(id: string): void {
+  db.prepare("DELETE FROM alert_projects WHERE id = ?").run(id);
 }
 
 function rowToTheme(row: Record<string, unknown>): Theme {

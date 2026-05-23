@@ -10,6 +10,7 @@ export default function IntegrationsPage() {
   const [oauthHost, setOauthHost] = useState("127.0.0.1");
   const [spotifyId, setSpotifyId] = useState("");
   const [spotifySecret, setSpotifySecret] = useState("");
+  const [giphyKey, setGiphyKey] = useState("");
   const [obsHost, setObsHost] = useState("127.0.0.1");
   const [obsPort, setObsPort] = useState(4455);
   const [obsPassword, setObsPassword] = useState("");
@@ -24,6 +25,7 @@ export default function IntegrationsPage() {
       if (data.twitch.hasClientSecret) setTwitchSecret("••••••••");
       setSpotifyId(data.spotify.clientId ?? "");
       if (data.spotify.hasClientSecret) setSpotifySecret("••••••••");
+      if (data.giphy?.configured) setGiphyKey("••••••••");
       setObsHost(data.obs.host);
       setObsPort(data.obs.port);
       if (data.obs.hasPassword) setObsPassword("••••••••");
@@ -351,6 +353,43 @@ export default function IntegrationsPage() {
             </button>
           )}
         </div>
+      </div>
+
+      <div className="card">
+        <h2>GIPHY</h2>
+        {info?.giphy?.configured ? (
+          <span className="badge badge-ok">Configured</span>
+        ) : (
+          <span className="badge badge-off">Not configured</span>
+        )}
+        <p style={{ fontSize: 13, color: "var(--muted)", margin: "10px 0 12px" }}>
+          Used by the Visual Alert Editor for GIF search/import. The key is encrypted locally and never sent to overlay browser sources.
+        </p>
+        <div className="form-row">
+          <label>GIPHY SDK API key</label>
+          <input
+            type="password"
+            value={giphyKey}
+            onChange={(e) => setGiphyKey(e.target.value)}
+            placeholder={info?.giphy?.configured ? "Leave •••• to keep existing" : "Paste your GIPHY key"}
+          />
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          onClick={async () => {
+            const apiKey = giphyKey === "••••••••" ? undefined : giphyKey;
+            if (!apiKey && !info?.giphy?.configured) {
+              toast("Enter GIPHY API key");
+              return;
+            }
+            await api.saveGiphyConfig(apiKey);
+            toast("GIPHY key saved");
+            void load();
+          }}
+        >
+          Save GIPHY key
+        </button>
       </div>
 
       <div className="card">

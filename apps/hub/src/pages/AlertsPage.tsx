@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import type { AlertRule, StreamEventType, Theme } from "@btv/shared";
+import type { AlertProject, AlertRule, StreamEventType } from "@btv/shared";
 import SoundPicker from "../components/SoundPicker";
 import { api } from "../api";
 import { SaveIndicator } from "../hooks/SaveIndicator";
@@ -19,14 +19,14 @@ const EVENT_TYPES: StreamEventType[] = [
 
 export default function AlertsPage() {
   const [rules, setRules] = useState<AlertRule[]>([]);
-  const [themes, setThemes] = useState<Theme[]>([]);
+  const [projects, setProjects] = useState<AlertProject[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const toast = useToast();
 
   const load = () => {
-    void Promise.all([api.alertRules(), api.themes()]).then(([r, t]) => {
+    void Promise.all([api.alertRules(), api.alertProjects()]).then(([r, p]) => {
       setRules(r);
-      setThemes(t);
+      setProjects(p);
       setHydrated(true);
     });
   };
@@ -43,17 +43,24 @@ export default function AlertsPage() {
 
   const test = async (type: StreamEventType) => {
     try {
-      await api.testAlert(type);
-      toast(type === "chat" ? "Test chat message sent" : `Test ${type} alert fired`);
+      await api.testVisualAlert(type);
+      toast(type === "chat" ? "Test chat message sent" : `Test visual ${type} alert fired`);
     } catch (e) {
       toast(e instanceof Error ? e.message : "Test failed");
     }
   };
 
+  const selectedProjectId = (themeId: string) => {
+    if (projects.some((project) => project.id === themeId)) return themeId;
+    const migrated = `alert-${themeId}`;
+    if (projects.some((project) => project.id === migrated)) return migrated;
+    return themeId;
+  };
+
   return (
     <>
       <h1>Alerts</h1>
-      <p className="subtitle">Map Twitch events to themes and sounds.</p>
+      <p className="subtitle">Advanced routing: map Twitch events to visual alert projects and sounds.</p>
       <SaveIndicator status={saveStatus} />
 
       <div className="card">
@@ -82,7 +89,7 @@ export default function AlertsPage() {
           <thead>
             <tr>
               <th>Event</th>
-              <th>Theme</th>
+              <th>Visual alert</th>
               <th>Cooldown</th>
               <th>Min bits</th>
               <th>Sound</th>
@@ -96,24 +103,24 @@ export default function AlertsPage() {
                 <td>{rule.eventType}</td>
                 <td>
                   <select
-                    value={rule.themeId}
+                    value={selectedProjectId(rule.themeId)}
                     onChange={(e) =>
                       setRules((rs) =>
                         rs.map((r) => (r.id === rule.id ? { ...r, themeId: e.target.value } : r)),
                       )
                     }
                   >
-                    {themes.map((th) => (
-                      <option key={th.id} value={th.id}>
-                        {th.name}
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
                       </option>
                     ))}
                   </select>
                   <Link
-                    to={`/themes?id=${rule.themeId}`}
+                    to={`/alerts?id=${selectedProjectId(rule.themeId)}`}
                     style={{ fontSize: 12, marginLeft: 8 }}
                   >
-                    Edit theme
+                    Edit alert
                   </Link>
                 </td>
                 <td>

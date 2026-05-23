@@ -99,6 +99,8 @@ Goal: compete with the most useful parts of Streamer.bot.
 
 Goal: compete with StreamElements and Streamlabs for daily streamer needs.
 
+Visual alert editor polish is tracked in detail in `Visual Alert Editor Plan.md`.
+
 - [x] Basic alert rules.
 - [x] Basic alert queue.
 - [x] Theme editing support.
@@ -226,16 +228,16 @@ Goal: make BTV extensible.
 - [ ] Twitch connected.
 - [ ] OBS connected.
 - [ ] Overlays work.
-- [ ] Alerts work.
+- [x] Alerts work.
 - [x] Event log exists.
 - [x] Emergency stop exists.
 
 ### Private Beta
 
 - [x] Setup wizard.
-- [ ] BTV Doctor.
-- [ ] Alert editor.
-- [ ] Basic automations.
+- [x] BTV Doctor.
+- [x] Alert editor.
+- [x] Basic automations.
 - [ ] Import/export config.
 - [ ] Crash-safe startup.
 

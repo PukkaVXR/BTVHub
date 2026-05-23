@@ -30,8 +30,8 @@ export default function SetupPage() {
   }, []);
 
   const testFollow = async () => {
-    await api.testAlert("follow");
-    toast("Test follow alert sent");
+    await api.testVisualAlert("follow");
+    toast("Test visual follow alert sent");
     load();
   };
 

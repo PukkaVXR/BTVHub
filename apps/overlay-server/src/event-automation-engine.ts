@@ -10,6 +10,7 @@ import {
   deleteAutomationStateValue,
   getAutomationRules,
   getAutomationStateValue,
+  getAlertProject,
   getSetting,
   getTheme,
   recordAutomationRuleRun,
@@ -292,8 +293,9 @@ export class EventAutomationEngine {
         );
         return `Overlay event: ${action.name}`;
       case "overlay_alert": {
-        const theme = getTheme(action.themeId);
-        if (!theme) throw new Error(`Alert theme not found: ${action.themeId}`);
+        const visualProject = getAlertProject(action.themeId) ?? getAlertProject(`alert-${action.themeId}`) ?? undefined;
+        const theme = getTheme(action.themeId) ?? getTheme("default");
+        if (!theme && !visualProject) throw new Error(`Alert project not found: ${action.themeId}`);
         const alertEvent = createStreamEvent({
           source: "manual",
           type: action.eventType,
@@ -314,11 +316,12 @@ export class EventAutomationEngine {
             alert: {
               id: crypto.randomUUID(),
               event: alertEvent,
-              themeId: theme.id,
-              html: theme.html,
-              css: theme.css,
-              js: theme.js,
-              durationMs: action.durationMs,
+              themeId: visualProject?.id ?? theme!.id,
+              html: theme?.html ?? "",
+              css: theme?.css ?? "",
+              js: theme?.js ?? "",
+              durationMs: action.durationMs ?? visualProject?.durationMs ?? theme?.durationMs,
+              visualProject,
             },
           },
         });

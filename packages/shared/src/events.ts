@@ -92,6 +92,7 @@ export const BusMessageSchema = z.discriminatedUnion("kind", [
       js: z.string().optional(),
       soundUrl: z.string().optional(),
       durationMs: z.number().default(5000),
+      visualProject: z.unknown().optional(),
     }),
   }),
   z.object({
@@ -204,6 +205,150 @@ export const ThemeSchema = z.object({
 });
 
 export type Theme = z.infer<typeof ThemeSchema>;
+
+export const AlertCanvasSchema = z.object({
+  width: z.number().min(320).max(7680).default(1920),
+  height: z.number().min(180).max(4320).default(1080),
+  background: z.enum(["transparent", "checkerboard", "solid"]).default("transparent"),
+  backgroundColor: z.string().default("transparent"),
+});
+
+export const AlertEasingSchema = z.enum([
+  "linear",
+  "ease-in",
+  "ease-out",
+  "ease-in-out",
+  "bounce",
+  "elastic",
+]);
+
+export const AlertKeyframeSchema = z.object({
+  id: z.string(),
+  atMs: z.number().min(0),
+  easing: AlertEasingSchema.default("ease-out"),
+  properties: z.record(z.unknown()).default({}),
+});
+
+export const AlertAnimationPresetSchema = z.enum([
+  "none",
+  "fade-in",
+  "pop-in",
+  "slide-in",
+  "bounce-in",
+  "elastic-in",
+  "spin-in",
+  "screen-slam",
+  "glitch-reveal",
+  "pulse",
+  "float",
+  "wiggle",
+  "glow-pulse",
+  "fade-out",
+  "glitch-out",
+]);
+
+export const AlertLayerAnimationSchema = z.object({
+  preset: AlertAnimationPresetSchema.default("none"),
+  delayMs: z.number().min(0).default(0),
+  durationMs: z.number().min(100).max(60000).default(700),
+  easing: AlertEasingSchema.default("ease-out"),
+  intensity: z.number().min(0).max(5).default(1),
+  loop: z.boolean().default(false),
+});
+
+export const AlertLayerFilterSchema = z.object({
+  blur: z.number().min(0).max(80).default(0),
+  brightness: z.number().min(0).max(3).default(1),
+  contrast: z.number().min(0).max(3).default(1),
+  saturation: z.number().min(0).max(3).default(1),
+  hueRotate: z.number().min(-360).max(360).default(0),
+  glow: z.number().min(0).max(120).default(0),
+  glowColor: z.string().default("rgba(91, 140, 255, 0.9)"),
+});
+
+export const AlertLayerBaseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  visible: z.boolean().default(true),
+  locked: z.boolean().default(false),
+  startMs: z.number().min(0).default(0),
+  endMs: z.number().min(0).default(5000),
+  x: z.number().default(760),
+  y: z.number().default(430),
+  width: z.number().min(1).default(400),
+  height: z.number().min(1).default(120),
+  rotation: z.number().default(0),
+  opacity: z.number().min(0).max(1).default(1),
+  scale: z.number().min(0.01).max(10).default(1),
+  blendMode: z.string().default("normal"),
+  keyframes: z.array(AlertKeyframeSchema).default([]),
+  animation: AlertLayerAnimationSchema.optional(),
+  filter: AlertLayerFilterSchema.optional(),
+});
+
+export const AlertTextLayerSchema = AlertLayerBaseSchema.extend({
+  type: z.literal("text"),
+  text: z.string().default("Thanks {user}!"),
+  fontFamily: z.string().default("Inter, Segoe UI, sans-serif"),
+  fontSize: z.number().min(8).max(240).default(56),
+  fontWeight: z.number().min(100).max(1000).default(800),
+  color: z.string().default("#ffffff"),
+  align: z.enum(["left", "center", "right"]).default("center"),
+  strokeColor: z.string().optional(),
+  strokeWidth: z.number().min(0).max(24).default(0),
+  shadow: z.string().optional(),
+});
+
+export const AlertMediaLayerSchema = AlertLayerBaseSchema.extend({
+  type: z.enum(["image", "gif", "video"]),
+  assetUrl: z.string().default(""),
+  fit: z.enum(["contain", "cover", "fill"]).default("contain"),
+  loop: z.boolean().default(true),
+  muted: z.boolean().default(true),
+  volume: z.number().min(0).max(1).default(1),
+});
+
+export const AlertAudioLayerSchema = AlertLayerBaseSchema.extend({
+  type: z.literal("audio"),
+  assetUrl: z.string().default(""),
+  volume: z.number().min(0).max(1).default(1),
+  loop: z.boolean().default(false),
+});
+
+export const AlertShapeLayerSchema = AlertLayerBaseSchema.extend({
+  type: z.literal("shape"),
+  shape: z.enum(["rectangle", "ellipse"]).default("rectangle"),
+  fill: z.string().default("rgba(91, 140, 255, 0.8)"),
+  borderColor: z.string().default("transparent"),
+  borderWidth: z.number().min(0).max(32).default(0),
+  radius: z.number().min(0).max(120).default(16),
+});
+
+export const AlertLayerSchema = z.discriminatedUnion("type", [
+  AlertTextLayerSchema,
+  AlertMediaLayerSchema,
+  AlertAudioLayerSchema,
+  AlertShapeLayerSchema,
+]);
+
+export const AlertProjectSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  eventType: StreamEventTypeSchema.default("follow"),
+  durationMs: z.number().min(500).max(60000).default(5000),
+  canvas: AlertCanvasSchema.default({}),
+  layers: z.array(AlertLayerSchema).default([]),
+  tags: z.array(z.string()).default([]),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type AlertCanvas = z.infer<typeof AlertCanvasSchema>;
+export type AlertLayerFilter = z.infer<typeof AlertLayerFilterSchema>;
+export type AlertKeyframe = z.infer<typeof AlertKeyframeSchema>;
+export type AlertLayer = z.infer<typeof AlertLayerSchema>;
+export type AlertLayerAnimation = z.infer<typeof AlertLayerAnimationSchema>;
+export type AlertProject = z.infer<typeof AlertProjectSchema>;
 
 export const WidgetConfigSchema = z.object({
   id: z.string(),

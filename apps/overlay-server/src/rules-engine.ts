@@ -3,7 +3,7 @@ import {
   type StreamEvent,
   type StreamEventType,
 } from "@btv/shared";
-import { getAlertRules, getTheme, getWidgets, logActivity, logSessionEvent, updateGoal } from "./db.js";
+import { getAlertProject, getAlertRules, getTheme, getWidgets, logActivity, logSessionEvent, updateGoal } from "./db.js";
 import type { AlertQueue } from "./alert-queue.js";
 import type { OverlayBus } from "./bus.js";
 import type { EffectRunner } from "./effect-runner.js";
@@ -101,8 +101,9 @@ export class RulesEngine {
     const rule = rules[0]!;
     if (rule.minAmount != null && (event.amount ?? 0) < rule.minAmount) return;
 
-    const theme = getTheme(rule.themeId);
-    if (!theme) return;
+    const visualProject = getAlertProject(rule.themeId) ?? getAlertProject(`alert-${rule.themeId}`) ?? undefined;
+    const theme = getTheme(rule.themeId) ?? getTheme("default");
+    if (!theme && !visualProject) return;
 
     const soundUrl = rule.soundAsset
       ? `/assets/${rule.soundAsset}`
@@ -118,12 +119,13 @@ export class RulesEngine {
           alert: {
             id: crypto.randomUUID(),
             event,
-            themeId: theme.id,
-            html: theme.html,
-            css: theme.css,
-            js: theme.js,
+            themeId: visualProject?.id ?? theme!.id,
+            html: theme?.html ?? "",
+            css: theme?.css ?? "",
+            js: theme?.js ?? "",
             soundUrl,
-            durationMs: theme.durationMs,
+            durationMs: visualProject?.durationMs ?? theme?.durationMs ?? 5000,
+            visualProject,
           },
         },
       },

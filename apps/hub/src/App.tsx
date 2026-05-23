@@ -1,18 +1,29 @@
-import { NavLink, Route, Routes } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { Navigate, NavLink, Route, Routes } from "react-router-dom";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { api } from "./api";
-import Dashboard from "./pages/Dashboard";
-import OverlaysPage from "./pages/OverlaysPage";
-import AlertsPage from "./pages/AlertsPage";
-import WidgetsPage from "./pages/WidgetsPage";
-import ThemesPage from "./pages/ThemesPage";
-import InteractivePage from "./pages/InteractivePage";
-import MacrosPage from "./pages/MacrosPage";
-import AutomationsPage from "./pages/AutomationsPage";
-import WebhooksPage from "./pages/WebhooksPage";
-import IntegrationsPage from "./pages/IntegrationsPage";
-import ActivityPage from "./pages/ActivityPage";
-import SetupPage from "./pages/SetupPage";
+
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const SetupPage = lazy(() => import("./pages/SetupPage"));
+const OverlaysPage = lazy(() => import("./pages/OverlaysPage"));
+const AlertEditorPage = lazy(() => import("./pages/AlertEditorPage"));
+const AlertsPage = lazy(() => import("./pages/AlertsPage"));
+const ThemesPage = lazy(() => import("./pages/ThemesPage"));
+const WidgetsPage = lazy(() => import("./pages/WidgetsPage"));
+const InteractivePage = lazy(() => import("./pages/InteractivePage"));
+const MacrosPage = lazy(() => import("./pages/MacrosPage"));
+const AutomationsPage = lazy(() => import("./pages/AutomationsPage"));
+const WebhooksPage = lazy(() => import("./pages/WebhooksPage"));
+const IntegrationsPage = lazy(() => import("./pages/IntegrationsPage"));
+const ActivityPage = lazy(() => import("./pages/ActivityPage"));
+
+function PageLoading() {
+  return (
+    <div className="card">
+      <h2>Loading</h2>
+      <p className="subtitle">Preparing this workspace...</p>
+    </div>
+  );
+}
 
 export default function App() {
   const [health, setHealth] = useState<{
@@ -31,7 +42,6 @@ export default function App() {
     ["/setup", "Setup"],
     ["/overlays", "Overlays"],
     ["/alerts", "Alerts"],
-    ["/themes", "Themes"],
     ["/widgets", "Widgets"],
     ["/interactive", "Interactive"],
     ["/macros", "Macros"],
@@ -73,20 +83,25 @@ export default function App() {
             <span className="badge badge-ok">{health?.overlayUrl ?? "http://127.0.0.1:4782"}</span>
           </span>
         </div>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/setup" element={<SetupPage />} />
-          <Route path="/overlays" element={<OverlaysPage />} />
-          <Route path="/alerts" element={<AlertsPage />} />
-          <Route path="/themes" element={<ThemesPage />} />
-          <Route path="/widgets" element={<WidgetsPage />} />
-          <Route path="/interactive" element={<InteractivePage />} />
-          <Route path="/macros" element={<MacrosPage />} />
-          <Route path="/automations" element={<AutomationsPage />} />
-          <Route path="/webhooks" element={<WebhooksPage />} />
-          <Route path="/integrations" element={<IntegrationsPage />} />
-          <Route path="/activity" element={<ActivityPage />} />
-        </Routes>
+        <Suspense fallback={<PageLoading />}>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/setup" element={<SetupPage />} />
+            <Route path="/overlays" element={<OverlaysPage />} />
+            <Route path="/alerts" element={<AlertEditorPage />} />
+            <Route path="/alerts/editor/:id" element={<AlertEditorPage />} />
+            <Route path="/alert-editor" element={<Navigate to="/alerts" replace />} />
+            <Route path="/alert-rules" element={<AlertsPage />} />
+            <Route path="/themes" element={<ThemesPage />} />
+            <Route path="/widgets" element={<WidgetsPage />} />
+            <Route path="/interactive" element={<InteractivePage />} />
+            <Route path="/macros" element={<MacrosPage />} />
+            <Route path="/automations" element={<AutomationsPage />} />
+            <Route path="/webhooks" element={<WebhooksPage />} />
+            <Route path="/integrations" element={<IntegrationsPage />} />
+            <Route path="/activity" element={<ActivityPage />} />
+          </Routes>
+        </Suspense>
       </main>
     </div>
   );
