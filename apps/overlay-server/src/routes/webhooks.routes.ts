@@ -35,6 +35,7 @@ export const registerWebhooksRoutes: RouteModule = (app, ctx) => {
       ctx.effectRunner,
       ctx.macroRunner,
       ctx.bus,
+      ctx.coreEvents,
     );
     if (!result.ok) return reply.status(result.error === "Invalid secret" ? 401 : 404).send(result);
     return result;

@@ -44,6 +44,10 @@ export const registerAutomationsRoutes: RouteModule = (app, ctx) => {
 
   app.get("/api/automation-rules", async () => getAutomationRules());
   app.get("/api/automation-runs", async () => getAutomationRuns());
+  app.get("/api/events", async (req) => {
+    const query = req.query as { limit?: string };
+    return ctx.coreEvents.getRecent(Number(query.limit ?? 50));
+  });
   app.put("/api/automation-rules/:id", async (req, reply) => {
     const id = (req.params as { id: string }).id;
     const existing = getAutomationRule(id);
@@ -84,6 +88,45 @@ export const registerAutomationsRoutes: RouteModule = (app, ctx) => {
       retryable: !result.ok,
     });
   });
+  app.post("/api/automation-rules/:id/test", async (req, reply) => {
+    const body = req.body as {
+      type?: StreamEventType;
+      user?: { id?: string; login?: string; displayName?: string };
+      message?: string;
+      amount?: number;
+      payload?: Record<string, unknown>;
+    };
+    try {
+      const event = createStreamEvent({
+        source: "manual",
+        type: body.type ?? "follow",
+        user: body.user
+          ? {
+              id: body.user.id ?? "test",
+              login: body.user.login ?? "testuser",
+              displayName: body.user.displayName ?? "TestUser",
+            }
+          : undefined,
+        message: body.message,
+        amount: body.amount,
+        payload: body.payload ?? {},
+      });
+      const result = await ctx.eventAutomationEngine.runTest((req.params as { id: string }).id, event);
+      return reply.status(result.ok ? 200 : 409).send({
+        ok: result.ok,
+        code: result.ok ? "AUTOMATION_RULE_TEST" : "AUTOMATION_RULE_TEST_FAILED",
+        title: result.ok ? "Rule Test" : "Rule Test Failed",
+        message: result.message,
+        color: result.ok ? "#00f593" : "#eb0400",
+        icon: result.ok ? "check" : "alert-triangle",
+        retryable: !result.ok,
+        event,
+      });
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(400).send({ error: err instanceof Error ? err.message : "Rule test failed" });
+    }
+  });
   app.post("/api/events/test", async (req, reply) => {
     const body = req.body as {
       type?: StreamEventType;
@@ -113,5 +156,18 @@ export const registerAutomationsRoutes: RouteModule = (app, ctx) => {
       app.log.error(err);
       return reply.status(400).send({ error: err instanceof Error ? err.message : "Test event failed" });
     }
+  });
+  app.post("/api/events/dispatch", async (req) => {
+    const body = req.body as { type?: string; payload?: unknown; metadata?: Record<string, unknown> };
+    const event = {
+      id: crypto.randomUUID(),
+      type: body.type?.trim() || "dashboard.manual",
+      source: "dashboard" as const,
+      timestamp: new Date().toISOString(),
+      payload: body.payload ?? {},
+      metadata: body.metadata ?? {},
+    };
+    ctx.coreEvents.publish(event);
+    return { ok: true, event };
   });
 };

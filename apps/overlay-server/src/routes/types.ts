@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { AlertQueue } from "../alert-queue.js";
 import type { AutomationScheduler } from "../automation-scheduler.js";
 import type { OverlayBus } from "../bus.js";
+import type { CoreEventBus } from "../core-event-bus.js";
 import type { EffectRunner } from "../effect-runner.js";
 import type { EventAutomationEngine } from "../event-automation-engine.js";
 import type { MacroRunner } from "../macro-runner.js";
@@ -14,6 +15,7 @@ import type { getTwitchStatus } from "../twitch-service.js";
 export interface ServerContext {
   assetsDir: string;
   bus: OverlayBus;
+  coreEvents: CoreEventBus;
   alertQueue: AlertQueue;
   effectRunner: EffectRunner;
   macroRunner: MacroRunner;

@@ -8,6 +8,7 @@ import type { AlertQueue } from "./alert-queue.js";
 import type { OverlayBus } from "./bus.js";
 import type { EffectRunner } from "./effect-runner.js";
 import type { EventAutomationEngine } from "./event-automation-engine.js";
+import type { CoreEventBus } from "./core-event-bus.js";
 
 const GOAL_EVENT_MAP: Partial<Record<StreamEventType, string>> = {
   follow: "follow",
@@ -21,12 +22,14 @@ export class RulesEngine {
     private readonly bus: OverlayBus,
     private readonly alertQueue: AlertQueue,
     private readonly effectRunner: EffectRunner,
+    private readonly coreEvents: CoreEventBus,
     private readonly eventAutomations?: EventAutomationEngine,
   ) {}
 
   async handleEvent(event: StreamEvent): Promise<void> {
     logActivity(JSON.stringify(event));
     logSessionEvent(event);
+    this.coreEvents.publishStreamEvent(event);
 
     this.bus.broadcast({ kind: "ticker:event", event }, "ticker");
 

@@ -63,37 +63,37 @@ Goal: compete with the most useful parts of Streamer.bot.
 - [x] Automation run history.
 - [x] Automation builder MVP.
 - [x] Manual test event dispatcher.
-- [ ] Central event bus abstraction beyond current stream event handling.
-- [ ] Normalize all event sources into one `BtvEvent` format.
-- [ ] Core Twitch triggers: follow.
-- [ ] Core Twitch triggers: subscription.
-- [ ] Core Twitch triggers: resub.
-- [ ] Core Twitch triggers: gift sub.
-- [ ] Core Twitch triggers: raid.
-- [ ] Core Twitch triggers: cheer.
-- [ ] Core Twitch triggers: channel point redemption.
-- [ ] Core OBS trigger: scene changed.
-- [ ] Core timer trigger.
-- [ ] Core webhook trigger.
-- [ ] Core dashboard button trigger.
-- [ ] OBS action: switch scene.
-- [ ] OBS action: show/hide/toggle source.
-- [ ] OBS action: set source transform.
-- [ ] OBS action: enable/disable source filter.
-- [ ] OBS action: set source text.
-- [ ] OBS action: mute/unmute source.
-- [ ] OBS action: start/stop recording.
-- [ ] OBS action: start/stop streaming.
-- [ ] Overlay action: trigger alert.
-- [ ] Overlay action: trigger animation.
-- [ ] Overlay action: update widget text.
-- [ ] Overlay action: clear overlay queue.
-- [ ] State variables.
-- [ ] Variable actions: set/increment/decrement/reset.
-- [ ] Branch/if action.
-- [ ] Random choice action.
-- [ ] Failed action visibility in logs.
-- [ ] Rule test runner with editable event payload.
+- [x] Central event bus abstraction beyond current stream event handling.
+- [x] Normalize all event sources into one `BtvEvent` format.
+- [x] Core Twitch triggers: follow.
+- [x] Core Twitch triggers: subscription.
+- [x] Core Twitch triggers: resub.
+- [x] Core Twitch triggers: gift sub.
+- [x] Core Twitch triggers: raid.
+- [x] Core Twitch triggers: cheer.
+- [x] Core Twitch triggers: channel point redemption.
+- [x] Core OBS trigger: scene changed.
+- [x] Core timer trigger.
+- [x] Core webhook trigger.
+- [x] Core dashboard button trigger.
+- [x] OBS action: switch scene.
+- [x] OBS action: show/hide/toggle source.
+- [x] OBS action: set source transform.
+- [x] OBS action: enable/disable source filter.
+- [x] OBS action: set source text.
+- [x] OBS action: mute/unmute source.
+- [x] OBS action: start/stop recording.
+- [x] OBS action: start/stop streaming.
+- [x] Overlay action: trigger alert.
+- [x] Overlay action: trigger animation.
+- [x] Overlay action: update widget text.
+- [x] Overlay action: clear overlay queue.
+- [x] State variables.
+- [x] Variable actions: set/increment/decrement/reset.
+- [x] Branch/if action.
+- [x] Random choice action.
+- [x] Failed action visibility in logs.
+- [x] Rule test runner with editable event payload.
 
 ## Phase 2: Overlay and Alert System Upgrade
 

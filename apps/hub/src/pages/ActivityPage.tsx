@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { StreamEvent } from "@btv/shared";
+import type { BtvEvent, StreamEvent } from "@btv/shared";
 import { api, type StreamSession, type StreamSessionDetail, type SystemLogEntry } from "../api";
 
 function formatDuration(ms: number) {
@@ -14,15 +14,17 @@ function formatDuration(ms: number) {
 
 export default function ActivityPage() {
   const [items, setItems] = useState<Array<{ id: string; event: StreamEvent; at: string }>>([]);
+  const [coreEvents, setCoreEvents] = useState<BtvEvent[]>([]);
   const [logs, setLogs] = useState<SystemLogEntry[]>([]);
   const [sessions, setSessions] = useState<StreamSession[]>([]);
   const [selected, setSelected] = useState<StreamSessionDetail | null>(null);
 
   const load = () => {
-    void Promise.all([api.activity(), api.sessions(), api.logs()]).then(([activity, sessionList, logList]) => {
+    void Promise.all([api.activity(), api.sessions(), api.logs(), api.coreEvents()]).then(([activity, sessionList, logList, eventList]) => {
       setItems(activity);
       setSessions(sessionList.sessions);
       setLogs(logList);
+      setCoreEvents(eventList);
       const selectedId = selected?.summary.session?.id;
       if (selectedId) {
         void api.sessionDetail(selectedId).then(setSelected);
@@ -68,6 +70,31 @@ export default function ActivityPage() {
           </tbody>
         </table>
         {logs.length === 0 && <p style={{ color: "var(--muted)", padding: 12 }}>No system logs yet.</p>}
+      </div>
+
+      <div className="card">
+        <h2>Core Event Bus</h2>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Source</th>
+              <th>Type</th>
+              <th>Actor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {coreEvents.slice(0, 30).map((event) => (
+              <tr key={event.id}>
+                <td>{new Date(event.timestamp).toLocaleString()}</td>
+                <td>{event.source}</td>
+                <td>{event.type}</td>
+                <td>{event.actor?.displayName ?? event.actor?.login ?? "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {coreEvents.length === 0 && <p style={{ color: "var(--muted)", padding: 12 }}>No normalized events yet.</p>}
       </div>
 
       <div className="card">

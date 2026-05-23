@@ -38,9 +38,14 @@ export interface MacroRunResult {
   steps: MacroStepResult[];
 }
 
-const MAX_WAIT_MS = 30_000;
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, Math.max(0, Math.min(ms, MAX_WAIT_MS))));
+const MAX_WAIT_MS = 60 * 60_000;
+function clampWaitMs(ms: number): number {
+  return Math.max(0, Math.min(ms, MAX_WAIT_MS));
+}
+
+function wait(ms: number): Promise<number> {
+  const durationMs = clampWaitMs(ms);
+  return new Promise((resolve) => setTimeout(() => resolve(durationMs), durationMs));
 }
 
 export class MacroRunner {
@@ -80,8 +85,12 @@ export class MacroRunner {
     try {
       switch (step.type) {
         case "wait":
-          await wait(Number(step.durationMs ?? 0));
-          return { index, type: step.type, ok: true, message: `Waited ${step.durationMs}ms` };
+          return {
+            index,
+            type: step.type,
+            ok: true,
+            message: `Waited ${await wait(Number(step.durationMs ?? 0))}ms`,
+          };
         case "obs_scene": {
           const ok = await setObsScene(step.sceneName);
           return { index, type: step.type, ok, message: ok ? `Scene: ${step.sceneName}` : `Scene failed: ${step.sceneName}` };

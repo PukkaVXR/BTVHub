@@ -50,6 +50,36 @@ export type StreamEventType = z.infer<typeof StreamEventTypeSchema>;
 export type StreamUser = z.infer<typeof StreamUserSchema>;
 export type StreamEvent = z.infer<typeof StreamEventSchema>;
 
+export const BtvEventSourceSchema = z.enum([
+  "twitch",
+  "obs",
+  "dashboard",
+  "webhook",
+  "timer",
+  "system",
+  "spotify",
+]);
+
+export const BtvEventSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  source: BtvEventSourceSchema,
+  timestamp: z.string(),
+  actor: z
+    .object({
+      id: z.string().optional(),
+      login: z.string().optional(),
+      displayName: z.string().optional(),
+      roles: z.array(z.string()).optional(),
+    })
+    .optional(),
+  payload: z.unknown(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export type BtvEventSource = z.infer<typeof BtvEventSourceSchema>;
+export type BtvEvent = z.infer<typeof BtvEventSchema>;
+
 export const BusMessageSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("alert:play"),
@@ -226,6 +256,10 @@ export const AutomationTriggerSchema = z.discriminatedUnion("type", [
     eventType: StreamEventTypeSchema,
   }),
   z.object({
+    type: z.literal("btv_event"),
+    eventType: z.string().min(1),
+  }),
+  z.object({
     type: z.literal("chat_command"),
     command: z.string().min(1),
   }),
@@ -247,6 +281,12 @@ export const AutomationConditionSchema = z.discriminatedUnion("type", [
     type: z.literal("message_includes"),
     text: z.string().min(1),
   }),
+  z.object({
+    type: z.literal("variable_compare"),
+    name: z.string().min(1),
+    operator: z.enum(["equals", "not_equals", "greater_than", "less_than", "exists"]),
+    value: z.union([z.string(), z.number(), z.boolean()]).optional(),
+  }),
 ]);
 
 export const AutomationActionSchema = z.discriminatedUnion("type", [
@@ -263,6 +303,72 @@ export const AutomationActionSchema = z.discriminatedUnion("type", [
     sourceGroupId: z.string().min(1),
   }),
   z.object({
+    type: z.literal("obs_scene"),
+    sceneName: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("obs_source_visibility"),
+    sceneName: z.string().min(1),
+    sourceName: z.string().min(1),
+    visible: z.boolean(),
+  }),
+  z.object({
+    type: z.literal("obs_source_motion"),
+    sceneName: z.string().min(1),
+    sourceName: z.string().min(1),
+    mode: z.enum(["set", "dvd", "path"]).default("set"),
+    durationMs: z.number().min(0).max(60000).optional(),
+    fps: z.number().min(10).max(60).optional(),
+    visible: z.boolean().optional(),
+    restore: z.boolean().optional(),
+    boundsWidth: z.number().min(1).max(10000).optional(),
+    boundsHeight: z.number().min(1).max(10000).optional(),
+    speedX: z.number().min(-200).max(200).optional(),
+    speedY: z.number().min(-200).max(200).optional(),
+    randomizeStart: z.boolean().optional(),
+    x: z.number().optional(),
+    y: z.number().optional(),
+    scale: z.number().optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    path: z
+      .array(
+        z.object({
+          x: z.number(),
+          y: z.number(),
+          scale: z.number().optional(),
+        }),
+      )
+      .optional(),
+  }),
+  z.object({
+    type: z.literal("obs_filter"),
+    sourceName: z.string().min(1),
+    filterName: z.string().min(1),
+    enabled: z.boolean(),
+  }),
+  z.object({
+    type: z.literal("obs_mute"),
+    inputName: z.string().min(1),
+    muted: z.boolean(),
+  }),
+  z.object({
+    type: z.literal("obs_recording"),
+    action: z.enum(["start", "stop", "pause", "resume"]),
+  }),
+  z.object({
+    type: z.literal("obs_streaming"),
+    action: z.enum(["start", "stop"]),
+  }),
+  z.object({
+    type: z.literal("obs_text"),
+    inputName: z.string().min(1),
+    text: z.string(),
+  }),
+  z.object({
+    type: z.literal("clear_alerts"),
+  }),
+  z.object({
     type: z.literal("twitch_chat"),
     message: z.string().min(1),
   }),
@@ -273,8 +379,63 @@ export const AutomationActionSchema = z.discriminatedUnion("type", [
     payload: z.record(z.unknown()).default({}),
   }),
   z.object({
+    type: z.literal("overlay_alert"),
+    themeId: z.string().min(1).default("default"),
+    eventType: StreamEventTypeSchema.default("unknown"),
+    message: z.string().default("Automation alert"),
+    userName: z.string().default("BTV"),
+    durationMs: z.number().min(500).max(60000).default(5000),
+  }),
+  z.object({
+    type: z.literal("overlay_animation"),
+    channel: z.string().min(1).default("effects"),
+    name: z.string().min(1),
+    payload: z.record(z.unknown()).default({}),
+  }),
+  z.object({
+    type: z.literal("widget_text"),
+    widgetId: z.string().min(1),
+    text: z.string(),
+  }),
+  z.object({
+    type: z.literal("variable_set"),
+    name: z.string().min(1),
+    value: z.union([z.string(), z.number(), z.boolean()]),
+  }),
+  z.object({
+    type: z.literal("variable_increment"),
+    name: z.string().min(1),
+    amount: z.number().default(1),
+  }),
+  z.object({
+    type: z.literal("variable_decrement"),
+    name: z.string().min(1),
+    amount: z.number().default(1),
+  }),
+  z.object({
+    type: z.literal("variable_reset"),
+    name: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("branch"),
+    conditions: z.array(AutomationConditionSchema).default([]),
+    thenActions: z.array(z.record(z.unknown())).default([]),
+    elseActions: z.array(z.record(z.unknown())).default([]),
+  }),
+  z.object({
+    type: z.literal("random_choice"),
+    choices: z
+      .array(
+        z.object({
+          weight: z.number().min(1).default(1),
+          actions: z.array(z.record(z.unknown())).default([]),
+        }),
+      )
+      .default([]),
+  }),
+  z.object({
     type: z.literal("wait"),
-    durationMs: z.number().min(0).max(30000),
+    durationMs: z.number().min(0).max(3600000),
   }),
 ]);
 

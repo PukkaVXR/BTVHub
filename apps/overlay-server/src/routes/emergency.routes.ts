@@ -25,45 +25,55 @@ export const registerEmergencyRoutes: RouteModule = (app, ctx) => {
         setSetting("automations_disabled", "1");
         setSetting("channel_point_actions_disabled", "1");
         broadcastOverlayEmergency(ctx, "all");
+        ctx.coreEvents.publishSystem("emergency.all", { action });
         logSystem("emergency", "warn", "Emergency stop all triggered");
         return emergencyResult("Emergency stop sent", "Alerts cleared, overlays reset, sounds stopped, automations paused, channel point actions disabled.");
       case "stop-sounds":
         broadcastOverlayEmergency(ctx, "stop_sounds");
+        ctx.coreEvents.publishSystem("emergency.stop_sounds", { action });
         logSystem("emergency", "warn", "Emergency stop sounds triggered");
         return emergencyResult("Sounds stopped", "All connected overlays were asked to stop active sounds.");
       case "hide-overlays":
         broadcastOverlayEmergency(ctx, "hide_overlays");
+        ctx.coreEvents.publishSystem("emergency.hide_overlays", { action });
         logSystem("emergency", "warn", "Emergency hide overlays triggered");
         return emergencyResult("Overlays hidden", "All connected overlays were asked to hide themselves.");
       case "reset-overlays":
         broadcastOverlayEmergency(ctx, "reset_overlay_state");
+        ctx.coreEvents.publishSystem("emergency.reset_overlay_state", { action });
         logSystem("emergency", "info", "Emergency reset overlays triggered");
         return emergencyResult("Overlays reset", "All connected overlays were asked to clear temporary state and show themselves again.");
       case "disable-automations":
         ctx.automationScheduler.stopAll();
         setSetting("automations_disabled", "1");
+        ctx.coreEvents.publishSystem("automation.disabled", { action });
         logSystem("emergency", "warn", "Automations disabled");
         return emergencyResult("Automations disabled", "Timer and event automations are paused.");
       case "enable-automations":
         setSetting("automations_disabled", "0");
         ctx.automationScheduler.startAll();
+        ctx.coreEvents.publishSystem("automation.enabled", { action });
         logSystem("emergency", "info", "Automations enabled");
         return emergencyResult("Automations enabled", "Timer and event automations can run again.");
       case "disable-channel-points":
         setSetting("channel_point_actions_disabled", "1");
+        ctx.coreEvents.publishSystem("channel_points.disabled", { action });
         logSystem("emergency", "warn", "Channel point actions disabled");
         return emergencyResult("Channel point actions disabled", "Channel point effects are paused.");
       case "enable-channel-points":
         setSetting("channel_point_actions_disabled", "0");
+        ctx.coreEvents.publishSystem("channel_points.enabled", { action });
         logSystem("emergency", "info", "Channel point actions enabled");
         return emergencyResult("Channel point actions enabled", "Channel point effects can run again.");
       case "reconnect-obs": {
         const ok = await connectObs();
+        ctx.coreEvents.publishSystem("obs.reconnect", { ok });
         logSystem("emergency", ok ? "info" : "error", ok ? "OBS reconnect succeeded" : "OBS reconnect failed");
         return emergencyResult(ok ? "OBS reconnected" : "OBS reconnect failed", ok ? "OBS WebSocket is connected." : "BTV could not reach OBS WebSocket.", ok);
       }
       case "reconnect-twitch":
         ctx.bootEventSub();
+        ctx.coreEvents.publishSystem("twitch.reconnect", { action });
         logSystem("emergency", "info", "Twitch reconnect started");
         return emergencyResult("Twitch reconnect started", "BTV restarted Twitch EventSub.");
       default:

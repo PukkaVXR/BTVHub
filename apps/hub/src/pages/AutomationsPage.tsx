@@ -69,10 +69,46 @@ function eventActionTemplate(type: AutomationActionConfig["type"]): AutomationAc
       return { type, effectId: "" };
     case "source_group":
       return { type, sourceGroupId: "" };
+    case "obs_scene":
+      return { type, sceneName: "" };
+    case "obs_source_visibility":
+      return { type, sceneName: "", sourceName: "", visible: true };
+    case "obs_source_motion":
+      return { type, sceneName: "", sourceName: "", mode: "set", x: 0, y: 0, scale: 1, restore: false };
+    case "obs_filter":
+      return { type, sourceName: "", filterName: "", enabled: true };
+    case "obs_mute":
+      return { type, inputName: "", muted: true };
+    case "obs_recording":
+      return { type, action: "start" };
+    case "obs_streaming":
+      return { type, action: "start" };
+    case "obs_text":
+      return { type, inputName: "", text: "Updated by {user}" };
+    case "clear_alerts":
+      return { type };
     case "twitch_chat":
       return { type, message: "Thanks {user}!" };
     case "overlay_event":
       return { type, channel: "effects", name: "automation", payload: {} };
+    case "overlay_alert":
+      return { type, themeId: "default", eventType: "unknown", message: "Automation alert for {user}", userName: "{user}", durationMs: 5000 };
+    case "overlay_animation":
+      return { type, channel: "effects", name: "automation", payload: {} };
+    case "widget_text":
+      return { type, widgetId: "ticker", text: "Updated by {user}" };
+    case "variable_set":
+      return { type, name: "counter", value: 0 };
+    case "variable_increment":
+      return { type, name: "counter", amount: 1 };
+    case "variable_decrement":
+      return { type, name: "counter", amount: 1 };
+    case "variable_reset":
+      return { type, name: "counter" };
+    case "branch":
+      return { type, conditions: [], thenActions: [], elseActions: [] };
+    case "random_choice":
+      return { type, choices: [{ weight: 1, actions: [] }] };
     case "wait":
       return { type, durationMs: 1000 };
     default:
@@ -88,6 +124,8 @@ function conditionTemplate(type: AutomationCondition["type"]): AutomationConditi
       return { type, text: "hello" };
     case "user_role":
       return { type, role: "moderator" };
+    case "variable_compare":
+      return { type, name: "counter", operator: "exists" };
     default:
       return { type: "min_amount", amount: 1 };
   }
@@ -95,6 +133,7 @@ function conditionTemplate(type: AutomationCondition["type"]): AutomationConditi
 
 function describeRuleTrigger(rule: AutomationRule): string {
   if (rule.trigger.type === "stream_event") return rule.trigger.eventType;
+  if (rule.trigger.type === "btv_event") return rule.trigger.eventType;
   if (rule.trigger.type === "chat_command") return rule.trigger.command;
   return "manual";
 }
@@ -107,10 +146,46 @@ function describeAction(action: AutomationActionConfig): string {
       return `effect:${action.effectId || "unset"}`;
     case "source_group":
       return `layout:${action.sourceGroupId || "unset"}`;
+    case "obs_scene":
+      return `scene:${action.sceneName || "unset"}`;
+    case "obs_source_visibility":
+      return `${action.visible ? "show" : "hide"}:${action.sourceName || "unset"}`;
+    case "obs_source_motion":
+      return `motion:${action.sourceName || "unset"}`;
+    case "obs_filter":
+      return `${action.enabled ? "enable" : "disable"} filter:${action.filterName || "unset"}`;
+    case "obs_mute":
+      return `${action.muted ? "mute" : "unmute"}:${action.inputName || "unset"}`;
+    case "obs_recording":
+      return `recording:${action.action}`;
+    case "obs_streaming":
+      return `streaming:${action.action}`;
+    case "obs_text":
+      return `text:${action.inputName || "unset"}`;
+    case "clear_alerts":
+      return "clear alerts";
     case "twitch_chat":
       return "twitch chat";
     case "overlay_event":
       return `overlay:${action.name}`;
+    case "overlay_alert":
+      return `alert:${action.eventType}`;
+    case "overlay_animation":
+      return `animation:${action.name}`;
+    case "widget_text":
+      return `widget:${action.widgetId}`;
+    case "variable_set":
+      return `set:${action.name}`;
+    case "variable_increment":
+      return `increment:${action.name}`;
+    case "variable_decrement":
+      return `decrement:${action.name}`;
+    case "variable_reset":
+      return `reset:${action.name}`;
+    case "branch":
+      return "branch";
+    case "random_choice":
+      return "random choice";
     case "wait":
       return `wait ${action.durationMs}ms`;
     default:
@@ -136,6 +211,13 @@ export default function AutomationsPage() {
   const [editing, setEditing] = useState<AutomationConfig | null>(null);
   const [editingRule, setEditingRule] = useState<AutomationRule | null>(null);
   const [configJson, setConfigJson] = useState("{}");
+  const [testEventJson, setTestEventJson] = useState(JSON.stringify({
+    type: "follow",
+    user: { id: "test", login: "testuser", displayName: "TestUser" },
+    message: "Phase 1 test event",
+    amount: 1,
+    payload: { roles: ["moderator"] },
+  }, null, 2));
   const toast = useToast();
 
   const load = () => {
@@ -238,6 +320,17 @@ export default function AutomationsPage() {
     }
   };
 
+  const runRuleTest = async (rule: AutomationRule) => {
+    try {
+      const parsed = JSON.parse(testEventJson) as import("../api").TestStreamEvent;
+      const res = await api.testAutomationRule(rule.id, parsed);
+      toast(res.message);
+      load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Rule test failed");
+    }
+  };
+
   const fireTestEvent = async (type: StreamEventType) => {
     try {
       const res = await api.testEvent({
@@ -251,6 +344,16 @@ export default function AutomationsPage() {
       load();
     } catch (err) {
       toast(err instanceof Error ? err.message : "Test event failed");
+    }
+  };
+
+  const dispatchDashboardEvent = async () => {
+    try {
+      const res = await api.dispatchEvent({ type: "dashboard.manual", payload: { source: "AutomationsPage" } });
+      toast(`Core event dispatched: ${res.event.type}`);
+      load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Core event failed");
     }
   };
 
@@ -301,6 +404,9 @@ export default function AutomationsPage() {
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => void fireTestEvent("chat")}>
             Test chat
           </button>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void dispatchDashboardEvent()}>
+            Test dashboard event
+          </button>
         </div>
 
         {editingRule && (
@@ -345,11 +451,19 @@ export default function AutomationsPage() {
                     const type = e.target.value;
                     setEditingRule({
                       ...editingRule,
-                      trigger: type === "chat_command" ? { type, command: "!hello" } : type === "manual" ? { type } : { type: "stream_event", eventType: "follow" },
+                      trigger:
+                        type === "chat_command"
+                          ? { type, command: "!hello" }
+                          : type === "manual"
+                            ? { type }
+                            : type === "btv_event"
+                              ? { type, eventType: "obs.scene_changed" }
+                              : { type: "stream_event", eventType: "follow" },
                     });
                   }}
                 >
                   <option value="stream_event">Stream event</option>
+                  <option value="btv_event">Core BTV event</option>
                   <option value="chat_command">Chat command</option>
                   <option value="manual">Manual only</option>
                 </select>
@@ -362,6 +476,29 @@ export default function AutomationsPage() {
                     onChange={(e) => setEditingRule({ ...editingRule, trigger: { type: "stream_event", eventType: e.target.value as StreamEventType } })}
                   >
                     {["follow", "sub", "resub", "gift_sub", "cheer", "raid", "channel_points", "chat", "goal_milestone"].map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {editingRule.trigger.type === "btv_event" && (
+                <div>
+                  <label>Core event type</label>
+                  <select
+                    value={editingRule.trigger.eventType}
+                    onChange={(e) => setEditingRule({ ...editingRule, trigger: { type: "btv_event", eventType: e.target.value } })}
+                  >
+                    {[
+                      "obs.scene_changed",
+                      "timer.minute",
+                      "webhook.alert",
+                      "webhook.goal_increment",
+                      "webhook.effect",
+                      "webhook.macro",
+                      "webhook.custom_event",
+                      "dashboard.manual",
+                      "emergency.all",
+                    ].map((type) => (
                       <option key={type} value={type}>{type}</option>
                     ))}
                   </select>
@@ -391,6 +528,7 @@ export default function AutomationsPage() {
                       <option value="min_amount">Minimum amount</option>
                       <option value="message_includes">Message includes</option>
                       <option value="user_role">User role</option>
+                      <option value="variable_compare">Variable compare</option>
                     </select>
                   </div>
                   {condition.type === "min_amount" && (
@@ -426,6 +564,34 @@ export default function AutomationsPage() {
                       </select>
                     </div>
                   )}
+                  {condition.type === "variable_compare" && (
+                    <>
+                      <div>
+                        <label>Variable</label>
+                        <input value={condition.name} onChange={(e) => updateCondition(index, { ...condition, name: e.target.value })} />
+                      </div>
+                      <div>
+                        <label>Operator</label>
+                        <select
+                          value={condition.operator}
+                          onChange={(e) => updateCondition(index, { ...condition, operator: e.target.value as typeof condition.operator })}
+                        >
+                          <option value="exists">Exists</option>
+                          <option value="equals">Equals</option>
+                          <option value="not_equals">Not equals</option>
+                          <option value="greater_than">Greater than</option>
+                          <option value="less_than">Less than</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label>Value</label>
+                        <input
+                          value={String(condition.value ?? "")}
+                          onChange={(e) => updateCondition(index, { ...condition, value: e.target.value })}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
                 <button type="button" className="btn btn-danger btn-sm" onClick={() => removeConditionAt(index)}>
                   Remove condition
@@ -453,8 +619,26 @@ export default function AutomationsPage() {
                     <option value="macro">Run macro</option>
                     <option value="effect">Run interaction/effect</option>
                     <option value="source_group">Activate activity layout</option>
+                    <option value="obs_scene">Switch OBS scene</option>
+                    <option value="obs_source_visibility">Show / hide OBS source</option>
+                    <option value="obs_source_motion">Set / move OBS source</option>
+                    <option value="obs_filter">Enable / disable OBS filter</option>
+                    <option value="obs_mute">Mute / unmute OBS input</option>
+                    <option value="obs_recording">Control OBS recording</option>
+                    <option value="obs_streaming">Control OBS streaming</option>
+                    <option value="obs_text">Set OBS text</option>
+                    <option value="clear_alerts">Clear alert queue</option>
                     <option value="twitch_chat">Send Twitch chat</option>
                     <option value="overlay_event">Send overlay event</option>
+                    <option value="overlay_alert">Trigger overlay alert</option>
+                    <option value="overlay_animation">Trigger overlay animation</option>
+                    <option value="widget_text">Update widget text</option>
+                    <option value="variable_set">Set variable</option>
+                    <option value="variable_increment">Increment variable</option>
+                    <option value="variable_decrement">Decrement variable</option>
+                    <option value="variable_reset">Reset variable</option>
+                    <option value="branch">Branch / if</option>
+                    <option value="random_choice">Random choice</option>
                     <option value="wait">Wait</option>
                   </select>
                 </div>
@@ -486,6 +670,173 @@ export default function AutomationsPage() {
                     </select>
                   </div>
                 )}
+                {action.type === "obs_scene" && (
+                  <div className="form-row">
+                    <label>Scene name</label>
+                    <input value={action.sceneName} onChange={(e) => updateEventAction(index, { type: "obs_scene", sceneName: e.target.value })} />
+                  </div>
+                )}
+                {action.type === "obs_source_visibility" && (
+                  <div className="grid">
+                    <div>
+                      <label>Scene name</label>
+                      <input value={action.sceneName} onChange={(e) => updateEventAction(index, { ...action, sceneName: e.target.value })} />
+                    </div>
+                    <div>
+                      <label>Source name</label>
+                      <input value={action.sourceName} onChange={(e) => updateEventAction(index, { ...action, sourceName: e.target.value })} />
+                    </div>
+                    <label style={{ marginBottom: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={action.visible}
+                        onChange={(e) => updateEventAction(index, { ...action, visible: e.target.checked })}
+                      />{" "}
+                      Show source
+                    </label>
+                  </div>
+                )}
+                {action.type === "obs_source_motion" && (
+                  <div className="grid">
+                    <div>
+                      <label>Scene name</label>
+                      <input value={action.sceneName} onChange={(e) => updateEventAction(index, { ...action, sceneName: e.target.value })} />
+                    </div>
+                    <div>
+                      <label>Source name</label>
+                      <input value={action.sourceName} onChange={(e) => updateEventAction(index, { ...action, sourceName: e.target.value })} />
+                    </div>
+                    <div>
+                      <label>Mode</label>
+                      <select
+                        value={action.mode}
+                        onChange={(e) => updateEventAction(index, { ...action, mode: e.target.value as typeof action.mode })}
+                      >
+                        <option value="set">Set transform</option>
+                        <option value="dvd">DVD bounce</option>
+                        <option value="path">Path motion</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label>X</label>
+                      <input type="number" value={action.x ?? 0} onChange={(e) => updateEventAction(index, { ...action, x: Number(e.target.value) })} />
+                    </div>
+                    <div>
+                      <label>Y</label>
+                      <input type="number" value={action.y ?? 0} onChange={(e) => updateEventAction(index, { ...action, y: Number(e.target.value) })} />
+                    </div>
+                    <div>
+                      <label>Scale</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={action.scale ?? 1}
+                        onChange={(e) => updateEventAction(index, { ...action, scale: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div>
+                      <label>Duration (ms)</label>
+                      <input
+                        type="number"
+                        value={action.durationMs ?? 0}
+                        onChange={(e) => updateEventAction(index, { ...action, durationMs: Number(e.target.value) })}
+                      />
+                    </div>
+                    <label style={{ marginBottom: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(action.visible)}
+                        onChange={(e) => updateEventAction(index, { ...action, visible: e.target.checked })}
+                      />{" "}
+                      Show source first
+                    </label>
+                    <label style={{ marginBottom: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(action.restore)}
+                        onChange={(e) => updateEventAction(index, { ...action, restore: e.target.checked })}
+                      />{" "}
+                      Restore after motion
+                    </label>
+                  </div>
+                )}
+                {action.type === "obs_filter" && (
+                  <div className="grid">
+                    <div>
+                      <label>Source name</label>
+                      <input value={action.sourceName} onChange={(e) => updateEventAction(index, { ...action, sourceName: e.target.value })} />
+                    </div>
+                    <div>
+                      <label>Filter name</label>
+                      <input value={action.filterName} onChange={(e) => updateEventAction(index, { ...action, filterName: e.target.value })} />
+                    </div>
+                    <label style={{ marginBottom: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={action.enabled}
+                        onChange={(e) => updateEventAction(index, { ...action, enabled: e.target.checked })}
+                      />{" "}
+                      Enable filter
+                    </label>
+                  </div>
+                )}
+                {action.type === "obs_mute" && (
+                  <div className="grid">
+                    <div>
+                      <label>Input/source name</label>
+                      <input value={action.inputName} onChange={(e) => updateEventAction(index, { ...action, inputName: e.target.value })} />
+                    </div>
+                    <label style={{ marginBottom: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={action.muted}
+                        onChange={(e) => updateEventAction(index, { ...action, muted: e.target.checked })}
+                      />{" "}
+                      Mute input
+                    </label>
+                  </div>
+                )}
+                {action.type === "obs_recording" && (
+                  <div className="form-row">
+                    <label>Recording action</label>
+                    <select
+                      value={action.action}
+                      onChange={(e) => updateEventAction(index, { type: "obs_recording", action: e.target.value as typeof action.action })}
+                    >
+                      <option value="start">Start recording</option>
+                      <option value="stop">Stop recording</option>
+                      <option value="pause">Pause recording</option>
+                      <option value="resume">Resume recording</option>
+                    </select>
+                  </div>
+                )}
+                {action.type === "obs_streaming" && (
+                  <div className="form-row">
+                    <label>Streaming action</label>
+                    <select
+                      value={action.action}
+                      onChange={(e) => updateEventAction(index, { type: "obs_streaming", action: e.target.value as typeof action.action })}
+                    >
+                      <option value="start">Start stream</option>
+                      <option value="stop">Stop stream</option>
+                    </select>
+                  </div>
+                )}
+                {action.type === "obs_text" && (
+                  <div className="grid">
+                    <div>
+                      <label>Text input name</label>
+                      <input value={action.inputName} onChange={(e) => updateEventAction(index, { ...action, inputName: e.target.value })} />
+                    </div>
+                    <div>
+                      <label>Text</label>
+                      <input value={action.text} onChange={(e) => updateEventAction(index, { ...action, text: e.target.value })} />
+                    </div>
+                  </div>
+                )}
+                {action.type === "clear_alerts" && (
+                  <p style={{ color: "var(--muted)", fontSize: 13 }}>Clears the active alert queue when this rule runs.</p>
+                )}
                 {action.type === "twitch_chat" && (
                   <div className="form-row">
                     <label>Message</label>
@@ -503,6 +854,94 @@ export default function AutomationsPage() {
                       <input value={action.name} onChange={(e) => updateEventAction(index, { ...action, name: e.target.value })} />
                     </div>
                   </div>
+                )}
+                {action.type === "overlay_alert" && (
+                  <div className="grid">
+                    <div>
+                      <label>Theme ID</label>
+                      <input value={action.themeId} onChange={(e) => updateEventAction(index, { ...action, themeId: e.target.value })} />
+                    </div>
+                    <div>
+                      <label>Event type</label>
+                      <select
+                        value={action.eventType}
+                        onChange={(e) => updateEventAction(index, { ...action, eventType: e.target.value as StreamEventType })}
+                      >
+                        {["unknown", "follow", "sub", "resub", "gift_sub", "cheer", "raid", "channel_points", "chat"].map((type) => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label>User name</label>
+                      <input value={action.userName} onChange={(e) => updateEventAction(index, { ...action, userName: e.target.value })} />
+                    </div>
+                    <div>
+                      <label>Message</label>
+                      <input value={action.message} onChange={(e) => updateEventAction(index, { ...action, message: e.target.value })} />
+                    </div>
+                    <div>
+                      <label>Duration (ms)</label>
+                      <input
+                        type="number"
+                        value={action.durationMs}
+                        onChange={(e) => updateEventAction(index, { ...action, durationMs: Number(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                )}
+                {action.type === "overlay_animation" && (
+                  <div className="grid">
+                    <div>
+                      <label>Channel</label>
+                      <input value={action.channel} onChange={(e) => updateEventAction(index, { ...action, channel: e.target.value })} />
+                    </div>
+                    <div>
+                      <label>Name</label>
+                      <input value={action.name} onChange={(e) => updateEventAction(index, { ...action, name: e.target.value })} />
+                    </div>
+                  </div>
+                )}
+                {action.type === "widget_text" && (
+                  <div className="grid">
+                    <div>
+                      <label>Widget ID</label>
+                      <input value={action.widgetId} onChange={(e) => updateEventAction(index, { ...action, widgetId: e.target.value })} />
+                    </div>
+                    <div>
+                      <label>Text</label>
+                      <input value={action.text} onChange={(e) => updateEventAction(index, { ...action, text: e.target.value })} />
+                    </div>
+                  </div>
+                )}
+                {(action.type === "variable_set" || action.type === "variable_increment" || action.type === "variable_decrement" || action.type === "variable_reset") && (
+                  <div className="grid">
+                    <div>
+                      <label>Variable</label>
+                      <input value={action.name} onChange={(e) => updateEventAction(index, { ...action, name: e.target.value })} />
+                    </div>
+                    {action.type === "variable_set" && (
+                      <div>
+                        <label>Value</label>
+                        <input value={String(action.value)} onChange={(e) => updateEventAction(index, { ...action, value: e.target.value })} />
+                      </div>
+                    )}
+                    {(action.type === "variable_increment" || action.type === "variable_decrement") && (
+                      <div>
+                        <label>Amount</label>
+                        <input
+                          type="number"
+                          value={action.amount}
+                          onChange={(e) => updateEventAction(index, { ...action, amount: Number(e.target.value) })}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+                {(action.type === "branch" || action.type === "random_choice") && (
+                  <p style={{ color: "var(--muted)", fontSize: 13 }}>
+                    Advanced action saved with its default JSON shape. Edit the saved rule JSON later when the advanced editor lands.
+                  </p>
                 )}
                 {action.type === "wait" && (
                   <div className="form-row">
@@ -539,6 +978,18 @@ export default function AutomationsPage() {
                 Run now
               </button>
             </div>
+            <div className="form-row" style={{ marginTop: 16 }}>
+              <label>Test event payload</label>
+              <textarea
+                rows={8}
+                value={testEventJson}
+                onChange={(e) => setTestEventJson(e.target.value)}
+                style={{ fontFamily: "monospace", lineHeight: 1.45 }}
+              />
+            </div>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void runRuleTest(editingRule)}>
+              Test with payload
+            </button>
           </div>
         )}
 

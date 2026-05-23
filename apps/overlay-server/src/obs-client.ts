@@ -62,6 +62,11 @@ interface ActiveMotion {
 let obs: OBSWebSocket | null = null;
 let connectPromise: Promise<boolean> | null = null;
 const activeMotions = new Map<string, ActiveMotion>();
+let sceneChangedHandler: ((sceneName: string) => void) | undefined;
+
+export function setObsSceneChangedHandler(handler: (sceneName: string) => void): void {
+  sceneChangedHandler = handler;
+}
 
 export function getObsConfig() {
   const encryptedPassword = getEncryptedSetting("obs_password");
@@ -111,7 +116,10 @@ async function doConnectObs(): Promise<boolean> {
   });
 
   client.on("CurrentProgramSceneChanged", (data) => {
-    if (data.sceneName) logObsSceneSpan(data.sceneName);
+    if (data.sceneName) {
+      logObsSceneSpan(data.sceneName);
+      sceneChangedHandler?.(data.sceneName);
+    }
   });
 
   try {
@@ -559,6 +567,10 @@ export async function setObsInputSettings(
 
 export async function setObsText(inputName: string, text: string): Promise<boolean> {
   return setObsInputSettings(inputName, { text });
+}
+
+export async function setObsInputMuted(inputName: string, inputMuted: boolean): Promise<boolean> {
+  return (await safeObsCall("SetInputMute", { inputName, inputMuted })) !== null;
 }
 
 export async function startObsStream(): Promise<boolean> {

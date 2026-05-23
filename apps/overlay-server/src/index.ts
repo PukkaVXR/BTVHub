@@ -9,11 +9,12 @@ import { AlertQueue } from "./alert-queue.js";
 import { AutomationScheduler } from "./automation-scheduler.js";
 import { ensureApiToken, isAllowedOrigin, requireTrustedLocalWrite } from "./auth.js";
 import { OverlayBus } from "./bus.js";
+import { CoreEventBus } from "./core-event-bus.js";
 import { initDb, getGoals, logSystem, setSetting } from "./db.js";
 import { EffectRunner } from "./effect-runner.js";
 import { EventAutomationEngine } from "./event-automation-engine.js";
 import { MacroRunner } from "./macro-runner.js";
-import { connectObs, getObsStatus } from "./obs-client.js";
+import { connectObs, getObsStatus, setObsSceneChangedHandler } from "./obs-client.js";
 import { registerRoutes } from "./routes/index.js";
 import { RulesEngine } from "./rules-engine.js";
 import { getOAuthOrigin, getOverlayOrigin } from "./server-urls.js";
@@ -44,6 +45,7 @@ const oauthApp = Fastify({
 });
 
 const bus = new OverlayBus();
+const coreEvents = new CoreEventBus();
 const alertQueue = new AlertQueue(bus);
 const effectRunner = new EffectRunner(bus);
 const macroRunner = new MacroRunner(alertQueue, effectRunner);
@@ -51,9 +53,21 @@ const eventAutomationEngine = new EventAutomationEngine(
   macroRunner,
   effectRunner,
   bus,
+  alertQueue,
   applySourceGroup,
 );
-const rulesEngine = new RulesEngine(bus, alertQueue, effectRunner, eventAutomationEngine);
+coreEvents.subscribe((event) => eventAutomationEngine.handleCoreEvent(event));
+setObsSceneChangedHandler((sceneName) => {
+  coreEvents.publish({
+    id: crypto.randomUUID(),
+    type: "obs.scene_changed",
+    source: "obs",
+    timestamp: new Date().toISOString(),
+    payload: { sceneName },
+    metadata: { sceneName },
+  });
+});
+const rulesEngine = new RulesEngine(bus, alertQueue, effectRunner, coreEvents, eventAutomationEngine);
 const automationScheduler = new AutomationScheduler(
   macroRunner,
   effectRunner,
@@ -140,6 +154,7 @@ app.register(async (fastify) => {
 registerRoutes(app, oauthApp, {
   assetsDir,
   bus,
+  coreEvents,
   alertQueue,
   effectRunner,
   macroRunner,
@@ -163,6 +178,9 @@ if (getSpotifyStatus().connected) {
 automationScheduler.startAll();
 
 setInterval(() => bus.pingAll(), 30000);
+setInterval(() => {
+  coreEvents.publishSystem("timer.minute", { intervalMs: 60_000 });
+}, 60_000);
 
 for (const g of getGoals()) {
   bus.broadcast({

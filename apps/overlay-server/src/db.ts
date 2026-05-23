@@ -136,6 +136,12 @@ export function initDb(): DatabaseSync {
       FOREIGN KEY(rule_id) REFERENCES automation_rules(id)
     );
 
+    CREATE TABLE IF NOT EXISTS automation_state (
+      key TEXT PRIMARY KEY,
+      value_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS system_logs (
       id TEXT PRIMARY KEY,
       level TEXT NOT NULL,
@@ -901,7 +907,15 @@ export function upsertAutomationRule(rule: AutomationRule): void {
 }
 
 export function deleteAutomationRule(id: string): void {
-  db.prepare("DELETE FROM automation_rules WHERE id = ?").run(id);
+  db.exec("BEGIN");
+  try {
+    db.prepare("DELETE FROM automation_runs WHERE rule_id = ?").run(id);
+    db.prepare("DELETE FROM automation_rules WHERE id = ?").run(id);
+    db.exec("COMMIT");
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
+  }
 }
 
 export function recordAutomationRuleRun(
@@ -947,6 +961,36 @@ export function getAutomationRuns(limit = 50) {
     message: string;
     created_at: string;
   }>;
+}
+
+export function getAutomationStateValue(key: string): unknown {
+  const row = db.prepare("SELECT value_json FROM automation_state WHERE key = ?").get(key) as
+    | { value_json: string }
+    | undefined;
+  if (!row) return undefined;
+  return parseJsonValue(row.value_json, undefined);
+}
+
+export function setAutomationStateValue(key: string, value: unknown): void {
+  db.prepare(
+    `INSERT INTO automation_state (key, value_json, updated_at)
+     VALUES (?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json, updated_at=excluded.updated_at`,
+  ).run(key, JSON.stringify(value), new Date().toISOString());
+}
+
+export function deleteAutomationStateValue(key: string): void {
+  db.prepare("DELETE FROM automation_state WHERE key = ?").run(key);
+}
+
+export function updateWidgetText(widgetId: string, text: string): boolean {
+  const row = db.prepare("SELECT config FROM widgets WHERE id = ?").get(widgetId) as
+    | { config: string }
+    | undefined;
+  if (!row) return false;
+  const config = { ...parseRecord(row.config), text };
+  db.prepare("UPDATE widgets SET config = ? WHERE id = ?").run(JSON.stringify(config), widgetId);
+  return true;
 }
 
 export function getGoal(id: string) {

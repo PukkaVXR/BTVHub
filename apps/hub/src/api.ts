@@ -209,6 +209,12 @@ export const api = {
   runAutomationRule: (id: string) =>
     request<ActionResponse>("/automation-rules/" + encodeURIComponent(id) + "/run", { method: "POST" }),
 
+  testAutomationRule: (id: string, event: TestStreamEvent) =>
+    request<ActionResponse & { event: import("@btv/shared").StreamEvent }>("/automation-rules/" + encodeURIComponent(id) + "/test", {
+      method: "POST",
+      body: JSON.stringify(event),
+    }),
+
   testEvent: (event: TestStreamEvent) =>
     request<{ ok: boolean; event: import("@btv/shared").StreamEvent }>("/events/test", {
       method: "POST",
@@ -262,6 +268,14 @@ export const api = {
     ),
 
   logs: () => request<SystemLogEntry[]>("/logs"),
+
+  coreEvents: () => request<import("@btv/shared").BtvEvent[]>("/events"),
+
+  dispatchEvent: (event: { type: string; payload?: unknown; metadata?: Record<string, unknown> }) =>
+    request<{ ok: boolean; event: import("@btv/shared").BtvEvent }>("/events/dispatch", {
+      method: "POST",
+      body: JSON.stringify(event),
+    }),
 
   testAlert: (eventType: string) =>
 

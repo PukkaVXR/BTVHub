@@ -6,6 +6,7 @@ import type { EffectRunner } from "./effect-runner.js";
 import type { MacroRunner } from "./macro-runner.js";
 import { getGoal, updateGoal } from "./db.js";
 import type { OverlayBus } from "./bus.js";
+import type { CoreEventBus } from "./core-event-bus.js";
 
 function safeEqual(a: string, b: string): boolean {
   const left = createHash("sha256").update(a).digest();
@@ -30,6 +31,7 @@ export async function handleWebhook(
   effects: EffectRunner,
   macros: MacroRunner,
   bus: OverlayBus,
+  coreEvents?: CoreEventBus,
 ): Promise<{ ok: boolean; error?: string }> {
   const hook = getWebhook(hookId);
   if (!hook) return { ok: false, error: "Hook not found" };
@@ -44,6 +46,14 @@ export async function handleWebhook(
     string,
     unknown
   >;
+  coreEvents?.publish({
+    id: crypto.randomUUID(),
+    type: `webhook.${hook.action}`,
+    source: "webhook",
+    timestamp: new Date().toISOString(),
+    payload,
+    metadata: { hookId, action: hook.action },
+  });
 
   switch (hook.action) {
     case "alert": {
