@@ -7,6 +7,7 @@ import { getAlertRules, getTheme, getWidgets, logActivity, logSessionEvent, upda
 import type { AlertQueue } from "./alert-queue.js";
 import type { OverlayBus } from "./bus.js";
 import type { EffectRunner } from "./effect-runner.js";
+import type { EventAutomationEngine } from "./event-automation-engine.js";
 
 const GOAL_EVENT_MAP: Partial<Record<StreamEventType, string>> = {
   follow: "follow",
@@ -20,6 +21,7 @@ export class RulesEngine {
     private readonly bus: OverlayBus,
     private readonly alertQueue: AlertQueue,
     private readonly effectRunner: EffectRunner,
+    private readonly eventAutomations?: EventAutomationEngine,
   ) {}
 
   async handleEvent(event: StreamEvent): Promise<void> {
@@ -48,6 +50,7 @@ export class RulesEngine {
 
     await this.updateGoals(event);
     await this.effectRunner.tryTriggerFromEvent(event);
+    await this.eventAutomations?.handleEvent(event);
     await this.processAlerts(event);
   }
 

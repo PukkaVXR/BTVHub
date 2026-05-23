@@ -3,6 +3,7 @@ export class OverlayClient {
     this.options = options;
     this.backoffMs = 1000;
     this.disposed = false;
+    this.heartbeatTimer = null;
   }
 
   connect() {
@@ -13,10 +14,13 @@ export class OverlayClient {
     if (this.options.channels?.length) {
       url.searchParams.set("channels", this.options.channels.join(","));
     }
+    url.searchParams.set("route", location.pathname);
     this.ws = new WebSocket(url.toString());
     this.ws.onopen = () => {
       this.backoffMs = 1000;
       this.options.onStateChange?.("connected");
+      this.sendHeartbeat();
+      this.heartbeatTimer = setInterval(() => this.sendHeartbeat(), 15000);
     };
     this.ws.onmessage = (ev) => {
       try {
@@ -24,6 +28,8 @@ export class OverlayClient {
       } catch { /* ignore */ }
     };
     this.ws.onclose = () => {
+      if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
       this.options.onStateChange?.("disconnected");
       setTimeout(() => {
         this.backoffMs = Math.min(this.backoffMs * 2, 30000);
@@ -32,10 +38,20 @@ export class OverlayClient {
     };
     this.ws.onerror = () => this.ws?.close();
   }
+
+  sendHeartbeat() {
+    if (this.ws?.readyState !== WebSocket.OPEN) return;
+    this.ws.send(JSON.stringify({
+      kind: "overlay:heartbeat",
+      route: location.pathname,
+      at: new Date().toISOString(),
+    }));
+  }
 }
 
 let activeMediaCleanup = null;
 let activeSoundCleanup = null;
+const activeAudios = new Set();
 
 const DEFAULT_LOOP_CAP_MS = 60_000;
 
@@ -188,6 +204,7 @@ export function playSoundEffect(config) {
   if (!url) return () => {};
 
   const audio = new Audio(url);
+  activeAudios.add(audio);
   audio.loop = Boolean(config.loop);
   void audio.play().catch(() => {});
 
@@ -199,6 +216,7 @@ export function playSoundEffect(config) {
     for (const t of timers) clearTimeout(t);
     audio.pause();
     audio.currentTime = 0;
+    activeAudios.delete(audio);
     activeSoundCleanup = null;
   };
 
@@ -210,6 +228,16 @@ export function playSoundEffect(config) {
 
   activeSoundCleanup = cleanup;
   return cleanup;
+}
+
+export function stopAllSounds() {
+  activeSoundCleanup?.();
+  activeSoundCleanup = null;
+  for (const audio of activeAudios) {
+    audio.pause();
+    audio.currentTime = 0;
+  }
+  activeAudios.clear();
 }
 
 export function playVisualEffect(layer, config) {
@@ -251,7 +279,12 @@ export function renderAlert(container, alert) {
     if (title) title.textContent = `${alert.event.user?.displayName ?? "Someone"}`;
   }
 
-  if (alert.soundUrl) new Audio(alert.soundUrl).play().catch(() => {});
+  if (alert.soundUrl) {
+    const audio = new Audio(alert.soundUrl);
+    activeAudios.add(audio);
+    audio.addEventListener("ended", () => activeAudios.delete(audio), { once: true });
+    audio.play().catch(() => activeAudios.delete(audio));
+  }
 
   const t = setTimeout(() => removeAll(), alert.durationMs ?? 5000);
   return () => { clearTimeout(t); removeAll(); };

@@ -1,0 +1,38 @@
+import type { AlertRule, StreamEventType } from "@btv/shared";
+import { getActivity, getAlertRules, upsertAlertRule } from "../db.js";
+import type { RouteModule } from "./types.js";
+
+export const registerAlertsRoutes: RouteModule = (app, ctx) => {
+  app.get("/api/alert-rules", async () => getAlertRules());
+  app.put("/api/alert-rules/:id", async (req) => {
+    upsertAlertRule(req.body as AlertRule);
+    return { ok: true };
+  });
+
+  app.post("/api/alerts/clear", async () => ({
+    ok: true,
+    cleared: ctx.alertQueue.clear(),
+    queue: ctx.alertQueue.getStatus(),
+  }));
+
+  app.get("/api/activity", async () =>
+    getActivity().flatMap((r) => {
+      try {
+        return [{ id: r.id, event: JSON.parse(r.event_json), at: r.created_at }];
+      } catch {
+        return [];
+      }
+    }),
+  );
+
+  app.post("/api/test/alert/:eventType", async (req, reply) => {
+    const { eventType } = req.params as { eventType: StreamEventType };
+    try {
+      await ctx.rulesEngine.fireTestAlert(eventType);
+      return { ok: true };
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ error: err instanceof Error ? err.message : "Test alert failed" });
+    }
+  });
+};

@@ -116,6 +116,11 @@ export const BusMessageSchema = z.discriminatedUnion("kind", [
     at: z.string(),
   }),
   z.object({
+    kind: z.literal("overlay:emergency"),
+    action: z.enum(["stop_sounds", "hide_overlays", "reset_overlay_state", "all"]),
+    at: z.string(),
+  }),
+  z.object({
     kind: z.literal("connected"),
     clientId: z.string(),
   }),
@@ -214,6 +219,85 @@ export const EffectSchema = z.object({
 });
 
 export type Effect = z.infer<typeof EffectSchema>;
+
+export const AutomationTriggerSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("stream_event"),
+    eventType: StreamEventTypeSchema,
+  }),
+  z.object({
+    type: z.literal("chat_command"),
+    command: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("manual"),
+  }),
+]);
+
+export const AutomationConditionSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("user_role"),
+    role: z.enum(["broadcaster", "moderator", "subscriber", "vip"]),
+  }),
+  z.object({
+    type: z.literal("min_amount"),
+    amount: z.number().min(0),
+  }),
+  z.object({
+    type: z.literal("message_includes"),
+    text: z.string().min(1),
+  }),
+]);
+
+export const AutomationActionSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("macro"),
+    macroId: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("effect"),
+    effectId: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("source_group"),
+    sourceGroupId: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("twitch_chat"),
+    message: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("overlay_event"),
+    channel: z.string().min(1).default("effects"),
+    name: z.string().min(1),
+    payload: z.record(z.unknown()).default({}),
+  }),
+  z.object({
+    type: z.literal("wait"),
+    durationMs: z.number().min(0).max(30000),
+  }),
+]);
+
+export const AutomationRuleSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  enabled: z.boolean().default(true),
+  trigger: AutomationTriggerSchema,
+  conditions: z.array(AutomationConditionSchema).default([]),
+  actions: z.array(AutomationActionSchema).default([]),
+  cooldownMs: z.number().min(0).default(0),
+  lastRunAt: z.string().optional(),
+  lastStatus: z.enum(["ok", "failed", "skipped"]).optional(),
+  lastMessage: z.string().optional(),
+  runCount: z.number().default(0),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type AutomationTrigger = z.infer<typeof AutomationTriggerSchema>;
+export type AutomationCondition = z.infer<typeof AutomationConditionSchema>;
+export type AutomationActionConfig = z.infer<typeof AutomationActionSchema>;
+export type AutomationRule = z.infer<typeof AutomationRuleSchema>;
 
 export function createStreamEvent(
   partial: Omit<StreamEvent, "id" | "at"> & { id?: string; at?: string },

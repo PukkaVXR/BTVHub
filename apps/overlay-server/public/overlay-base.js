@@ -1,4 +1,4 @@
-import { OverlayClient, renderAlert } from "/js/overlay-client.js";
+import { OverlayClient, clearMediaEffect, playSoundEffect, renderAlert, stopAllSounds } from "/js/overlay-client.js";
 
 const params = new URLSearchParams(location.search);
 const channels = (params.get("channels") || "*").split(",").filter(Boolean);
@@ -47,6 +47,29 @@ function handleMessage(msg) {
     case "effect:play":
       playEffect(msg.effect);
       break;
+    case "overlay:emergency":
+      handleEmergency(msg.action);
+      break;
+  }
+}
+
+function handleEmergency(action) {
+  if (action === "stop_sounds" || action === "all") {
+    stopAllSounds();
+  }
+  if (action === "hide_overlays" || action === "all") {
+    document.body.dataset.emergencyHidden = "true";
+    document.body.style.visibility = "hidden";
+  }
+  if (action === "reset_overlay_state" || action === "all") {
+    activeAlertCleanup?.();
+    activeAlertCleanup = null;
+    clearMediaEffect();
+    stopAllSounds();
+    if (effectLayer) effectLayer.className = "";
+    if (alertContainer && alertContainer !== document.body) alertContainer.innerHTML = "";
+    delete document.body.dataset.emergencyHidden;
+    document.body.style.visibility = "";
   }
 }
 
@@ -105,8 +128,7 @@ function playEffect(effect) {
     setTimeout(() => (effectLayer.className = ""), Number(effect.config.durationMs ?? 800));
   }
   if (effect.type === "soundboard" && effect.config.soundUrl) {
-    const audio = new Audio(String(effect.config.soundUrl));
-    audio.play().catch(() => undefined);
+    playSoundEffect({ soundUrl: String(effect.config.soundUrl) });
   }
 }
 

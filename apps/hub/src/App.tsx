@@ -12,6 +12,7 @@ import AutomationsPage from "./pages/AutomationsPage";
 import WebhooksPage from "./pages/WebhooksPage";
 import IntegrationsPage from "./pages/IntegrationsPage";
 import ActivityPage from "./pages/ActivityPage";
+import SetupPage from "./pages/SetupPage";
 
 export default function App() {
   const [health, setHealth] = useState<{
@@ -27,6 +28,7 @@ export default function App() {
 
   const nav = [
     ["", "Dashboard"],
+    ["/setup", "Setup"],
     ["/overlays", "Overlays"],
     ["/alerts", "Alerts"],
     ["/themes", "Themes"],
@@ -73,6 +75,7 @@ export default function App() {
         </div>
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/setup" element={<SetupPage />} />
           <Route path="/overlays" element={<OverlaysPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/themes" element={<ThemesPage />} />

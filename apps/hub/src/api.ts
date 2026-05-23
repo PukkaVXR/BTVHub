@@ -172,6 +172,11 @@ export const api = {
       method: "POST",
     }),
 
+  emergencyAction: (action: string) =>
+    request<ActionResponse>("/emergency/" + encodeURIComponent(action), {
+      method: "POST",
+    }),
+
   macros: () => request<MacroConfig[]>("/macros"),
 
   automations: () => request<AutomationConfig[]>("/automations"),
@@ -187,6 +192,28 @@ export const api = {
 
   runAutomation: (id: string) =>
     request<ActionResponse>("/automations/" + encodeURIComponent(id) + "/run", { method: "POST" }),
+
+  automationRules: () => request<AutomationRule[]>("/automation-rules"),
+
+  automationRuns: () => request<AutomationRun[]>("/automation-runs"),
+
+  saveAutomationRule: (rule: AutomationRule) =>
+    request<{ ok: boolean; rule: AutomationRule }>("/automation-rules/" + encodeURIComponent(rule.id), {
+      method: "PUT",
+      body: JSON.stringify(rule),
+    }),
+
+  deleteAutomationRule: (id: string) =>
+    request("/automation-rules/" + encodeURIComponent(id), { method: "DELETE" }),
+
+  runAutomationRule: (id: string) =>
+    request<ActionResponse>("/automation-rules/" + encodeURIComponent(id) + "/run", { method: "POST" }),
+
+  testEvent: (event: TestStreamEvent) =>
+    request<{ ok: boolean; event: import("@btv/shared").StreamEvent }>("/events/test", {
+      method: "POST",
+      body: JSON.stringify(event),
+    }),
 
   sourceGroups: () => request<SourceGroup[]>("/source-groups"),
 
@@ -233,6 +260,8 @@ export const api = {
       "/activity",
 
     ),
+
+  logs: () => request<SystemLogEntry[]>("/logs"),
 
   testAlert: (eventType: string) =>
 
@@ -430,6 +459,28 @@ export interface AutomationConfig {
   lastMessage?: string;
 }
 
+export type AutomationRule = import("@btv/shared").AutomationRule;
+export type AutomationTrigger = import("@btv/shared").AutomationTrigger;
+export type AutomationCondition = import("@btv/shared").AutomationCondition;
+export type AutomationActionConfig = import("@btv/shared").AutomationActionConfig;
+
+export interface AutomationRun {
+  id: string;
+  rule_id: string;
+  event_id: string | null;
+  status: string;
+  message: string;
+  created_at: string;
+}
+
+export interface TestStreamEvent {
+  type?: import("@btv/shared").StreamEventType;
+  user?: { id?: string; login?: string; displayName?: string };
+  message?: string;
+  amount?: number;
+  payload?: Record<string, unknown>;
+}
+
 export interface MacroRunResponse extends ActionResponse {
   steps: Array<{
     index: number;
@@ -520,6 +571,15 @@ export interface StreamDeckSourceGroupsStatus {
   }>;
 }
 
+export interface SystemLogEntry {
+  id: string;
+  level: "info" | "warn" | "error";
+  source: string;
+  message: string;
+  details: Record<string, unknown>;
+  createdAt: string;
+}
+
 export interface AlertQueueInfo {
   playing: boolean;
   queued: number;
@@ -553,7 +613,25 @@ export interface PreflightInfo {
   overlays: {
     clientCount: number;
     channels: Record<string, number>;
-    clients: Array<{ id: string; channels: string[] }>;
+    clients: Array<{
+      id: string;
+      channels: string[];
+      route?: string;
+      connectedAt: string;
+      lastHeartbeatAt: string;
+      status: "connected" | "stale";
+    }>;
+  };
+  expectedOverlays: Array<{
+    id: string;
+    label: string;
+    route: string;
+    channels: string[];
+    reachable: boolean;
+  }>;
+  emergency: {
+    automationsDisabled: boolean;
+    channelPointActionsDisabled: boolean;
   };
   alerts: AlertQueueInfo;
   twitch: Record<string, unknown>;

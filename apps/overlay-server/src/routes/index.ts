@@ -1,0 +1,43 @@
+import type { FastifyInstance } from "fastify";
+import { registerAlertsRoutes } from "./alerts.routes.js";
+import { registerAssetsRoutes } from "./assets.routes.js";
+import { registerAutomationsRoutes } from "./automations.routes.js";
+import { registerConfigRoutes } from "./config.routes.js";
+import { registerEffectsRoutes } from "./effects.routes.js";
+import { registerEmergencyRoutes } from "./emergency.routes.js";
+import { registerGoalsRoutes } from "./goals.routes.js";
+import { registerHealthRoutes } from "./health.routes.js";
+import { registerIntegrationsRoutes } from "./integrations.routes.js";
+import { registerLogsRoutes } from "./logs.routes.js";
+import { registerMacrosRoutes } from "./macros.routes.js";
+import { registerObsRoutes } from "./obs.routes.js";
+import { registerOverlaysRoutes } from "./overlays.routes.js";
+import { registerSessionsRoutes } from "./sessions.routes.js";
+import { registerSourceGroupsRoutes } from "./source-groups.routes.js";
+import { registerStreamDeckRoutes } from "./streamdeck.routes.js";
+import { registerThemesRoutes } from "./themes.routes.js";
+import type { ServerContext } from "./types.js";
+import { registerWebhooksRoutes } from "./webhooks.routes.js";
+import { registerWidgetsRoutes } from "./widgets.routes.js";
+
+export function registerRoutes(app: FastifyInstance, oauthApp: FastifyInstance, ctx: ServerContext): void {
+  registerHealthRoutes(app, ctx);
+  registerLogsRoutes(app, ctx);
+  registerConfigRoutes(app, ctx);
+  registerSessionsRoutes(app, ctx);
+  registerStreamDeckRoutes(app, ctx);
+  registerOverlaysRoutes(app, ctx);
+  registerThemesRoutes(app, ctx);
+  registerAssetsRoutes(app, ctx);
+  registerAlertsRoutes(app, ctx);
+  registerWidgetsRoutes(app, ctx);
+  registerGoalsRoutes(app, ctx);
+  registerWebhooksRoutes(app, ctx);
+  registerEffectsRoutes(app, ctx);
+  registerEmergencyRoutes(app, ctx);
+  registerMacrosRoutes(app, ctx);
+  registerAutomationsRoutes(app, ctx);
+  registerSourceGroupsRoutes(app, ctx);
+  registerObsRoutes(app, ctx);
+  registerIntegrationsRoutes(app, oauthApp, ctx);
+}

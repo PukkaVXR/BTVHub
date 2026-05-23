@@ -9,7 +9,9 @@ import type {
   WebhookHook,
   WidgetConfig,
   StreamEvent,
+  AutomationRule,
 } from "@btv/shared";
+import { AutomationRuleSchema } from "@btv/shared";
 import { decrypt, encrypt } from "./crypto.js";
 
 const DB_PATH = join(
@@ -108,6 +110,41 @@ export function initDb(): DatabaseSync {
       last_message TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS automation_rules (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      enabled INTEGER DEFAULT 1,
+      trigger_json TEXT NOT NULL,
+      conditions_json TEXT NOT NULL DEFAULT '[]',
+      actions_json TEXT NOT NULL DEFAULT '[]',
+      cooldown_ms INTEGER DEFAULT 0,
+      last_run_at TEXT,
+      last_status TEXT,
+      last_message TEXT,
+      run_count INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS automation_runs (
+      id TEXT PRIMARY KEY,
+      rule_id TEXT NOT NULL,
+      event_id TEXT,
+      status TEXT NOT NULL,
+      message TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(rule_id) REFERENCES automation_rules(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS system_logs (
+      id TEXT PRIMARY KEY,
+      level TEXT NOT NULL,
+      source TEXT NOT NULL,
+      message TEXT NOT NULL,
+      details_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS goals (
       id TEXT PRIMARY KEY,
       label TEXT NOT NULL,
@@ -161,6 +198,10 @@ export function initDb(): DatabaseSync {
       ON session_events(session_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_scene_spans_session_started
       ON obs_scene_spans(session_id, started_at);
+    CREATE INDEX IF NOT EXISTS idx_automation_runs_created
+      ON automation_runs(created_at);
+    CREATE INDEX IF NOT EXISTS idx_system_logs_created
+      ON system_logs(created_at);
   `);
 
   migrateThemesLayoutColumn();
@@ -309,6 +350,14 @@ export function setSetting(key: string, value: string): void {
 
 export function deleteSetting(key: string): void {
   db.prepare("DELETE FROM settings WHERE key = ?").run(key);
+}
+
+export function getSettingsSnapshot(): Array<{ key: string; value: string }> {
+  const secretPattern = /(secret|password|token|oauth_state)/i;
+  return (db.prepare("SELECT key, value FROM settings ORDER BY key").all() as Array<{ key: string; value: string }>).map((row) => ({
+    key: row.key,
+    value: secretPattern.test(row.key) ? "[redacted]" : row.value,
+  }));
 }
 
 export function getEncryptedSetting(key: string): string | null {
@@ -776,6 +825,130 @@ export function deleteAutomation(id: string): void {
   db.prepare("DELETE FROM automations WHERE id = ?").run(id);
 }
 
+function parseJsonValue<T>(raw: unknown, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(String(raw)) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function rowToAutomationRule(row: Record<string, unknown>): AutomationRule {
+  return AutomationRuleSchema.parse({
+    id: String(row.id),
+    name: String(row.name),
+    enabled: Boolean(row.enabled),
+    trigger: parseJsonValue(row.trigger_json, { type: "manual" }),
+    conditions: parseJsonValue(row.conditions_json, []),
+    actions: parseJsonValue(row.actions_json, []),
+    cooldownMs: Number(row.cooldown_ms ?? 0),
+    lastRunAt: row.last_run_at ? String(row.last_run_at) : undefined,
+    lastStatus: row.last_status ? String(row.last_status) : undefined,
+    lastMessage: row.last_message ? String(row.last_message) : undefined,
+    runCount: Number(row.run_count ?? 0),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  });
+}
+
+export function getAutomationRules(): AutomationRule[] {
+  return (db.prepare("SELECT * FROM automation_rules ORDER BY name").all() as Array<Record<string, unknown>>).map(
+    rowToAutomationRule,
+  );
+}
+
+export function getAutomationRule(id: string): AutomationRule | null {
+  const row = db.prepare("SELECT * FROM automation_rules WHERE id = ?").get(id) as
+    | Record<string, unknown>
+    | undefined;
+  return row ? rowToAutomationRule(row) : null;
+}
+
+export function upsertAutomationRule(rule: AutomationRule): void {
+  const parsed = AutomationRuleSchema.parse(rule);
+  db.prepare(
+    `INSERT INTO automation_rules
+      (id, name, enabled, trigger_json, conditions_json, actions_json, cooldown_ms, last_run_at, last_status, last_message, run_count, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+      name=excluded.name,
+      enabled=excluded.enabled,
+      trigger_json=excluded.trigger_json,
+      conditions_json=excluded.conditions_json,
+      actions_json=excluded.actions_json,
+      cooldown_ms=excluded.cooldown_ms,
+      last_run_at=excluded.last_run_at,
+      last_status=excluded.last_status,
+      last_message=excluded.last_message,
+      run_count=excluded.run_count,
+      updated_at=excluded.updated_at`,
+  ).run(
+    parsed.id,
+    parsed.name,
+    parsed.enabled ? 1 : 0,
+    JSON.stringify(parsed.trigger),
+    JSON.stringify(parsed.conditions),
+    JSON.stringify(parsed.actions),
+    parsed.cooldownMs,
+    parsed.lastRunAt ?? null,
+    parsed.lastStatus ?? null,
+    parsed.lastMessage ?? null,
+    parsed.runCount,
+    parsed.createdAt,
+    parsed.updatedAt,
+  );
+}
+
+export function deleteAutomationRule(id: string): void {
+  db.prepare("DELETE FROM automation_rules WHERE id = ?").run(id);
+}
+
+export function recordAutomationRuleRun(
+  ruleId: string,
+  eventId: string | null,
+  status: "ok" | "failed" | "skipped",
+  message: string,
+): void {
+  const now = new Date().toISOString();
+  db.prepare(
+    `INSERT INTO automation_runs (id, rule_id, event_id, status, message, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(crypto.randomUUID(), ruleId, eventId, status, message, now);
+  db.prepare(
+    `DELETE FROM automation_runs WHERE id NOT IN (SELECT id FROM automation_runs ORDER BY created_at DESC LIMIT 200)`,
+  ).run();
+
+  const existing = getAutomationRule(ruleId);
+  if (!existing) return;
+  upsertAutomationRule({
+    ...existing,
+    lastRunAt: now,
+    lastStatus: status,
+    lastMessage: message,
+    runCount: existing.runCount + (status === "ok" || status === "failed" ? 1 : 0),
+    updatedAt: existing.updatedAt,
+  });
+}
+
+export function getAutomationRuns(limit = 50) {
+  return db
+    .prepare(
+      `SELECT id, rule_id, event_id, status, message, created_at
+       FROM automation_runs
+       ORDER BY created_at DESC
+       LIMIT ?`,
+    )
+    .all(limit) as Array<{
+    id: string;
+    rule_id: string;
+    event_id: string | null;
+    status: string;
+    message: string;
+    created_at: string;
+  }>;
+}
+
 export function getGoal(id: string) {
   return db.prepare("SELECT * FROM goals WHERE id = ?").get(id) as
     | {
@@ -836,6 +1009,64 @@ export function getActivity(limit = 50) {
   return db
     .prepare(`SELECT * FROM activity_log ORDER BY created_at DESC LIMIT ?`)
     .all(limit) as Array<{ id: string; event_json: string; created_at: string }>;
+}
+
+export type SystemLogLevel = "info" | "warn" | "error";
+
+export interface SystemLogEntry {
+  id: string;
+  level: SystemLogLevel;
+  source: string;
+  message: string;
+  details: Record<string, unknown>;
+  createdAt: string;
+}
+
+export function logSystem(
+  source: string,
+  level: SystemLogLevel,
+  message: string,
+  details: Record<string, unknown> = {},
+): void {
+  db.prepare(
+    `INSERT INTO system_logs (id, level, source, message, details_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(
+    crypto.randomUUID(),
+    level,
+    source,
+    message,
+    JSON.stringify(details),
+    new Date().toISOString(),
+  );
+  db.prepare(
+    `DELETE FROM system_logs WHERE id NOT IN (SELECT id FROM system_logs ORDER BY created_at DESC LIMIT 500)`,
+  ).run();
+}
+
+export function getSystemLogs(limit = 100): SystemLogEntry[] {
+  return (db
+    .prepare(
+      `SELECT id, level, source, message, details_json, created_at
+       FROM system_logs
+       ORDER BY created_at DESC
+       LIMIT ?`,
+    )
+    .all(limit) as Array<{
+    id: string;
+    level: SystemLogLevel;
+    source: string;
+    message: string;
+    details_json: string;
+    created_at: string;
+  }>).map((row) => ({
+    id: row.id,
+    level: row.level,
+    source: row.source,
+    message: row.message,
+    details: parseRecord(row.details_json),
+    createdAt: row.created_at,
+  }));
 }
 
 export interface StreamSessionRow {

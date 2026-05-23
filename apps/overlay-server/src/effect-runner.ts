@@ -1,5 +1,5 @@
 import { createStreamEvent, type StreamEvent } from "@btv/shared";
-import { getEffects, getTheme } from "./db.js";
+import { getEffects, getSetting, getTheme } from "./db.js";
 import type { OverlayBus } from "./bus.js";
 import { runLocalCommand } from "./command-runner.js";
 import { sendTwitchChatMessage } from "./twitch-service.js";
@@ -51,6 +51,7 @@ export class EffectRunner {
   constructor(private readonly bus: OverlayBus) {}
 
   async tryTriggerFromEvent(event: StreamEvent): Promise<void> {
+    if (event.type === "channel_points" && getSetting("channel_point_actions_disabled") === "1") return;
     const effects = getEffects().filter((e) => e.enabled);
 
     for (const effect of effects) {

@@ -19,6 +19,7 @@ export interface OverlayClientOptions {
 export class OverlayClient {
   private ws: WebSocket | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private backoffMs = 1000;
   private readonly maxBackoffMs = 30000;
   private disposed = false;
@@ -32,11 +33,16 @@ export class OverlayClient {
     if (this.options.channels?.length) {
       url.searchParams.set("channels", this.options.channels.join(","));
     }
+    if (typeof location !== "undefined") {
+      url.searchParams.set("route", location.pathname);
+    }
     this.ws = new WebSocket(url.toString());
 
     this.ws.onopen = () => {
       this.backoffMs = 1000;
       this.options.onStateChange?.("connected");
+      this.sendHeartbeat();
+      this.heartbeatTimer = setInterval(() => this.sendHeartbeat(), 15000);
     };
 
     this.ws.onmessage = (ev) => {
@@ -51,6 +57,8 @@ export class OverlayClient {
 
     this.ws.onclose = () => {
       this.options.onStateChange?.("disconnected");
+      if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
       this.scheduleReconnect();
     };
 
@@ -71,8 +79,18 @@ export class OverlayClient {
   dispose(): void {
     this.disposed = true;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     this.ws?.close();
     this.ws = null;
+  }
+
+  private sendHeartbeat(): void {
+    if (this.ws?.readyState !== WebSocket.OPEN) return;
+    this.ws.send(JSON.stringify({
+      kind: "overlay:heartbeat",
+      route: typeof location !== "undefined" ? location.pathname : undefined,
+      at: new Date().toISOString(),
+    }));
   }
 }
 

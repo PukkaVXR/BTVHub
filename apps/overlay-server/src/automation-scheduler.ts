@@ -1,6 +1,7 @@
 import {
   getAutomation,
   getAutomations,
+  getSetting,
   upsertAutomation,
   type AutomationConfig,
 } from "./db.js";
@@ -75,6 +76,9 @@ export class AutomationScheduler {
   }
 
   private async runAutomation(automation: AutomationConfig): Promise<{ ok: boolean; message: string }> {
+    if (getSetting("automations_disabled") === "1") {
+      return { ok: false, message: "Automations are disabled" };
+    }
     if (this.running.has(automation.id)) {
       return { ok: false, message: "Automation already running" };
     }

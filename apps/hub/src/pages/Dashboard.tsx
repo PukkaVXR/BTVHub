@@ -208,6 +208,12 @@ export default function Dashboard() {
     load();
   };
 
+  const emergencyAction = async (action: string) => {
+    const res = await api.emergencyAction(action);
+    toast(res.ok ? res.title : res.message);
+    load();
+  };
+
   const startSession = async () => {
     const res = await api.startSession(sessionTitle);
     toast(res.title);
@@ -465,6 +471,51 @@ export default function Dashboard() {
             <p style={{ color: "var(--muted)", fontSize: 13 }}>{check.detail}</p>
           </div>
         ))}
+      </div>
+
+      <div className="card" style={{ borderColor: "rgba(235, 4, 0, 0.45)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 12 }}>
+          <div>
+            <h2 style={{ margin: 0 }}>Emergency Controls</h2>
+            <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 6 }}>
+              Fast stream-safety actions for overlays, sounds, automations, channel points, and reconnects.
+            </p>
+          </div>
+          <button type="button" className="btn btn-danger btn-sm" onClick={() => void emergencyAction("all")}>
+            Stop all BTV effects
+          </button>
+        </div>
+        <div className="actions">
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void emergencyAction("stop-sounds")}>
+            Stop sounds
+          </button>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void emergencyAction("hide-overlays")}>
+            Hide overlays
+          </button>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void emergencyAction("reset-overlays")}>
+            Reset overlays
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => void emergencyAction(preflight?.emergency.automationsDisabled ? "enable-automations" : "disable-automations")}
+          >
+            {preflight?.emergency.automationsDisabled ? "Enable automations" : "Disable automations"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => void emergencyAction(preflight?.emergency.channelPointActionsDisabled ? "enable-channel-points" : "disable-channel-points")}
+          >
+            {preflight?.emergency.channelPointActionsDisabled ? "Enable channel points" : "Disable channel points"}
+          </button>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void emergencyAction("reconnect-obs")}>
+            Reconnect OBS
+          </button>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void emergencyAction("reconnect-twitch")}>
+            Reconnect Twitch
+          </button>
+        </div>
       </div>
 
       <div className="card">
@@ -978,6 +1029,15 @@ export default function Dashboard() {
           {preflight?.overlays.clientCount ?? 0} active WebSocket client
           {(preflight?.overlays.clientCount ?? 0) === 1 ? "" : "s"}
         </p>
+        {preflight?.expectedOverlays.length ? (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+            {preflight.expectedOverlays.map((overlay) => (
+              <span key={overlay.id} className={overlay.reachable ? "badge badge-ok" : "badge"}>
+                {overlay.label}: {overlay.reachable ? "reachable" : "not seen"}
+              </span>
+            ))}
+          </div>
+        ) : null}
         {overlayChannels.length ? (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {overlayChannels.map(([channel, count]) => (
@@ -991,6 +1051,28 @@ export default function Dashboard() {
             Open OBS or preview an overlay page to connect browser sources.
           </p>
         )}
+        {preflight?.overlays.clients.length ? (
+          <table className="table" style={{ marginTop: 12 }}>
+            <thead>
+              <tr>
+                <th>Route</th>
+                <th>Channels</th>
+                <th>Status</th>
+                <th>Heartbeat</th>
+              </tr>
+            </thead>
+            <tbody>
+              {preflight.overlays.clients.map((client) => (
+                <tr key={client.id}>
+                  <td>{client.route ?? "-"}</td>
+                  <td>{client.channels.join(", ")}</td>
+                  <td>{client.status}</td>
+                  <td>{timeAgo(client.lastHeartbeatAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
       </div>
 
       <div className="card">

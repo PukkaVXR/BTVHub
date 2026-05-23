@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { StreamEvent } from "@btv/shared";
-import { api, type StreamSession, type StreamSessionDetail } from "../api";
+import { api, type StreamSession, type StreamSessionDetail, type SystemLogEntry } from "../api";
 
 function formatDuration(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -14,13 +14,15 @@ function formatDuration(ms: number) {
 
 export default function ActivityPage() {
   const [items, setItems] = useState<Array<{ id: string; event: StreamEvent; at: string }>>([]);
+  const [logs, setLogs] = useState<SystemLogEntry[]>([]);
   const [sessions, setSessions] = useState<StreamSession[]>([]);
   const [selected, setSelected] = useState<StreamSessionDetail | null>(null);
 
   const load = () => {
-    void Promise.all([api.activity(), api.sessions()]).then(([activity, sessionList]) => {
+    void Promise.all([api.activity(), api.sessions(), api.logs()]).then(([activity, sessionList, logList]) => {
       setItems(activity);
       setSessions(sessionList.sessions);
+      setLogs(logList);
       const selectedId = selected?.summary.session?.id;
       if (selectedId) {
         void api.sessionDetail(selectedId).then(setSelected);
@@ -42,6 +44,31 @@ export default function ActivityPage() {
     <>
       <h1>Activity</h1>
       <p className="subtitle">Recent stream events, session history, and local analytics exports.</p>
+
+      <div className="card">
+        <h2>System Logs</h2>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Level</th>
+              <th>Source</th>
+              <th>Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            {logs.slice(0, 30).map((log) => (
+              <tr key={log.id}>
+                <td>{new Date(log.createdAt).toLocaleString()}</td>
+                <td>{log.level}</td>
+                <td>{log.source}</td>
+                <td>{log.message}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {logs.length === 0 && <p style={{ color: "var(--muted)", padding: 12 }}>No system logs yet.</p>}
+      </div>
 
       <div className="card">
         <h2>Sessions</h2>

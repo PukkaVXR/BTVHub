@@ -1,5 +1,5 @@
 import OBSWebSocket from "obs-websocket-js";
-import { getEncryptedSetting, getSetting, logObsSceneSpan, setEncryptedSetting, setSetting } from "./db.js";
+import { getEncryptedSetting, getSetting, logObsSceneSpan, logSystem, setEncryptedSetting, setSetting } from "./db.js";
 
 type RawObsCall = (requestType: string, requestData?: Record<string, unknown>) => Promise<unknown>;
 
@@ -101,11 +101,13 @@ async function doConnectObs(): Promise<boolean> {
   client.on("ConnectionClosed", () => {
     if (obs === client) obs = null;
     setSetting("obs_connected", "0");
+    logSystem("obs", "warn", "OBS WebSocket connection closed", { host: cfg.host, port: cfg.port });
   });
 
   client.on("ConnectionError", () => {
     if (obs === client) obs = null;
     setSetting("obs_connected", "0");
+    logSystem("obs", "error", "OBS WebSocket connection error", { host: cfg.host, port: cfg.port });
   });
 
   client.on("CurrentProgramSceneChanged", (data) => {
@@ -116,12 +118,14 @@ async function doConnectObs(): Promise<boolean> {
     await client.connect(`ws://${cfg.host}:${cfg.port}`, cfg.password || undefined);
     obs = client;
     setSetting("obs_connected", "1");
+    logSystem("obs", "info", "OBS WebSocket connected", { host: cfg.host, port: cfg.port });
     if (cfg.password && !getEncryptedSetting("obs_password")) {
       setEncryptedSetting("obs_password", cfg.password);
     }
     return true;
   } catch {
     setSetting("obs_connected", "0");
+    logSystem("obs", "error", "OBS WebSocket connection failed", { host: cfg.host, port: cfg.port });
     return false;
   }
 }
@@ -154,6 +158,9 @@ async function getObsClient(): Promise<OBSWebSocket | null> {
 function markObsDisconnected(err?: unknown): void {
   if (err) console.error("OBS request failed:", err);
   setSetting("obs_connected", "0");
+  logSystem("obs", "error", "OBS request failed; connection marked offline", {
+    error: err instanceof Error ? err.message : String(err ?? "unknown"),
+  });
   obs = null;
 }
 
