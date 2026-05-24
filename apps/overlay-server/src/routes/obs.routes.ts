@@ -1,5 +1,7 @@
 import {
+  ensureObsBrowserSources,
   getCurrentObsScene,
+  getObsBrowserSourceStatuses,
   listObsSceneSources,
   listObsScenes,
   runObsSourceMotion,
@@ -8,6 +10,8 @@ import {
   setObsSourceVisible,
   setObsText,
 } from "../obs-client.js";
+import { EXPECTED_OVERLAYS } from "../overlay-definitions.js";
+import { getOverlayOrigin } from "../server-urls.js";
 import type {
   ObsInputSettingsBody,
   ObsSceneBody,
@@ -18,6 +22,26 @@ import type {
 import type { RouteModule } from "./types.js";
 
 export const registerObsRoutes: RouteModule = (app) => {
+  app.get("/api/obs/browser-sources", async (_req, reply) => {
+    const sources = await getObsBrowserSourceStatuses(EXPECTED_OVERLAYS, getOverlayOrigin());
+    if (!sources) {
+      return reply.status(503).send(actionError("OBS_DISCONNECTED", "OBS Offline", "Could not inspect OBS browser sources"));
+    }
+    return { ok: true, sources };
+  });
+
+  app.post("/api/obs/browser-sources/ensure", async (req, reply) => {
+    const body = req.body as { sceneName?: string } | undefined;
+    const result = await ensureObsBrowserSources(EXPECTED_OVERLAYS, getOverlayOrigin(), body?.sceneName);
+    if (!result) {
+      return reply.status(503).send(actionError("OBS_DISCONNECTED", "OBS Offline", "Could not create or update OBS browser sources"));
+    }
+    return {
+      ok: result.sources.every((source) => source.configured && source.correctUrl && source.action !== "failed"),
+      ...result,
+    };
+  });
+
   app.get("/api/obs/scenes", async (_req, reply) => {
     const scenes = await listObsScenes();
     if (!scenes) {

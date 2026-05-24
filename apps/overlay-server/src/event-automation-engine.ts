@@ -36,6 +36,7 @@ import {
   stopObsStream,
 } from "./obs-client.js";
 import type { AlertQueue } from "./alert-queue.js";
+import { resolveAlertProjectVariation } from "./alert-variations.js";
 
 const MAX_WAIT_MS = 60 * 60_000;
 
@@ -293,9 +294,9 @@ export class EventAutomationEngine {
         );
         return `Overlay event: ${action.name}`;
       case "overlay_alert": {
-        const visualProject = getAlertProject(action.themeId) ?? getAlertProject(`alert-${action.themeId}`) ?? undefined;
+        const rawVisualProject = getAlertProject(action.themeId) ?? getAlertProject(`alert-${action.themeId}`) ?? undefined;
         const theme = getTheme(action.themeId) ?? getTheme("default");
-        if (!theme && !visualProject) throw new Error(`Alert project not found: ${action.themeId}`);
+        if (!theme && !rawVisualProject) throw new Error(`Alert project not found: ${action.themeId}`);
         const alertEvent = createStreamEvent({
           source: "manual",
           type: action.eventType,
@@ -307,6 +308,7 @@ export class EventAutomationEngine {
           message: renderTemplate(action.message, event),
           payload: { sourceEvent: event },
         });
+        const visualProject = rawVisualProject ? resolveAlertProjectVariation(rawVisualProject, alertEvent).project : undefined;
         this.alertQueue.enqueue({
           id: crypto.randomUUID(),
           channel: "alerts",

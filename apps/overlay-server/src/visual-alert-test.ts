@@ -1,6 +1,15 @@
 import { createStreamEvent, type AlertProject, type StreamEventType } from "@btv/shared";
 import type { OverlayBus } from "./bus.js";
 import { getAlertProject, getAlertProjects } from "./db.js";
+import { resolveAlertProjectVariation } from "./alert-variations.js";
+
+export interface VisualAlertTestPayload {
+  user?: string;
+  login?: string;
+  message?: string;
+  amount?: number;
+  payload?: Record<string, unknown>;
+}
 
 export function findTestAlertProject(eventType: StreamEventType): AlertProject | null {
   const projects = getAlertProjects();
@@ -14,22 +23,26 @@ export function broadcastVisualAlertTest(
   bus: OverlayBus,
   project: AlertProject,
   eventType: StreamEventType = project.eventType,
+  testPayload: VisualAlertTestPayload = {},
+  variationId?: string,
 ): ReturnType<typeof createStreamEvent> {
   const event = createStreamEvent({
     source: "manual",
     type: eventType,
     user: {
       id: "test",
-      displayName: "TestUser",
-      login: "testuser",
+      displayName: testPayload.user ?? "TestUser",
+      login: testPayload.login ?? "testuser",
     },
-    message: "Test visual alert from hub",
-    amount: eventType === "cheer" ? 100 : eventType === "raid" ? 25 : undefined,
+    message: testPayload.message ?? "Test visual alert from hub",
+    amount: testPayload.amount ?? (eventType === "cheer" ? 100 : eventType === "raid" ? 25 : undefined),
     payload: {
+      ...(testPayload.payload ?? {}),
       alertProjectId: project.id,
       test: true,
     },
   });
+  const resolved = resolveAlertProjectVariation(project, event, variationId);
 
   bus.broadcast(
     {
@@ -37,12 +50,12 @@ export function broadcastVisualAlertTest(
       alert: {
         id: crypto.randomUUID(),
         event,
-        themeId: project.id,
+        themeId: resolved.project.id,
         html: "",
         css: "",
         js: "",
-        durationMs: project.durationMs,
-        visualProject: project,
+        durationMs: resolved.project.durationMs,
+        visualProject: resolved.project,
       },
     },
     "alerts",

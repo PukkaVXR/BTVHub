@@ -1,6 +1,7 @@
 import { getEncryptedSetting, logSystem } from "./db.js";
 
-const GIPHY_API = "https://api.giphy.com/v1/gifs";
+const GIPHY_API = "https://api.giphy.com/v1";
+export type GiphyAssetType = "gif" | "sticker";
 
 interface GiphyApiImage {
   url?: string;
@@ -24,6 +25,7 @@ interface GiphyApiGif {
 
 export interface GiphyResult {
   id: string;
+  type: GiphyAssetType;
   title: string;
   url: string;
   previewUrl: string;
@@ -40,7 +42,7 @@ function apiKey(): string {
   return key;
 }
 
-function normalizeGif(gif: GiphyApiGif): GiphyResult | null {
+function normalizeGif(gif: GiphyApiGif, type: GiphyAssetType): GiphyResult | null {
   const original = gif.images?.original;
   const downsized = gif.images?.downsized ?? original;
   const preview = gif.images?.fixed_width ?? gif.images?.preview_gif ?? downsized;
@@ -49,7 +51,8 @@ function normalizeGif(gif: GiphyApiGif): GiphyResult | null {
   if (!gif.id || !originalUrl || !previewUrl) return null;
   return {
     id: gif.id,
-    title: gif.title || "Untitled GIF",
+    type,
+    title: gif.title || (type === "sticker" ? "Untitled Sticker" : "Untitled GIF"),
     url: downsized?.url ?? originalUrl,
     previewUrl,
     originalUrl,
@@ -60,8 +63,9 @@ function normalizeGif(gif: GiphyApiGif): GiphyResult | null {
   };
 }
 
-async function callGiphy(path: string, params: Record<string, string | number>): Promise<GiphyResult[]> {
-  const url = new URL(`${GIPHY_API}/${path}`);
+async function callGiphy(type: GiphyAssetType, path: string, params: Record<string, string | number>): Promise<GiphyResult[]> {
+  const collection = type === "sticker" ? "stickers" : "gifs";
+  const url = new URL(`${GIPHY_API}/${collection}/${path}`);
   url.searchParams.set("api_key", apiKey());
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.set(key, String(value));
@@ -72,13 +76,13 @@ async function callGiphy(path: string, params: Record<string, string | number>):
     throw new Error(`GIPHY request failed (${res.status})`);
   }
   const json = (await res.json()) as { data?: GiphyApiGif[] };
-  return (json.data ?? []).map(normalizeGif).filter((gif): gif is GiphyResult => Boolean(gif));
+  return (json.data ?? []).map((gif) => normalizeGif(gif, type)).filter((gif): gif is GiphyResult => Boolean(gif));
 }
 
-export async function searchGiphy(query: string, limit = 12): Promise<GiphyResult[]> {
+export async function searchGiphy(query: string, limit = 12, type: GiphyAssetType = "gif"): Promise<GiphyResult[]> {
   const q = query.trim();
   if (!q) return [];
-  return callGiphy("search", {
+  return callGiphy(type, "search", {
     q,
     limit: Math.max(1, Math.min(25, limit)),
     rating: "pg-13",
@@ -86,8 +90,8 @@ export async function searchGiphy(query: string, limit = 12): Promise<GiphyResul
   });
 }
 
-export async function trendingGiphy(limit = 12): Promise<GiphyResult[]> {
-  return callGiphy("trending", {
+export async function trendingGiphy(limit = 12, type: GiphyAssetType = "gif"): Promise<GiphyResult[]> {
+  return callGiphy(type, "trending", {
     limit: Math.max(1, Math.min(25, limit)),
     rating: "pg-13",
   });

@@ -14,6 +14,33 @@ export interface ObsSourceInfo {
   sceneItemEnabled: boolean;
 }
 
+export interface ExpectedObsBrowserOverlay {
+  id: string;
+  label: string;
+  route: string;
+}
+
+export interface ObsBrowserSourceInfo {
+  inputName: string;
+  inputKind: string;
+  url: string;
+}
+
+export interface ObsBrowserSourceStatus {
+  id: string;
+  label: string;
+  route: string;
+  expectedUrl: string;
+  configured: boolean;
+  correctUrl: boolean;
+  sourceName?: string;
+  currentUrl?: string;
+}
+
+export interface ObsBrowserSourceEnsureResult extends ObsBrowserSourceStatus {
+  action: "created" | "updated" | "linked" | "unchanged" | "failed";
+}
+
 export interface ObsTransformPoint {
   x: number;
   y: number;
@@ -225,6 +252,141 @@ export async function listObsSceneSources(sceneName: string): Promise<ObsSourceI
       sceneItemEnabled: Boolean(item.sceneItemEnabled),
     }))
     .filter((item) => item.sourceName && Number.isFinite(item.sceneItemId));
+}
+
+export async function listObsBrowserSources(): Promise<ObsBrowserSourceInfo[] | null> {
+  const result = (await safeObsCall("GetInputList")) as
+    | {
+        inputs?: Array<{
+          inputName?: string;
+          inputKind?: string;
+          unversionedInputKind?: string;
+        }>;
+      }
+    | null;
+  if (!result?.inputs) return null;
+
+  const browserInputs = result.inputs
+    .map((input) => ({
+      inputName: String(input.inputName ?? ""),
+      inputKind: String(input.inputKind ?? input.unversionedInputKind ?? ""),
+    }))
+    .filter((input) => input.inputName && input.inputKind.includes("browser"));
+
+  const sources: ObsBrowserSourceInfo[] = [];
+  for (const input of browserInputs) {
+    const settings = (await safeObsCall("GetInputSettings", { inputName: input.inputName })) as
+      | { inputSettings?: { url?: unknown } }
+      | null;
+    sources.push({
+      ...input,
+      url: String(settings?.inputSettings?.url ?? ""),
+    });
+  }
+
+  return sources;
+}
+
+export async function getObsBrowserSourceStatuses(
+  expectedOverlays: ExpectedObsBrowserOverlay[],
+  overlayOrigin: string,
+): Promise<ObsBrowserSourceStatus[] | null> {
+  const browserSources = await listObsBrowserSources();
+  if (!browserSources) return null;
+
+  return expectedOverlays.map((overlay) => {
+    const expectedUrl = `${overlayOrigin}${overlay.route}`;
+    const expectedName = obsBrowserSourceName(overlay.label);
+    const exactUrl = browserSources.find((source) => normalizeObsUrl(source.url) === normalizeObsUrl(expectedUrl));
+    const named = browserSources.find((source) => source.inputName === expectedName);
+    const source = exactUrl ?? named;
+    return {
+      id: overlay.id,
+      label: overlay.label,
+      route: overlay.route,
+      expectedUrl,
+      configured: Boolean(source),
+      correctUrl: Boolean(source && normalizeObsUrl(source.url) === normalizeObsUrl(expectedUrl)),
+      sourceName: source?.inputName,
+      currentUrl: source?.url,
+    };
+  });
+}
+
+export async function ensureObsBrowserSources(
+  expectedOverlays: ExpectedObsBrowserOverlay[],
+  overlayOrigin: string,
+  sceneName?: string,
+): Promise<{ sceneName: string; sources: ObsBrowserSourceEnsureResult[] } | null> {
+  const targetScene = sceneName?.trim() || await getCurrentObsScene();
+  if (!targetScene) return null;
+
+  const results: ObsBrowserSourceEnsureResult[] = [];
+  for (const overlay of expectedOverlays) {
+    const expectedUrl = `${overlayOrigin}${overlay.route}`;
+    const inputName = obsBrowserSourceName(overlay.label);
+    const before = await getObsBrowserSourceStatuses([overlay], overlayOrigin);
+    const status = before?.[0];
+    const existingName = status?.sourceName;
+    let action: ObsBrowserSourceEnsureResult["action"] = "failed";
+
+    if (status?.configured && existingName) {
+      const updated = await setObsInputSettings(existingName, obsBrowserSettings(expectedUrl), true);
+      const linked = await ensureSceneContainsSource(targetScene, existingName);
+      action = updated && linked
+        ? (status.correctUrl ? "unchanged" : "updated")
+        : "failed";
+    } else {
+      const created = await safeObsCall("CreateInput", {
+        sceneName: targetScene,
+        inputName,
+        inputKind: "browser_source",
+        inputSettings: obsBrowserSettings(expectedUrl),
+        sceneItemEnabled: true,
+      });
+      action = created ? "created" : "failed";
+    }
+
+    const after = (await getObsBrowserSourceStatuses([overlay], overlayOrigin))?.[0];
+    results.push({
+      ...(after ?? {
+        id: overlay.id,
+        label: overlay.label,
+        route: overlay.route,
+        expectedUrl,
+        configured: false,
+        correctUrl: false,
+      }),
+      action,
+    });
+  }
+
+  return { sceneName: targetScene, sources: results };
+}
+
+async function ensureSceneContainsSource(sceneName: string, sourceName: string): Promise<boolean> {
+  const sources = await listObsSceneSources(sceneName);
+  if (!sources) return false;
+  if (sources.some((source) => source.sourceName === sourceName)) return true;
+  return (await safeObsCall("CreateSceneItem", { sceneName, sourceName, sceneItemEnabled: true })) !== null;
+}
+
+function obsBrowserSettings(url: string): Record<string, unknown> {
+  return {
+    url,
+    width: 1920,
+    height: 1080,
+    shutdown: false,
+    css: "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+  };
+}
+
+function obsBrowserSourceName(label: string): string {
+  return `BTV ${label}`;
+}
+
+function normalizeObsUrl(url: string): string {
+  return url.trim().replace(/\/$/, "").replace("localhost", "127.0.0.1");
 }
 
 export async function setObsSourceVisible(

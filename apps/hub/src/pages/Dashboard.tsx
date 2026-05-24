@@ -143,6 +143,7 @@ export default function Dashboard() {
   const [builderMotionMode, setBuilderMotionMode] = useState<"dvd" | "set">("dvd");
   const [builderTextInput, setBuilderTextInput] = useState("");
   const [builderTextValue, setBuilderTextValue] = useState("");
+  const [repairingBrowserSources, setRepairingBrowserSources] = useState(false);
   const toast = useToast();
 
   const load = () => {
@@ -212,6 +213,21 @@ export default function Dashboard() {
     const res = await api.emergencyAction(action);
     toast(res.ok ? res.title : res.message);
     load();
+  };
+
+  const repairObsBrowserSources = async () => {
+    setRepairingBrowserSources(true);
+    try {
+      const res = await api.ensureObsBrowserSources();
+      const changed = res.sources.filter((source) => source.action && source.action !== "unchanged").length;
+      toast(`OBS browser sources checked in ${res.sceneName}; ${changed} updated`);
+      load();
+      await loadObsScenes();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Could not repair OBS browser sources");
+    } finally {
+      setRepairingBrowserSources(false);
+    }
   };
 
   const startSession = async () => {
@@ -1023,6 +1039,49 @@ export default function Dashboard() {
         ) : null}
       </div>
 
+      {preflight?.alertProjects.projects.length ? (
+        <div className="card">
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+            <h2 style={{ margin: 0 }}>Alert Project Checks</h2>
+            <span className={preflight.alertProjects.errors ? "badge badge-off" : "badge"}>
+              {preflight.alertProjects.errors} broken / {preflight.alertProjects.warnings} warning
+              {preflight.alertProjects.warnings === 1 ? "" : "s"}
+            </span>
+          </div>
+          <table className="table" style={{ marginTop: 12 }}>
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Event</th>
+                <th>Issue</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {preflight.alertProjects.projects.slice(0, 6).map((project) => (
+                <tr key={project.id}>
+                  <td>{project.name}</td>
+                  <td>{project.eventType}</td>
+                  <td>
+                    {project.issues[0]?.message ?? `${project.errors} error(s), ${project.warnings} warning(s)`}
+                  </td>
+                  <td>
+                    <Link className="btn btn-secondary btn-sm" to={`/alerts/editor/${encodeURIComponent(project.id)}`}>
+                      Open
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {preflight.alertProjects.projects.length > 6 && (
+            <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 10 }}>
+              {preflight.alertProjects.projects.length - 6} more project(s) have checks hidden.
+            </p>
+          )}
+        </div>
+      ) : null}
+
       <div className="card">
         <h2>Connected Browser Sources</h2>
         <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
@@ -1033,9 +1092,27 @@ export default function Dashboard() {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
             {preflight.expectedOverlays.map((overlay) => (
               <span key={overlay.id} className={overlay.reachable ? "badge badge-ok" : "badge"}>
-                {overlay.label}: {overlay.reachable ? "reachable" : "not seen"}
+                {overlay.label}: {overlay.reachable ? "reachable" : overlay.obsSource?.configured ? "configured, not live" : "not in OBS"}
               </span>
             ))}
+          </div>
+        ) : null}
+        {preflight?.obs.connected && (
+          preflight.overlays.clientCount === 0
+          || preflight.expectedOverlays.some((overlay) => overlay.obsSource && (!overlay.obsSource.configured || !overlay.obsSource.correctUrl))
+        ) ? (
+          <div style={{ marginBottom: 12 }}>
+            <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
+              OBS browser sources are missing, mismatched, hidden, or not actively loading.
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => void repairObsBrowserSources()}
+              disabled={repairingBrowserSources}
+            >
+              {repairingBrowserSources ? "Repairing..." : "Repair OBS browser sources"}
+            </button>
           </div>
         ) : null}
         {overlayChannels.length ? (
@@ -1068,6 +1145,26 @@ export default function Dashboard() {
                   <td>{client.channels.join(", ")}</td>
                   <td>{client.status}</td>
                   <td>{timeAgo(client.lastHeartbeatAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
+        {preflight?.expectedOverlays.some((overlay) => overlay.obsSource?.configured) ? (
+          <table className="table" style={{ marginTop: 12 }}>
+            <thead>
+              <tr>
+                <th>Overlay</th>
+                <th>OBS source</th>
+                <th>URL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {preflight.expectedOverlays.map((overlay) => (
+                <tr key={`obs-source-${overlay.id}`}>
+                  <td>{overlay.label}</td>
+                  <td>{overlay.obsSource?.sourceName ?? "-"}</td>
+                  <td>{overlay.obsSource?.correctUrl ? "Correct" : overlay.obsSource?.configured ? "Mismatch" : "Missing"}</td>
                 </tr>
               ))}
             </tbody>

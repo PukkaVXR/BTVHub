@@ -86,8 +86,11 @@ export function initDb(): DatabaseSync {
       name TEXT NOT NULL,
       event_type TEXT NOT NULL,
       duration_ms INTEGER NOT NULL,
+      timeline_json TEXT NOT NULL DEFAULT '{}',
       canvas_json TEXT NOT NULL DEFAULT '{}',
       layers_json TEXT NOT NULL DEFAULT '[]',
+      variations_json TEXT NOT NULL DEFAULT '[]',
+      chaos_json TEXT NOT NULL DEFAULT '{}',
       tags_json TEXT NOT NULL DEFAULT '[]',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
@@ -223,19 +226,29 @@ export function initDb(): DatabaseSync {
       ON system_logs(created_at);
   `);
 
-  migrateThemesLayoutColumn();
+  migrateSchemaColumns();
   seedDefaults();
   seedAlertProjects();
   return db;
 }
 
-function migrateThemesLayoutColumn(): void {
+function migrateSchemaColumns(): void {
   const cols = db.prepare("PRAGMA table_info(themes)").all() as Array<{ name: string }>;
   if (!cols.some((c) => c.name === "layout_json")) {
     db.exec("ALTER TABLE themes ADD COLUMN layout_json TEXT");
   }
   if (!cols.some((c) => c.name === "visual_json")) {
     db.exec("ALTER TABLE themes ADD COLUMN visual_json TEXT");
+  }
+  const alertCols = db.prepare("PRAGMA table_info(alert_projects)").all() as Array<{ name: string }>;
+  if (!alertCols.some((c) => c.name === "timeline_json")) {
+    db.exec("ALTER TABLE alert_projects ADD COLUMN timeline_json TEXT NOT NULL DEFAULT '{}'");
+  }
+  if (!alertCols.some((c) => c.name === "variations_json")) {
+    db.exec("ALTER TABLE alert_projects ADD COLUMN variations_json TEXT NOT NULL DEFAULT '[]'");
+  }
+  if (!alertCols.some((c) => c.name === "chaos_json")) {
+    db.exec("ALTER TABLE alert_projects ADD COLUMN chaos_json TEXT NOT NULL DEFAULT '{}'");
   }
 }
 
@@ -361,8 +374,11 @@ function rowToAlertProject(row: Record<string, unknown>): AlertProject {
     name: String(row.name),
     eventType: String(row.event_type),
     durationMs: Number(row.duration_ms ?? 5000),
+    timeline: parseJsonValue(row.timeline_json, undefined),
     canvas: parseJsonValue(row.canvas_json, {}),
     layers: parseJsonValue(row.layers_json, []),
+    variations: parseJsonValue(row.variations_json, []),
+    chaos: parseJsonValue(row.chaos_json, {}),
     tags: parseJsonValue(row.tags_json, []),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -376,6 +392,18 @@ function defaultAlertProjectFromTheme(theme: Theme): AlertProject {
     name: `${theme.name} Visual`,
     eventType: "follow",
     durationMs: theme.durationMs,
+    timeline: {
+      durationMs: theme.durationMs,
+      fps: 60,
+      snapMs: 100,
+      zoom: 1,
+    },
+    chaos: {
+      enabled: false,
+      intensity: 0.35,
+      modifiers: ["shake", "flash", "hue_shift", "scale_punch"],
+      legendaryBoost: 0,
+    },
     canvas: {
       width: 1920,
       height: 1080,
@@ -529,14 +557,17 @@ export function upsertAlertProject(project: AlertProject): void {
   const parsed = AlertProjectSchema.parse(project);
   db.prepare(
     `INSERT INTO alert_projects
-      (id, name, event_type, duration_ms, canvas_json, layers_json, tags_json, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, name, event_type, duration_ms, timeline_json, canvas_json, layers_json, variations_json, chaos_json, tags_json, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
       name=excluded.name,
       event_type=excluded.event_type,
       duration_ms=excluded.duration_ms,
+      timeline_json=excluded.timeline_json,
       canvas_json=excluded.canvas_json,
       layers_json=excluded.layers_json,
+      variations_json=excluded.variations_json,
+      chaos_json=excluded.chaos_json,
       tags_json=excluded.tags_json,
       updated_at=excluded.updated_at`,
   ).run(
@@ -544,8 +575,11 @@ export function upsertAlertProject(project: AlertProject): void {
     parsed.name,
     parsed.eventType,
     parsed.durationMs,
+    JSON.stringify(parsed.timeline ?? {}),
     JSON.stringify(parsed.canvas),
     JSON.stringify(parsed.layers),
+    JSON.stringify(parsed.variations),
+    JSON.stringify(parsed.chaos),
     JSON.stringify(parsed.tags),
     parsed.createdAt,
     parsed.updatedAt,

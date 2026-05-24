@@ -47,8 +47,8 @@ export const registerAlertProjectsRoutes: RouteModule = (app, ctx) => {
     const project = getAlertProject(id);
     if (!project) return reply.status(404).send({ error: "Alert project not found" });
 
-    const body = req.body as { eventType?: StreamEventType } | undefined;
-    const event = broadcastVisualAlertTest(ctx.bus, project, body?.eventType ?? project.eventType);
+    const body = req.body as { eventType?: StreamEventType; testPayload?: Record<string, unknown>; variationId?: string } | undefined;
+    const event = broadcastVisualAlertTest(ctx.bus, project, body?.eventType ?? project.eventType, body?.testPayload, body?.variationId);
 
     return { ok: true, event };
   });

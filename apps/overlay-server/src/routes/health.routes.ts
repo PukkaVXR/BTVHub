@@ -1,5 +1,8 @@
-import { getActivity, getSetting, getStreamSessionSummary } from "../db.js";
-import { getObsStatus } from "../obs-client.js";
+import type { AlertProject } from "@btv/shared";
+import { listMediaAssets, listSoundAssets } from "../assets.js";
+import { getActivity, getAlertProjects, getSetting, getStreamSessionSummary } from "../db.js";
+import { getObsBrowserSourceStatuses, getObsStatus } from "../obs-client.js";
+import { EXPECTED_OVERLAYS, overlayUrl } from "../overlay-definitions.js";
 import { getCertPaths } from "../tls.js";
 import { getAllowedOrigins } from "../auth.js";
 import { getOAuthOrigin, getOverlayOrigin, getOverlayWsUrl } from "../server-urls.js";
@@ -33,16 +36,16 @@ export const registerHealthRoutes: RouteModule = (app, ctx) => {
     const spotify = ctx.safeStatus("Spotify", ctx.spotifyStatusFallback, getSpotifyStatus);
     const obs = ctx.safeStatus("OBS", ctx.obsStatusFallback, getObsStatus);
     const overlays = ctx.bus.getSnapshot();
-    const expectedOverlays = [
-      { id: "alerts", label: "Alerts", route: "/o/alerts.html", channels: ["alerts", "effects"] },
-      { id: "chat", label: "Chat", route: "/o/chat.html", channels: ["chat"] },
-      { id: "goals", label: "Goal Bar", route: "/o/goals.html", channels: ["goal"] },
-      { id: "ticker", label: "Event Ticker", route: "/o/ticker.html", channels: ["ticker"] },
-      { id: "now-playing", label: "Now Playing", route: "/o/now-playing.html", channels: ["nowPlaying"] },
-    ].map((overlay) => ({
+    const alertProjectChecks = analyzeAlertProjects(getAlertProjects(), ctx.assetsDir);
+    const obsBrowserSources = obs.connected
+      ? await getObsBrowserSourceStatuses(EXPECTED_OVERLAYS, getOverlayOrigin()) ?? []
+      : [];
+    const expectedOverlays = EXPECTED_OVERLAYS.map((overlay) => ({
       ...overlay,
+      url: overlayUrl(overlay.route),
       reachable: overlay.channels.some((channel) => (overlays.channels[channel] ?? 0) > 0)
         || overlays.clients.some((client) => client.route === overlay.route && client.status === "connected"),
+      obsSource: obsBrowserSources.find((source) => source.id === overlay.id),
     }));
     const alerts = ctx.alertQueue.getStatus();
     const session = getStreamSessionSummary();
@@ -51,6 +54,7 @@ export const registerHealthRoutes: RouteModule = (app, ctx) => {
       { id: "overlay-clients", label: "OBS browser sources", ok: overlays.clientCount > 0, detail: `${overlays.clientCount} connected` },
       { id: "overlay-heartbeats", label: "Overlay heartbeats", ok: overlays.clients.every((client) => client.status === "connected"), detail: `${overlays.clients.filter((client) => client.status === "stale").length} stale` },
       { id: "overlay-reachability", label: "Browser source reachability", ok: expectedOverlays.some((overlay) => overlay.reachable), detail: `${expectedOverlays.filter((overlay) => overlay.reachable).length}/${expectedOverlays.length} expected overlays reachable` },
+      { id: "alert-project-assets", label: "Alert project assets", ok: alertProjectChecks.errors === 0, detail: alertProjectChecks.errors ? `${alertProjectChecks.errors} broken asset reference(s)` : `${alertProjectChecks.projects.length} project(s) checked` },
       { id: "twitch", label: "Twitch", ok: twitch.connected, detail: twitch.displayName ?? twitch.login ?? twitch.eventsubStatus ?? "Not connected" },
       { id: "spotify", label: "Spotify", ok: spotify.connected, detail: spotify.connected ? "Connected" : "Not connected" },
       { id: "obs", label: "OBS WebSocket", ok: obs.connected, detail: `${obs.host}:${obs.port}` },
@@ -62,6 +66,7 @@ export const registerHealthRoutes: RouteModule = (app, ctx) => {
       checks,
       overlays,
       expectedOverlays,
+      alertProjects: alertProjectChecks,
       emergency: {
         automationsDisabled: getSetting("automations_disabled") === "1",
         channelPointActionsDisabled: getSetting("channel_point_actions_disabled") === "1",
@@ -75,3 +80,74 @@ export const registerHealthRoutes: RouteModule = (app, ctx) => {
     };
   });
 };
+
+function analyzeAlertProjects(projects: AlertProject[], assetsDir: string): {
+  errors: number;
+  warnings: number;
+  projects: Array<{
+    id: string;
+    name: string;
+    eventType: string;
+    errors: number;
+    warnings: number;
+    issues: Array<{ level: "error" | "warning"; message: string }>;
+  }>;
+} {
+  const mediaByUrl = new Map(listMediaAssets(assetsDir).flatMap((asset) => [
+    [asset.url, asset.name],
+    [normalizeAssetUrl(asset.url), asset.name],
+  ]));
+  const soundsByUrl = new Map(listSoundAssets(assetsDir).flatMap((asset) => [
+    [asset.url, asset.name],
+    [normalizeAssetUrl(asset.url), asset.name],
+  ]));
+
+  const checkedProjects = projects.map((project) => {
+    const issues: Array<{ level: "error" | "warning"; message: string }> = [];
+    const mediaLayers = project.layers.filter((layer) => ["image", "gif", "video", "audio"].includes(layer.type));
+    const videoLayers = project.layers.filter((layer) => layer.type === "video");
+    const heavyFilterLayers = project.layers.filter((layer) => (layer.filter?.blur ?? 0) > 20 || (layer.filter?.glow ?? 0) > 50);
+
+    for (const layer of mediaLayers) {
+      if (layer.type !== "image" && layer.type !== "gif" && layer.type !== "video" && layer.type !== "audio") continue;
+      if (!layer.assetUrl) {
+        issues.push({ level: "error", message: `${layer.name} has no asset URL.` });
+        continue;
+      }
+      if (/^(https?:|data:|blob:)/i.test(layer.assetUrl)) continue;
+      const lookupUrl = normalizeAssetUrl(layer.assetUrl);
+      const found = layer.type === "audio" ? soundsByUrl.has(lookupUrl) : mediaByUrl.has(lookupUrl);
+      if (!found) {
+        issues.push({ level: "error", message: `${layer.name} points to a missing local asset: ${layer.assetUrl}` });
+      }
+    }
+
+    if (mediaLayers.length > 8) issues.push({ level: "warning", message: `${mediaLayers.length} media layers may be heavy for OBS browser source playback.` });
+    if (videoLayers.length > 2) issues.push({ level: "warning", message: `${videoLayers.length} video layers may stutter on lower-end stream PCs.` });
+    if (heavyFilterLayers.length > 3) issues.push({ level: "warning", message: `${heavyFilterLayers.length} layers use heavy blur/glow effects.` });
+    if (project.durationMs > 30000) issues.push({ level: "warning", message: "Alert duration is over 30 seconds." });
+
+    return {
+      id: project.id,
+      name: project.name,
+      eventType: project.eventType,
+      errors: issues.filter((issue) => issue.level === "error").length,
+      warnings: issues.filter((issue) => issue.level === "warning").length,
+      issues,
+    };
+  });
+
+  return {
+    errors: checkedProjects.reduce((sum, project) => sum + project.errors, 0),
+    warnings: checkedProjects.reduce((sum, project) => sum + project.warnings, 0),
+    projects: checkedProjects.filter((project) => project.issues.length > 0),
+  };
+}
+
+function normalizeAssetUrl(url: string): string {
+  try {
+    return decodeURIComponent(url);
+  } catch {
+    return url;
+  }
+}

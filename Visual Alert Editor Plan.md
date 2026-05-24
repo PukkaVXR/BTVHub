@@ -56,10 +56,10 @@ Goal: define alert projects as structured data instead of ad hoc HTML/CSS blobs.
 
 - [x] Create shared `AlertProjectSchema`.
 - [x] Create shared `AlertLayerSchema`.
-- [ ] Create shared `AlertTimelineSchema`.
+- [x] Create shared `AlertTimelineSchema`.
 - [x] Create shared `AlertKeyframeSchema`.
 - [x] Support project metadata: id, name, event type, duration, canvas size, background mode.
-- [ ] Support layer types: text, image, video, gif, audio, shape, particle placeholder, browser/custom HTML.
+- [x] Support layer types: text, image, video, gif, audio, shape, particle placeholder, browser/custom HTML.
 - [x] Support layer properties: position, size, rotation, opacity, scale, anchor, blend mode, visibility, lock.
 - [x] Support text properties: font family, size, weight, color, stroke, shadow, alignment, template string.
 - [x] Support media properties: asset URL/id, fit mode, loop, volume, mute.
@@ -92,7 +92,7 @@ Core UI:
 
 - [x] Add `/alerts/editor/:id` route in Hub.
 - [x] Add "Open visual editor" action from Themes/Alerts page.
-- [ ] Add editor empty state for new alert.
+- [x] Add editor empty state for new alert.
 - [x] Add save status and dirty-state warning.
 - [x] Add undo/redo stack.
 - [x] Add keyboard shortcuts for delete, duplicate, undo, redo.
@@ -167,7 +167,7 @@ Timeline shell:
 - [x] Play/pause.
 - [x] Restart.
 - [x] Scrub preview by dragging playhead.
-- [ ] Zoom timeline.
+- [x] Zoom timeline.
 - [x] Track per layer.
 - [x] Audio track display placeholder.
 
@@ -182,14 +182,14 @@ Layer timing:
 
 Keyframes:
 
-- [ ] Add keyframe for opacity.
-- [ ] Add keyframe for position.
-- [ ] Add keyframe for scale.
-- [ ] Add keyframe for rotation.
-- [ ] Move keyframe on timeline.
-- [ ] Delete keyframe.
-- [ ] Easing dropdown.
-- [ ] Linear/ease-in/ease-out/ease-in-out/bounce/elastic presets.
+- [x] Add keyframe for opacity.
+- [x] Add keyframe for position.
+- [x] Add keyframe for scale.
+- [x] Add keyframe for rotation.
+- [x] Move keyframe on timeline.
+- [x] Delete keyframe.
+- [x] Easing dropdown.
+- [x] Linear/ease-in/ease-out/ease-in-out/bounce/elastic presets.
 
 Acceptance criteria:
 
@@ -247,7 +247,7 @@ Goal: preview should behave like the final browser source.
 - [ ] Use the same renderer component for editor preview and overlay playback where practical.
 - [x] Add preview event payload selector.
 - [x] Add buttons: Test Follow, Test Sub, Test Resub, Test Gift Sub, Test Raid, Test Cheer, Test Channel Point.
-- [ ] Add custom payload JSON editor for edge cases.
+- [x] Add custom payload JSON editor for edge cases.
 - [x] Add transparent background mode.
 - [x] Add checkerboard background mode.
 - [x] Add OBS-safe-zone overlay.
@@ -283,11 +283,12 @@ GIPHY:
 - [x] Add encrypted GIPHY API key setting.
 - [x] Add backend GIPHY search endpoint.
 - [x] Add GIPHY trending endpoint.
+- [x] Add GIPHY Sticker search/trending/import support.
 - [x] Add GIPHY search UI in asset panel.
 - [x] Add import selected GIF into local media library.
-- [ ] Store attribution/source metadata for imported GIPHY assets.
+- [x] Store attribution/source metadata for imported GIPHY assets.
 - [x] Handle missing/invalid API key gracefully.
-- [ ] Rate-limit/protect GIPHY proxy endpoint.
+- [x] Rate-limit/protect GIPHY proxy endpoint.
 
 Acceptance criteria:
 
@@ -299,19 +300,19 @@ Acceptance criteria:
 Goal: sound is first-class, not an afterthought.
 
 - [x] Add audio layers to timeline.
-- [ ] Add waveform placeholder or simple duration bar.
+- [x] Add waveform placeholder or simple duration bar.
 - [x] Add volume control.
-- [ ] Add mute toggle.
-- [ ] Add start offset.
-- [ ] Add fade in/out.
-- [ ] Add test sound button.
+- [x] Add mute toggle.
+- [x] Add start offset.
+- [x] Add fade in/out.
+- [x] Add test sound button.
 - [x] Add sound asset picker.
-- [ ] Add "stop all alert sounds" compatibility with emergency controls.
-- [ ] Prepare data model for future audio-reactive effects.
+- [x] Add "stop all alert sounds" compatibility with emergency controls.
+- [x] Prepare data model for future audio-reactive effects.
 
 Acceptance criteria:
 
-- [ ] User can add sound to an alert and time it against visuals.
+- [x] User can add sound to an alert and time it against visuals.
 
 ## Milestone 9: Templates And Presets
 
@@ -322,21 +323,21 @@ Starter templates:
 - [x] Clean Follow.
 - [x] Neon Sub.
 - [x] Raid Warning.
-- [ ] Gift Bomb.
+- [x] Gift Bomb.
 - [x] Cheer Burst.
-- [ ] Channel Point Chaos.
-- [ ] Cozy Minimal.
-- [ ] Horror Glitch.
-- [ ] Ocean/Sci-Fi.
+- [x] Channel Point Chaos.
+- [x] Cozy Minimal.
+- [x] Horror Glitch.
+- [x] Ocean/Sci-Fi.
 - [x] Meme Pop.
 
 Template UX:
 
 - [x] Template gallery.
-- [ ] Preview template before applying.
+- [x] Preview template before applying.
 - [x] Create alert from template.
-- [ ] Save current alert as local template.
-- [ ] Reset alert to template defaults.
+- [x] Save current alert as local template.
+- [x] Reset alert to template defaults.
 
 Acceptance criteria:
 
@@ -346,30 +347,30 @@ Acceptance criteria:
 
 Goal: bridge visual editor polish into the rest of Phase 2.
 
-- [ ] Define alert variation schema.
-- [ ] Support variations per event type.
-- [ ] Support condition fields: amount threshold, user role, random chance, channel point title.
-- [ ] Support variant priority.
-- [ ] Support rare/legendary chance.
-- [ ] Add variation picker in editor.
-- [ ] Add duplicate variation action.
-- [ ] Add test selected variation action.
+- [x] Define alert variation schema.
+- [x] Support variations per event type.
+- [x] Support condition fields: amount threshold, user role, random chance, channel point title.
+- [x] Support variant priority.
+- [x] Support rare/legendary chance.
+- [x] Add variation picker in editor.
+- [x] Add duplicate variation action.
+- [x] Add test selected variation action.
 
 Acceptance criteria:
 
-- [ ] User can create one alert project with multiple event-specific variants.
-- [ ] Rare alert variants can be tested intentionally.
+- [x] User can create one alert project with multiple event-specific variants.
+- [x] Rare alert variants can be tested intentionally.
 
 ## Milestone 11: Reactive And Chaos Foundation
 
 Goal: plant the seeds for BTV's signature features without overbuilding too early.
 
-- [ ] Add "random chance" variation support.
+- [x] Add "random chance" variation support.
 - [ ] Add chaos intensity variable in alert project settings.
 - [ ] Add modifiers: shake, flash, hue shift, scale punch.
 - [ ] Add random modifier action.
 - [ ] Add "legendary variant" flag.
-- [ ] Add event payload template variables: user, amount, message, event type.
+- [x] Add event payload template variables: user, amount, message, event type.
 - [ ] Add variable template support from automation state: `{var:hype}`.
 
 Acceptance criteria:
@@ -401,10 +402,10 @@ Goal: no cinematic alert should take down the stream.
 - [x] Add missing asset warnings.
 - [x] Add broken layer warnings.
 - [ ] Add unsupported browser feature warning.
-- [ ] Add preview render error boundary.
-- [ ] Add overlay render error logging.
+- [x] Add preview render error boundary.
+- [x] Add overlay render error logging.
 - [ ] Add "safe mode" playback that disables custom JS/heavy effects.
-- [ ] Add fallback visual for failed media.
+- [x] Add fallback visual for failed media.
 
 Acceptance criteria:
 
@@ -415,17 +416,17 @@ Acceptance criteria:
 
 Goal: make the feature teach itself.
 
-- [ ] Add "Create your first alert" mini tutorial.
-- [ ] Add template descriptions.
-- [ ] Add tooltips for timeline/layers/properties.
-- [ ] Add keyboard shortcut reference.
-- [ ] Add OBS setup note.
-- [ ] Add troubleshooting guide for transparent browser source rendering.
-- [ ] Add sample alert pack.
+- [x] Add "Create your first alert" mini tutorial.
+- [x] Add template descriptions.
+- [x] Add tooltips for timeline/layers/properties.
+- [x] Add keyboard shortcut reference.
+- [x] Add OBS setup note.
+- [x] Add troubleshooting guide for transparent browser source rendering.
+- [x] Add sample alert pack.
 
 Acceptance criteria:
 
-- [ ] A user can create, test, and add an alert to OBS without asking how.
+- [x] A user can create, test, and add an alert to OBS without asking how.
 
 ## Technical Recommendations
 
@@ -442,7 +443,7 @@ Backend:
 
 - [x] Store alert projects in SQLite.
 - [x] Keep media assets in local asset folders.
-- [ ] Add asset metadata table when import sources/attribution matter.
+- [x] Add asset metadata table when import sources/attribution matter.
 - [x] Add GIPHY proxy route in overlay-server.
 - [x] Keep alert project schemas in `packages/shared`.
 
@@ -482,6 +483,6 @@ Renderer:
 - [x] User can import GIFs from GIPHY through a secret-safe backend proxy.
 - [x] User can save, reload, duplicate, and export alert projects.
 - [x] Existing custom HTML/CSS/JS alerts continue to work.
-- [ ] Broken assets or render errors are visible in the dashboard.
+- [x] Broken assets or render errors are visible in the dashboard.
 - [x] Alert output remains compatible with the current alert queue.
 - [ ] The main Phase 2 checklist item "Visual alert editor polish" can be checked off.

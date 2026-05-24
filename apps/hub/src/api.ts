@@ -89,6 +89,10 @@ export const api = {
     }),
 
   overlays: () => request<{ overlays: OverlayInfo[] }>("/overlays"),
+  ensureObsBrowserSources: () =>
+    request<{ ok: boolean; sceneName: string; sources: ObsBrowserSourceStatus[] }>("/obs/browser-sources/ensure", {
+      method: "POST",
+    }),
 
   themes: () => request<import("@btv/shared").Theme[]>("/themes"),
 
@@ -106,10 +110,10 @@ export const api = {
   deleteAlertProject: (id: string) =>
     request("/alert-projects/" + encodeURIComponent(id), { method: "DELETE" }),
 
-  testAlertProject: (id: string, eventType: import("@btv/shared").StreamEventType) =>
+  testAlertProject: (id: string, eventType: import("@btv/shared").StreamEventType, testPayload?: Record<string, unknown>, variationId?: string) =>
     request<{ ok: boolean; event: import("@btv/shared").StreamEvent }>("/alert-projects/" + encodeURIComponent(id) + "/test", {
       method: "POST",
-      body: JSON.stringify({ eventType }),
+      body: JSON.stringify({ eventType, testPayload, variationId }),
     }),
 
   saveTheme: (theme: import("@btv/shared").Theme) =>
@@ -406,13 +410,14 @@ export const api = {
   deleteMedia: (name: string) =>
     request(`/assets/media/${encodeURIComponent(name)}`, { method: "DELETE" }),
 
-  giphySearch: (q: string) =>
-    request<{ results: GiphyResult[] }>(`/assets/giphy/search?q=${encodeURIComponent(q)}&limit=12`),
+  giphySearch: (q: string, type: GiphyAssetType = "gif") =>
+    request<{ results: GiphyResult[] }>(`/assets/giphy/search?q=${encodeURIComponent(q)}&limit=12&type=${type}`),
 
-  giphyTrending: () => request<{ results: GiphyResult[] }>("/assets/giphy/trending?limit=12"),
+  giphyTrending: (type: GiphyAssetType = "gif") =>
+    request<{ results: GiphyResult[] }>(`/assets/giphy/trending?limit=12&type=${type}`),
 
-  importGiphy: (gif: Pick<GiphyResult, "id" | "title" | "originalUrl">) =>
-    request<{ name: string; url: string; kind: "gif"; source: string; sourceId: string }>("/assets/giphy/import", {
+  importGiphy: (gif: Pick<GiphyResult, "id" | "title" | "originalUrl" | "sourceUrl" | "username" | "type">) =>
+    request<{ name: string; url: string; kind: "gif"; size: number; source: string; sourceId: string; sourceType: GiphyAssetType }>("/assets/giphy/import", {
       method: "POST",
       body: JSON.stringify(gif),
     }),
@@ -425,6 +430,7 @@ export interface SoundAssetInfo {
   name: string;
   url: string;
   size: number;
+  metadata?: AssetSourceMetadata;
 }
 
 export interface MediaAssetInfo {
@@ -432,6 +438,7 @@ export interface MediaAssetInfo {
   url: string;
   size: number;
   kind: "video" | "image" | "gif";
+  metadata?: AssetSourceMetadata;
 }
 
 export interface OverlayInfo {
@@ -465,6 +472,7 @@ export interface ActionResponse {
 
 export interface GiphyResult {
   id: string;
+  type: GiphyAssetType;
   title: string;
   url: string;
   previewUrl: string;
@@ -473,6 +481,18 @@ export interface GiphyResult {
   height: number;
   sourceUrl?: string;
   username?: string;
+}
+
+export type GiphyAssetType = "gif" | "sticker";
+
+export interface AssetSourceMetadata {
+  source?: "upload" | "giphy";
+  sourceType?: GiphyAssetType;
+  sourceId?: string;
+  sourceUrl?: string;
+  title?: string;
+  username?: string;
+  importedAt?: string;
 }
 
 export type MacroStep =
@@ -688,10 +708,25 @@ export interface PreflightInfo {
   expectedOverlays: Array<{
     id: string;
     label: string;
+    name: string;
     route: string;
+    url: string;
     channels: string[];
     reachable: boolean;
+    obsSource?: ObsBrowserSourceStatus;
   }>;
+  alertProjects: {
+    errors: number;
+    warnings: number;
+    projects: Array<{
+      id: string;
+      name: string;
+      eventType: string;
+      errors: number;
+      warnings: number;
+      issues: Array<{ level: "error" | "warning"; message: string }>;
+    }>;
+  };
   emergency: {
     automationsDisabled: boolean;
     channelPointActionsDisabled: boolean;
@@ -702,6 +737,18 @@ export interface PreflightInfo {
   obs: { host: string; port: number; hasPassword: boolean; connected: boolean };
   activity: Array<{ id: string; event: import("@btv/shared").StreamEvent; at: string }>;
   session: StreamSessionSummary;
+}
+
+export interface ObsBrowserSourceStatus {
+  id: string;
+  label: string;
+  route: string;
+  expectedUrl: string;
+  configured: boolean;
+  correctUrl: boolean;
+  sourceName?: string;
+  currentUrl?: string;
+  action?: "created" | "updated" | "linked" | "unchanged" | "failed";
 }
 
 export interface StreamSession {

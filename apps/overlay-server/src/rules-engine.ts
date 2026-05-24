@@ -5,6 +5,7 @@ import {
 } from "@btv/shared";
 import { getAlertProject, getAlertRules, getTheme, getWidgets, logActivity, logSessionEvent, updateGoal } from "./db.js";
 import type { AlertQueue } from "./alert-queue.js";
+import { resolveAlertProjectVariation } from "./alert-variations.js";
 import type { OverlayBus } from "./bus.js";
 import type { EffectRunner } from "./effect-runner.js";
 import type { EventAutomationEngine } from "./event-automation-engine.js";
@@ -101,7 +102,9 @@ export class RulesEngine {
     const rule = rules[0]!;
     if (rule.minAmount != null && (event.amount ?? 0) < rule.minAmount) return;
 
-    const visualProject = getAlertProject(rule.themeId) ?? getAlertProject(`alert-${rule.themeId}`) ?? undefined;
+    const rawVisualProject = getAlertProject(rule.themeId) ?? getAlertProject(`alert-${rule.themeId}`) ?? undefined;
+    const resolved = rawVisualProject ? resolveAlertProjectVariation(rawVisualProject, event) : undefined;
+    const visualProject = resolved?.project;
     const theme = getTheme(rule.themeId) ?? getTheme("default");
     if (!theme && !visualProject) return;
 

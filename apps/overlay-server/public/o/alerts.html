@@ -16,6 +16,7 @@
       renderAlert,
       playMediaEffect,
       playSoundEffect,
+      stopAllSounds,
       playVisualEffect,
     } from "/js/overlay-client.js";
     let alertCleanup = null;
@@ -35,6 +36,16 @@
             playVisualEffect(layer, msg.effect.config ?? {});
           } else if (msg.effect.type === "soundboard") {
             playSoundEffect(msg.effect.config ?? {});
+          }
+        }
+        if (msg.kind === "overlay:emergency") {
+          if (msg.action === "stop_sounds" || msg.action === "all") stopAllSounds();
+          if (msg.action === "reset_overlay_state" || msg.action === "all") {
+            alertCleanup?.();
+            alertCleanup = null;
+            stopAllSounds();
+            document.getElementById("alerts").innerHTML = "";
+            document.getElementById("effect-layer").className = "";
           }
         }
       },

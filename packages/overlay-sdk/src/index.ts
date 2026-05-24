@@ -100,7 +100,12 @@ export function renderAlert(
 ): () => void {
   const visualProject = (alert as { visualProject?: unknown }).visualProject;
   if (visualProject && typeof visualProject === "object") {
-    return renderVisualAlert(container, alert, visualProject as VisualAlertProject);
+    try {
+      return renderVisualAlert(container, alert, visualProject as VisualAlertProject);
+    } catch (error) {
+      console.error("Visual alert render error:", error);
+      return renderAlertFallback(container, alert);
+    }
   }
 
   const slot = document.createElement("div");
@@ -161,6 +166,36 @@ export function renderAlert(
   };
 }
 
+function renderAlertFallback(
+  container: HTMLElement,
+  alert: Extract<BusMessage, { kind: "alert:play" }>["alert"],
+): () => void {
+  const slot = document.createElement("div");
+  slot.className = "btv-alert-slot btv-visual-alert-slot";
+  const fallback = document.createElement("div");
+  Object.assign(fallback.style, {
+    position: "fixed",
+    left: "50%",
+    top: "50%",
+    transform: "translate(-50%, -50%)",
+    padding: "28px 36px",
+    borderRadius: "18px",
+    background: "rgba(16, 22, 32, 0.92)",
+    border: "2px solid rgba(255, 91, 110, 0.82)",
+    color: "#fff",
+    font: "800 42px Inter, Segoe UI, sans-serif",
+    textAlign: "center",
+  });
+  fallback.textContent = `${alert.event.user?.displayName ?? "Someone"} - ${alert.event.type}`;
+  slot.appendChild(fallback);
+  container.appendChild(slot);
+  const timeout = setTimeout(() => slot.remove(), alert.durationMs ?? 5000);
+  return () => {
+    clearTimeout(timeout);
+    slot.remove();
+  };
+}
+
 interface VisualAlertProject {
   durationMs?: number;
   canvas?: {
@@ -187,6 +222,12 @@ type VisualAlertLayer = {
   opacity?: number;
   scale?: number;
   blendMode?: string;
+  keyframes?: Array<{
+    id?: string;
+    atMs?: number;
+    easing?: string;
+    properties?: Record<string, unknown>;
+  }>;
   filter?: {
     blur?: number;
     brightness?: number;
@@ -215,6 +256,17 @@ type VisualAlertLayer = {
   muted?: boolean;
   loop?: boolean;
   volume?: number;
+  startOffsetMs?: number;
+  fadeInMs?: number;
+  fadeOutMs?: number;
+  particle?: string;
+  count?: number;
+  spread?: number;
+  speed?: number;
+  html?: string;
+  css?: string;
+  js?: string;
+  sandbox?: boolean;
   animation?: {
     preset?: string;
     delayMs?: number;
@@ -248,7 +300,7 @@ function renderVisualAlert(
   });
   slot.appendChild(root);
   const style = document.createElement("style");
-  style.textContent = VISUAL_ALERT_ANIMATION_CSS;
+  style.textContent = `${VISUAL_ALERT_ANIMATION_CSS}\n${visualKeyframeCss(project)}`;
   slot.appendChild(style);
   container.appendChild(slot);
 
@@ -262,10 +314,21 @@ function renderVisualAlert(
     root.appendChild(el);
     const startMs = Math.max(0, Number(layer.startMs ?? 0));
     const endMs = Math.max(startMs, Number(layer.endMs ?? project.durationMs ?? alert.durationMs));
-    el.style.display = startMs > 0 ? "none" : "";
-    if (startMs > 0) timers.push(setTimeout(() => (el.style.display = ""), startMs));
-    timers.push(setTimeout(() => el.remove(), endMs));
-    if (el instanceof HTMLAudioElement) audios.push(el);
+    if (el instanceof HTMLAudioElement) {
+      audios.push(el);
+      const playAudio = () => playVisualAudio(el, layer, endMs - startMs, timers);
+      if (startMs > 0) timers.push(setTimeout(playAudio, startMs));
+      else playAudio();
+      timers.push(setTimeout(() => {
+        el.pause();
+        el.currentTime = 0;
+        el.remove();
+      }, endMs));
+    } else {
+      el.style.display = startMs > 0 ? "none" : "";
+      if (startMs > 0) timers.push(setTimeout(() => (el.style.display = ""), startMs));
+      timers.push(setTimeout(() => el.remove(), endMs));
+    }
   }
 
   if (alert.soundUrl) {
@@ -291,11 +354,9 @@ function createVisualLayer(
   alert: Extract<BusMessage, { kind: "alert:play" }>["alert"],
 ): HTMLElement | HTMLAudioElement | null {
   if (layer.type === "audio") {
-    if (!layer.assetUrl) return null;
+    if (!layer.assetUrl || layer.muted) return null;
     const audio = new Audio(layer.assetUrl);
-    audio.volume = clamp(Number(layer.volume ?? 1), 0, 1);
     audio.loop = Boolean(layer.loop);
-    audio.play().catch(() => undefined);
     return audio;
   }
 
@@ -316,7 +377,7 @@ function createVisualLayer(
     justifyContent: "center",
     boxSizing: "border-box",
     overflow: "hidden",
-    animation: cssAnimation(layer.animation),
+    animation: layer.keyframes?.length ? cssKeyframeAnimation(layer, alert) : cssAnimation(layer.animation),
     "--btv-intensity": String(layer.animation?.intensity ?? 1),
   });
 
@@ -364,7 +425,71 @@ function createVisualLayer(
     return el;
   }
 
+  if (layer.type === "particle") {
+    Object.assign(el.style, {
+      border: `2px dashed ${layer.color ?? "#5b8cff"}`,
+      borderRadius: "12px",
+      color: layer.color ?? "#5b8cff",
+      font: "800 32px Inter, Segoe UI, sans-serif",
+    });
+    el.textContent = `${layer.particle ?? "confetti"} particles`;
+    return el;
+  }
+
+  if (layer.type === "browser") {
+    const iframe = document.createElement("iframe");
+    iframe.sandbox.add("allow-same-origin");
+    if (layer.sandbox === false) iframe.sandbox.add("allow-scripts");
+    iframe.srcdoc = `<style>${layer.css ?? ""}</style>${layer.html ?? ""}${layer.sandbox === false && layer.js ? `<script>${layer.js}<\/script>` : ""}`;
+    Object.assign(iframe.style, {
+      width: "100%",
+      height: "100%",
+      border: "0",
+      background: "transparent",
+    });
+    el.appendChild(iframe);
+    return el;
+  }
+
   return el;
+}
+
+function playVisualAudio(
+  audio: HTMLAudioElement,
+  layer: VisualAlertLayer,
+  durationMs: number,
+  timers: ReturnType<typeof setTimeout>[],
+): void {
+  const targetVolume = clamp(Number(layer.volume ?? 1), 0, 1);
+  const startOffsetMs = Math.max(0, Number(layer.startOffsetMs ?? 0));
+  const fadeInMs = Math.max(0, Number(layer.fadeInMs ?? 0));
+  const fadeOutMs = Math.max(0, Number(layer.fadeOutMs ?? 0));
+  audio.currentTime = startOffsetMs / 1000;
+  if (fadeInMs > 0) {
+    audio.volume = 0;
+    const startedAt = Date.now();
+    const timer = setInterval(() => {
+      const progress = Math.min(1, (Date.now() - startedAt) / fadeInMs);
+      audio.volume = targetVolume * progress;
+      if (progress >= 1) clearInterval(timer);
+    }, 33);
+    timers.push(timer as unknown as ReturnType<typeof setTimeout>);
+  } else {
+    audio.volume = targetVolume;
+  }
+  if (fadeOutMs > 0 && durationMs > fadeOutMs) {
+    timers.push(setTimeout(() => {
+      const startedAt = Date.now();
+      const startVolume = audio.volume;
+      const timer = setInterval(() => {
+        const progress = Math.min(1, (Date.now() - startedAt) / fadeOutMs);
+        audio.volume = Math.max(0, startVolume * (1 - progress));
+        if (progress >= 1) clearInterval(timer);
+      }, 33);
+      timers.push(timer as unknown as ReturnType<typeof setTimeout>);
+    }, durationMs - fadeOutMs));
+  }
+  audio.play().catch(() => undefined);
 }
 
 function cssLayerFilter(layer: VisualAlertLayer): string {
@@ -389,7 +514,18 @@ function renderAlertTemplate(
     .replaceAll("{user}", alert.event.user?.displayName ?? "Someone")
     .replaceAll("{login}", alert.event.user?.login ?? "viewer")
     .replaceAll("{event}", alert.event.type)
-    .replaceAll("{amount}", String(alert.event.amount ?? ""));
+    .replaceAll("{amount}", String(alert.event.amount ?? ""))
+    .replaceAll("{message}", alert.event.message ?? "")
+    .replace(/\{payload\.([^}]+)\}/g, (_, path: string) => payloadTemplatePath(alert.event.payload, path));
+}
+
+function payloadTemplatePath(payload: unknown, path: string): string {
+  let value = payload;
+  for (const key of path.split(".")) {
+    if (!value || typeof value !== "object") return "";
+    value = (value as Record<string, unknown>)[key];
+  }
+  return value == null ? "" : String(value);
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -400,6 +536,40 @@ function clamp(value: number, min: number, max: number): number {
 function cssAnimation(animation: VisualAlertLayer["animation"]): string {
   if (!animation?.preset || animation.preset === "none") return "";
   return `${animation.preset} ${Number(animation.durationMs ?? 700)}ms ${cssEasing(animation.easing)} ${Number(animation.delayMs ?? 0)}ms ${animation.loop ? "infinite" : "both"}`;
+}
+
+function cssKeyframeAnimation(layer: VisualAlertLayer, alert: Extract<BusMessage, { kind: "alert:play" }>["alert"]): string {
+  const duration = Number(alert.durationMs ?? 5000);
+  return `btv-kf-${cssSafeId(layer.id)} ${duration}ms linear 0ms both`;
+}
+
+function visualKeyframeCss(project: VisualAlertProject): string {
+  const duration = Math.max(1, Number(project.durationMs ?? 5000));
+  return (project.layers ?? [])
+    .filter((layer) => layer.keyframes?.length)
+    .map((layer) => {
+      const frames = [...(layer.keyframes ?? [])].sort((a, b) => Number(a.atMs ?? 0) - Number(b.atMs ?? 0));
+      const stops = frames.map((frame) => {
+        const pct = Math.max(0, Math.min(100, (Number(frame.atMs ?? 0) / duration) * 100));
+        const props = frame.properties ?? {};
+        const x = numericProp(props.x, layer.x ?? 0);
+        const y = numericProp(props.y, layer.y ?? 0);
+        const opacity = numericProp(props.opacity, layer.opacity ?? 1);
+        const scale = numericProp(props.scale, layer.scale ?? 1);
+        const rotation = numericProp(props.rotation, layer.rotation ?? 0);
+        return `${pct}% { left: ${x}px; top: ${y}px; opacity: ${opacity}; transform: rotate(${rotation}deg) scale(${scale}); }`;
+      });
+      return `@keyframes btv-kf-${cssSafeId(layer.id)} { ${stops.join(" ")} }`;
+    })
+    .join("\n");
+}
+
+function numericProp(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function cssSafeId(id: string): string {
+  return String(id).replace(/[^a-zA-Z0-9_-]/g, "_");
 }
 
 function cssEasing(easing?: string): string {

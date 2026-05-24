@@ -229,6 +229,13 @@ export const AlertKeyframeSchema = z.object({
   properties: z.record(z.unknown()).default({}),
 });
 
+export const AlertTimelineSchema = z.object({
+  durationMs: z.number().min(500).max(60000).default(5000),
+  fps: z.number().min(12).max(120).default(60),
+  snapMs: z.number().min(1).max(5000).default(100),
+  zoom: z.number().min(0.25).max(8).default(1),
+});
+
 export const AlertAnimationPresetSchema = z.enum([
   "none",
   "fade-in",
@@ -313,6 +320,15 @@ export const AlertAudioLayerSchema = AlertLayerBaseSchema.extend({
   assetUrl: z.string().default(""),
   volume: z.number().min(0).max(1).default(1),
   loop: z.boolean().default(false),
+  muted: z.boolean().default(false),
+  startOffsetMs: z.number().min(0).max(3600000).default(0),
+  fadeInMs: z.number().min(0).max(60000).default(0),
+  fadeOutMs: z.number().min(0).max(60000).default(0),
+  reactive: z.object({
+    enabled: z.boolean().default(false),
+    mode: z.enum(["none", "amplitude", "bass"]).default("none"),
+    sensitivity: z.number().min(0).max(5).default(1),
+  }).default({}),
 });
 
 export const AlertShapeLayerSchema = AlertLayerBaseSchema.extend({
@@ -324,20 +340,72 @@ export const AlertShapeLayerSchema = AlertLayerBaseSchema.extend({
   radius: z.number().min(0).max(120).default(16),
 });
 
+export const AlertParticleLayerSchema = AlertLayerBaseSchema.extend({
+  type: z.literal("particle"),
+  particle: z.enum(["confetti", "spark", "burst", "embers", "snow"]).default("confetti"),
+  count: z.number().min(1).max(1000).default(80),
+  color: z.string().default("#5b8cff"),
+  spread: z.number().min(0).max(360).default(120),
+  speed: z.number().min(0).max(10).default(3),
+});
+
+export const AlertBrowserLayerSchema = AlertLayerBaseSchema.extend({
+  type: z.literal("browser"),
+  html: z.string().default(""),
+  css: z.string().default(""),
+  js: z.string().default(""),
+  sandbox: z.boolean().default(true),
+});
+
 export const AlertLayerSchema = z.discriminatedUnion("type", [
   AlertTextLayerSchema,
   AlertMediaLayerSchema,
   AlertAudioLayerSchema,
   AlertShapeLayerSchema,
+  AlertParticleLayerSchema,
+  AlertBrowserLayerSchema,
 ]);
+
+export const AlertVariationConditionSchema = z.object({
+  eventType: StreamEventTypeSchema.optional(),
+  minAmount: z.number().min(0).optional(),
+  userRole: z.enum(["broadcaster", "moderator", "subscriber", "vip"]).optional(),
+  channelPointTitle: z.string().optional(),
+  randomChance: z.number().min(0).max(100).optional(),
+});
+
+export const AlertVariationSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  enabled: z.boolean().default(true),
+  priority: z.number().default(0),
+  legendary: z.boolean().default(false),
+  condition: AlertVariationConditionSchema.default({}),
+  durationMs: z.number().min(500).max(60000).optional(),
+  canvas: AlertCanvasSchema.optional(),
+  timeline: AlertTimelineSchema.optional(),
+  layers: z.array(AlertLayerSchema).default([]),
+});
+
+export const AlertChaosModifierSchema = z.enum(["shake", "flash", "hue_shift", "scale_punch"]);
+
+export const AlertChaosSchema = z.object({
+  enabled: z.boolean().default(false),
+  intensity: z.number().min(0).max(1).default(0.35),
+  modifiers: z.array(AlertChaosModifierSchema).default(["shake", "flash", "hue_shift", "scale_punch"]),
+  legendaryBoost: z.number().min(0).max(100).default(0),
+});
 
 export const AlertProjectSchema = z.object({
   id: z.string(),
   name: z.string(),
   eventType: StreamEventTypeSchema.default("follow"),
   durationMs: z.number().min(500).max(60000).default(5000),
+  timeline: AlertTimelineSchema.optional(),
   canvas: AlertCanvasSchema.default({}),
   layers: z.array(AlertLayerSchema).default([]),
+  variations: z.array(AlertVariationSchema).default([]),
+  chaos: AlertChaosSchema.default({}),
   tags: z.array(z.string()).default([]),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -346,8 +414,13 @@ export const AlertProjectSchema = z.object({
 export type AlertCanvas = z.infer<typeof AlertCanvasSchema>;
 export type AlertLayerFilter = z.infer<typeof AlertLayerFilterSchema>;
 export type AlertKeyframe = z.infer<typeof AlertKeyframeSchema>;
+export type AlertTimeline = z.infer<typeof AlertTimelineSchema>;
 export type AlertLayer = z.infer<typeof AlertLayerSchema>;
 export type AlertLayerAnimation = z.infer<typeof AlertLayerAnimationSchema>;
+export type AlertVariation = z.infer<typeof AlertVariationSchema>;
+export type AlertVariationCondition = z.infer<typeof AlertVariationConditionSchema>;
+export type AlertChaos = z.infer<typeof AlertChaosSchema>;
+export type AlertChaosModifier = z.infer<typeof AlertChaosModifierSchema>;
 export type AlertProject = z.infer<typeof AlertProjectSchema>;
 
 export const WidgetConfigSchema = z.object({

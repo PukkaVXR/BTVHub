@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
+import { Component, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, ErrorInfo, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { AlertProjectSchema } from "@btv/shared";
-import type { AlertLayer, AlertLayerAnimation, AlertProject, StreamEventType } from "@btv/shared";
-import { api, type GiphyResult, type MediaAssetInfo, type SoundAssetInfo } from "../api";
+import type { AlertChaosModifier, AlertKeyframe, AlertLayer, AlertLayerAnimation, AlertProject, AlertVariation, StreamEventType } from "@btv/shared";
+import { api, type GiphyAssetType, type GiphyResult, type MediaAssetInfo, type SoundAssetInfo } from "../api";
 import { useToast } from "../hooks/useToast";
 
 const EVENT_TYPES: StreamEventType[] = ["follow", "sub", "resub", "gift_sub", "cheer", "raid", "channel_points"];
@@ -12,6 +12,23 @@ const CANVAS_PRESETS = [
   { label: "720p", width: 1280, height: 720 },
 ];
 const BLEND_MODES = ["normal", "screen", "multiply", "overlay", "lighten", "darken", "color-dodge", "difference"] as const;
+const KEYFRAME_PROPERTIES = ["opacity", "position", "scale", "rotation"] as const;
+const CHAOS_MODIFIERS: Array<{ id: AlertChaosModifier; label: string }> = [
+  { id: "shake", label: "Shake" },
+  { id: "flash", label: "Flash" },
+  { id: "hue_shift", label: "Hue shift" },
+  { id: "scale_punch", label: "Scale punch" },
+];
+const DEFAULT_TEST_PAYLOAD = `{
+  "user": "TestUser",
+  "login": "testuser",
+  "amount": 100,
+  "message": "Test visual alert from hub",
+  "payload": {
+    "rewardTitle": "Hydrate",
+    "streak": 3
+  }
+}`;
 const ANIMATION_PRESETS: AlertLayerAnimation["preset"][] = [
   "none",
   "fade-in",
@@ -30,10 +47,56 @@ const ANIMATION_PRESETS: AlertLayerAnimation["preset"][] = [
   "glitch-out",
 ];
 
-type TemplateId = "clean-follow" | "neon-sub" | "raid-warning" | "cheer-burst" | "meme-pop";
+type TemplateId =
+  | "clean-follow"
+  | "neon-sub"
+  | "raid-warning"
+  | "gift-bomb"
+  | "cheer-burst"
+  | "channel-point-chaos"
+  | "cozy-minimal"
+  | "horror-glitch"
+  | "ocean-sci-fi"
+  | "meme-pop";
 type ProjectHistory = { past: AlertProject[]; future: AlertProject[] };
 type PreviewZoom = "fit" | 0.25 | 0.5 | 1;
 type AlertProjectWarning = { level: "warning" | "error"; message: string };
+type TemplateInfo = { id: TemplateId; name: string; description: string };
+type AlertProjectDraft = Omit<AlertProject, "id" | "createdAt" | "updatedAt" | "timeline" | "chaos"> & Pick<Partial<AlertProject>, "timeline" | "chaos">;
+type LocalTemplate = {
+  id: string;
+  name: string;
+  description: string;
+  project: AlertProject;
+  savedAt: string;
+};
+type TestPayload = {
+  user?: string;
+  login?: string;
+  amount?: number;
+  message?: string;
+  payload?: Record<string, unknown>;
+};
+
+const TEMPLATE_INFOS: TemplateInfo[] = [
+  { id: "clean-follow", name: "Clean Follow", description: "Simple starter card with title and subtitle text." },
+  { id: "neon-sub", name: "Neon Sub", description: "Punchy subscriber alert with glow and glitch reveal." },
+  { id: "raid-warning", name: "Raid Warning", description: "Full-width high-energy raid intro with movement." },
+  { id: "gift-bomb", name: "Gift Bomb", description: "Big gifted-sub celebration with stacked count callout." },
+  { id: "cheer-burst", name: "Cheer Burst", description: "Bits alert with a bright pop-in burst." },
+  { id: "channel-point-chaos", name: "Channel Point Chaos", description: "Reward-driven alert with a punchy title and action line." },
+  { id: "cozy-minimal", name: "Cozy Minimal", description: "Soft, calm alert for relaxed streams." },
+  { id: "horror-glitch", name: "Horror Glitch", description: "Dark flicker-style alert for spooky streams." },
+  { id: "ocean-sci-fi", name: "Ocean/Sci-Fi", description: "Cool blue signal alert for exploration or sci-fi streams." },
+  { id: "meme-pop", name: "Meme Pop", description: "Sticker-like channel point alert for playful moments." },
+];
+const LOCAL_TEMPLATES_KEY = "btv.alertEditor.localTemplates";
+const DEFAULT_CHAOS: AlertProject["chaos"] = {
+  enabled: false,
+  intensity: 0.35,
+  modifiers: ["shake", "flash", "hue_shift", "scale_punch"],
+  legendaryBoost: 0,
+};
 type ResizeHandle = "nw" | "ne" | "sw" | "se";
 type CanvasDragState =
   | { kind: "move"; layerId: string; offsetX: number; offsetY: number }
@@ -69,6 +132,13 @@ function createProject(): AlertProject {
     name: "New cinematic alert",
     eventType: "follow",
     durationMs: 5000,
+    timeline: {
+      durationMs: 5000,
+      fps: 60,
+      snapMs: 100,
+      zoom: 1,
+    },
+    chaos: DEFAULT_CHAOS,
     canvas: {
       width: 1920,
       height: 1080,
@@ -156,10 +226,17 @@ function createProject(): AlertProject {
   };
 }
 
-function withProjectMeta(project: Omit<AlertProject, "id" | "createdAt" | "updatedAt">): AlertProject {
+function withProjectMeta(project: AlertProjectDraft): AlertProject {
   const now = nowIso();
   return {
     ...project,
+    timeline: project.timeline ?? {
+      durationMs: project.durationMs,
+      fps: 60,
+      snapMs: 100,
+      zoom: 1,
+    },
+    chaos: project.chaos ?? DEFAULT_CHAOS,
     id: newId("alert"),
     createdAt: now,
     updatedAt: now,
@@ -200,6 +277,22 @@ function createTemplateProject(template: TemplateId): AlertProject {
     });
   }
 
+  if (template === "gift-bomb") {
+    return withProjectMeta({
+      name: "Gift Bomb",
+      eventType: "gift_sub",
+      durationMs: 6200,
+      canvas: base.canvas,
+      tags: ["template", "gift-sub"],
+      layers: [
+        { ...createLayer("shape"), id: newId("shape"), name: "Gold shockwave", shape: "ellipse", x: 510, y: 150, width: 900, height: 650, fill: "rgba(255, 210, 95, 0.34)", endMs: 6200, animation: { preset: "pulse", delayMs: 0, durationMs: 900, easing: "ease-in-out", intensity: 1.4, loop: true } },
+        { ...createLayer("shape"), id: newId("shape"), name: "Gift plate", x: 525, y: 350, width: 870, height: 340, fill: "rgba(20, 14, 28, 0.94)", borderColor: "#ffd65f", borderWidth: 5, radius: 30, endMs: 6200, animation: { preset: "screen-slam", delayMs: 0, durationMs: 520, easing: "ease-out", intensity: 1.1, loop: false } },
+        { ...createLayer("text"), id: newId("text"), name: "Gift count", x: 620, y: 400, width: 680, height: 105, text: "{user} DROPPED GIFTS", fontSize: 64, color: "#fff4c7", endMs: 6200, shadow: "0 0 24px rgba(255,214,95,0.85)", animation: { preset: "bounce-in", delayMs: 150, durationMs: 760, easing: "bounce", intensity: 1, loop: false } },
+        { ...createLayer("text"), id: newId("text"), name: "Amount", x: 710, y: 525, width: 500, height: 80, text: "{amount} gifted subs", fontSize: 46, color: "#ffd65f", endMs: 6200, animation: { preset: "fade-in", delayMs: 650, durationMs: 420, easing: "ease-out", intensity: 1, loop: false } },
+      ],
+    });
+  }
+
   if (template === "cheer-burst") {
     return withProjectMeta({
       name: "Cheer Burst",
@@ -210,6 +303,68 @@ function createTemplateProject(template: TemplateId): AlertProject {
       layers: [
         { ...createLayer("shape"), id: newId("shape"), name: "Burst", shape: "ellipse", x: 710, y: 300, width: 500, height: 500, fill: "rgba(246, 199, 111, 0.9)", endMs: 5000, animation: { preset: "pop-in", delayMs: 0, durationMs: 450, easing: "ease-out", intensity: 1.2, loop: false } },
         { ...createLayer("text"), id: newId("text"), name: "Bits", x: 610, y: 445, width: 700, height: 92, text: "{amount} BITS!", fontSize: 82, color: "#201409", endMs: 5000, animation: { preset: "bounce-in", delayMs: 150, durationMs: 800, easing: "bounce", intensity: 1, loop: false } },
+      ],
+    });
+  }
+
+  if (template === "channel-point-chaos") {
+    return withProjectMeta({
+      name: "Channel Point Chaos",
+      eventType: "channel_points",
+      durationMs: 4800,
+      canvas: base.canvas,
+      tags: ["template", "channel-points", "chaos"],
+      layers: [
+        { ...createLayer("shape"), id: newId("shape"), name: "Chaos slab", x: 455, y: 330, width: 1010, height: 380, fill: "rgba(33, 255, 169, 0.88)", borderColor: "#111722", borderWidth: 8, radius: 18, rotation: 2, endMs: 4800, animation: { preset: "elastic-in", delayMs: 0, durationMs: 650, easing: "elastic", intensity: 1, loop: false } },
+        { ...createLayer("text"), id: newId("text"), name: "Reward", x: 555, y: 400, width: 810, height: 100, text: "{payload.rewardTitle}", fontSize: 70, color: "#08110d", endMs: 4800, rotation: 2, animation: { preset: "glitch-reveal", delayMs: 160, durationMs: 540, easing: "ease-out", intensity: 0.8, loop: false } },
+        { ...createLayer("text"), id: newId("text"), name: "Redeemer", x: 660, y: 520, width: 600, height: 70, text: "{user} activated chaos", fontSize: 34, color: "#13251d", endMs: 4800, rotation: 2, animation: { preset: "wiggle", delayMs: 780, durationMs: 500, easing: "ease-in-out", intensity: 1, loop: true } },
+      ],
+    });
+  }
+
+  if (template === "cozy-minimal") {
+    return withProjectMeta({
+      name: "Cozy Minimal",
+      eventType: "follow",
+      durationMs: 5200,
+      canvas: base.canvas,
+      tags: ["template", "cozy", "minimal"],
+      layers: [
+        { ...createLayer("shape"), id: newId("shape"), name: "Soft card", x: 585, y: 390, width: 750, height: 270, fill: "rgba(34, 44, 50, 0.88)", borderColor: "rgba(196, 226, 212, 0.36)", borderWidth: 2, radius: 26, endMs: 5200, animation: { preset: "fade-in", delayMs: 0, durationMs: 700, easing: "ease-out", intensity: 1, loop: false } },
+        { ...createLayer("text"), id: newId("text"), name: "Welcome", x: 665, y: 445, width: 590, height: 74, text: "Welcome, {user}", fontSize: 48, color: "#e6fff3", endMs: 5200, animation: { preset: "float", delayMs: 400, durationMs: 1800, easing: "ease-in-out", intensity: 0.35, loop: true } },
+        { ...createLayer("text"), id: newId("text"), name: "Subtitle", x: 720, y: 535, width: 480, height: 54, text: "Thanks for the {event}", fontSize: 28, color: "#b7d8ca", endMs: 5200, animation: { preset: "fade-in", delayMs: 450, durationMs: 650, easing: "ease-out", intensity: 1, loop: false } },
+      ],
+    });
+  }
+
+  if (template === "horror-glitch") {
+    return withProjectMeta({
+      name: "Horror Glitch",
+      eventType: "raid",
+      durationMs: 5600,
+      canvas: base.canvas,
+      tags: ["template", "horror", "glitch"],
+      layers: [
+        { ...createLayer("shape"), id: newId("shape"), name: "Dark flash", x: 0, y: 0, width: 1920, height: 1080, fill: "rgba(6, 2, 8, 0.72)", radius: 0, endMs: 5600, animation: { preset: "glitch-reveal", delayMs: 0, durationMs: 600, easing: "ease-out", intensity: 1.3, loop: false } },
+        { ...createLayer("shape"), id: newId("shape"), name: "Red scan", x: 0, y: 475, width: 1920, height: 130, fill: "rgba(255, 42, 73, 0.72)", radius: 0, endMs: 5600, filter: { blur: 8, brightness: 1, contrast: 1.25, saturation: 1.4, hueRotate: 0, glow: 24, glowColor: "rgba(255,42,73,0.86)" }, animation: { preset: "pulse", delayMs: 350, durationMs: 520, easing: "ease-in-out", intensity: 1.2, loop: true } },
+        { ...createLayer("text"), id: newId("text"), name: "Warning", x: 500, y: 425, width: 920, height: 110, text: "SIGNAL BREACH", fontSize: 88, color: "#fff0f3", endMs: 5600, shadow: "0 0 28px #ff2a49", animation: { preset: "glitch-reveal", delayMs: 160, durationMs: 900, easing: "ease-out", intensity: 1.3, loop: false } },
+        { ...createLayer("text"), id: newId("text"), name: "Source", x: 625, y: 550, width: 670, height: 60, text: "{user} entered the room", fontSize: 34, color: "#ffb9c4", endMs: 5600, animation: { preset: "fade-in", delayMs: 760, durationMs: 450, easing: "ease-out", intensity: 1, loop: false } },
+      ],
+    });
+  }
+
+  if (template === "ocean-sci-fi") {
+    return withProjectMeta({
+      name: "Ocean/Sci-Fi",
+      eventType: "sub",
+      durationMs: 5800,
+      canvas: base.canvas,
+      tags: ["template", "ocean", "sci-fi"],
+      layers: [
+        { ...createLayer("shape"), id: newId("shape"), name: "Deep field", x: 470, y: 315, width: 980, height: 450, fill: "rgba(5, 24, 42, 0.9)", borderColor: "rgba(89, 214, 255, 0.58)", borderWidth: 3, radius: 34, endMs: 5800, filter: { blur: 0, brightness: 1, contrast: 1, saturation: 1.2, hueRotate: 0, glow: 28, glowColor: "rgba(89,214,255,0.8)" }, animation: { preset: "slide-in", delayMs: 0, durationMs: 620, easing: "ease-out", intensity: 0.55, loop: false } },
+        { ...createLayer("shape"), id: newId("shape"), name: "Signal orb", shape: "ellipse", x: 815, y: 270, width: 290, height: 290, fill: "rgba(89, 214, 255, 0.24)", borderColor: "rgba(167, 239, 255, 0.8)", borderWidth: 3, endMs: 5800, animation: { preset: "glow-pulse", delayMs: 200, durationMs: 1200, easing: "ease-in-out", intensity: 1.1, loop: true } },
+        { ...createLayer("text"), id: newId("text"), name: "Transmission", x: 560, y: 460, width: 800, height: 88, text: "TRANSMISSION: {user}", fontSize: 58, color: "#e4fbff", endMs: 5800, shadow: "0 0 22px rgba(89,214,255,0.9)", animation: { preset: "fade-in", delayMs: 430, durationMs: 620, easing: "ease-out", intensity: 1, loop: false } },
+        { ...createLayer("text"), id: newId("text"), name: "Subtitle", x: 650, y: 560, width: 620, height: 56, text: "subscribed to the expedition", fontSize: 30, color: "#93dff0", endMs: 5800, animation: { preset: "float", delayMs: 750, durationMs: 1800, easing: "ease-in-out", intensity: 0.35, loop: true } },
       ],
     });
   }
@@ -281,6 +436,31 @@ function createLayer(type: AlertLayer["type"]): AlertLayer {
     };
   }
 
+  if (type === "particle") {
+    return {
+      ...base,
+      type,
+      name: "Particles",
+      particle: "confetti",
+      count: 80,
+      color: "#5b8cff",
+      spread: 120,
+      speed: 3,
+    };
+  }
+
+  if (type === "browser") {
+    return {
+      ...base,
+      type,
+      name: "Custom HTML",
+      html: "<div class=\"custom-alert\">Custom HTML layer</div>",
+      css: ".custom-alert { color: white; font: 800 48px Inter, sans-serif; }",
+      js: "",
+      sandbox: true,
+    };
+  }
+
   if (type === "audio") {
     return {
       ...base,
@@ -288,6 +468,15 @@ function createLayer(type: AlertLayer["type"]): AlertLayer {
       assetUrl: "",
       volume: 1,
       loop: false,
+      muted: false,
+      startOffsetMs: 0,
+      fadeInMs: 0,
+      fadeOutMs: 0,
+      reactive: {
+        enabled: false,
+        mode: "none",
+        sensitivity: 1,
+      },
     };
   }
 
@@ -302,11 +491,23 @@ function createLayer(type: AlertLayer["type"]): AlertLayer {
   };
 }
 
-function renderTemplate(text: string, eventType: StreamEventType): string {
+function payloadPath(payload: Record<string, unknown> | undefined, path: string): string {
+  let value: unknown = payload;
+  for (const key of path.split(".")) {
+    if (!value || typeof value !== "object") return "";
+    value = (value as Record<string, unknown>)[key];
+  }
+  return value == null ? "" : String(value);
+}
+
+function renderTemplate(text: string, eventType: StreamEventType, testPayload: TestPayload): string {
   return text
-    .replaceAll("{user}", "TestUser")
+    .replaceAll("{user}", testPayload.user ?? "TestUser")
+    .replaceAll("{login}", testPayload.login ?? "testuser")
     .replaceAll("{event}", eventType)
-    .replaceAll("{amount}", eventType === "cheer" ? "100" : "1");
+    .replaceAll("{amount}", String(testPayload.amount ?? (eventType === "cheer" ? 100 : 1)))
+    .replaceAll("{message}", testPayload.message ?? "Test visual alert from hub")
+    .replace(/\{payload\.([^}]+)\}/g, (_, path: string) => payloadPath(testPayload.payload, path));
 }
 
 function cssFilter(layer: AlertLayer): string | undefined {
@@ -323,18 +524,69 @@ function cssFilter(layer: AlertLayer): string | undefined {
   return parts.join(" ");
 }
 
-function layerStyle(layer: AlertLayer): CSSProperties {
+function numericKeyframeValue(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+function layerAtPlayhead(layer: AlertLayer, playheadMs: number): AlertLayer {
+  if (!layer.keyframes.length) return layer;
+  const frames = [...layer.keyframes].sort((a, b) => a.atMs - b.atMs);
+  const before = [...frames].reverse().find((frame) => frame.atMs <= playheadMs);
+  const after = frames.find((frame) => frame.atMs >= playheadMs && frame.id !== before?.id);
+  const readFrame = (frame: AlertKeyframe | undefined, key: string, fallback: number) => numericKeyframeValue(frame?.properties[key], fallback);
+
+  if (!before && !after) return layer;
+  if (before && !after) {
+    return {
+      ...layer,
+      x: readFrame(before, "x", layer.x),
+      y: readFrame(before, "y", layer.y),
+      opacity: readFrame(before, "opacity", layer.opacity),
+      scale: readFrame(before, "scale", layer.scale),
+      rotation: readFrame(before, "rotation", layer.rotation),
+    } as AlertLayer;
+  }
+
+  if (!before && after) {
+    return {
+      ...layer,
+      x: readFrame(after, "x", layer.x),
+      y: readFrame(after, "y", layer.y),
+      opacity: readFrame(after, "opacity", layer.opacity),
+      scale: readFrame(after, "scale", layer.scale),
+      rotation: readFrame(after, "rotation", layer.rotation),
+    } as AlertLayer;
+  }
+
+  const span = Math.max(1, after!.atMs - before!.atMs);
+  const t = Math.max(0, Math.min(1, (playheadMs - before!.atMs) / span));
+  return {
+    ...layer,
+    x: lerp(readFrame(before, "x", layer.x), readFrame(after, "x", layer.x), t),
+    y: lerp(readFrame(before, "y", layer.y), readFrame(after, "y", layer.y), t),
+    opacity: lerp(readFrame(before, "opacity", layer.opacity), readFrame(after, "opacity", layer.opacity), t),
+    scale: lerp(readFrame(before, "scale", layer.scale), readFrame(after, "scale", layer.scale), t),
+    rotation: lerp(readFrame(before, "rotation", layer.rotation), readFrame(after, "rotation", layer.rotation), t),
+  } as AlertLayer;
+}
+
+function layerStyle(layer: AlertLayer, playheadMs?: number): CSSProperties {
+  const displayLayer = playheadMs == null ? layer : layerAtPlayhead(layer, playheadMs);
   const animation = layer.animation?.preset && layer.animation.preset !== "none"
     ? `${layer.animation.preset} ${layer.animation.durationMs}ms ${cssEasing(layer.animation.easing)} ${layer.animation.delayMs}ms ${layer.animation.loop ? "infinite" : "both"}`
     : undefined;
   return {
     position: "absolute",
-    left: layer.x,
-    top: layer.y,
-    width: layer.width,
-    height: layer.height,
-    opacity: layer.opacity,
-    transform: `rotate(${layer.rotation}deg) scale(${layer.scale})`,
+    left: displayLayer.x,
+    top: displayLayer.y,
+    width: displayLayer.width,
+    height: displayLayer.height,
+    opacity: displayLayer.opacity,
+    transform: `rotate(${displayLayer.rotation}deg) scale(${displayLayer.scale})`,
     transformOrigin: "center",
     mixBlendMode: layer.blendMode as CSSProperties["mixBlendMode"],
     filter: cssFilter(layer),
@@ -388,10 +640,36 @@ function SelectionHandles({
   );
 }
 
+class AlertPreviewErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean; message: string }> {
+  state = { failed: false, message: "" };
+
+  static getDerivedStateFromError(error: unknown) {
+    return { failed: true, message: error instanceof Error ? error.message : "Preview render failed" };
+  }
+
+  componentDidCatch(error: unknown, info: ErrorInfo) {
+    console.error("Alert preview render error:", error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.failed) {
+      return (
+        <div className="alert-preview-error">
+          <strong>Preview render failed</strong>
+          <span>{this.state.message}</span>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function PreviewLayer({
   layer,
   eventType,
+  testPayload,
   selected,
+  playheadMs,
   overlayOrigin,
   onPointerDown,
   onResizePointerDown,
@@ -399,7 +677,9 @@ function PreviewLayer({
 }: {
   layer: AlertLayer;
   eventType: StreamEventType;
+  testPayload: TestPayload;
   selected: boolean;
+  playheadMs?: number;
   overlayOrigin: string;
   onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onResizePointerDown: (handle: ResizeHandle, event: ReactPointerEvent<HTMLSpanElement>) => void;
@@ -417,7 +697,7 @@ function PreviewLayer({
       <div
         onPointerDown={onPointerDown}
         style={{
-          ...layerStyle(layer),
+          ...layerStyle(layer, playheadMs),
           ...selectionStyle,
           color: layer.color,
           fontFamily: layer.fontFamily,
@@ -430,7 +710,7 @@ function PreviewLayer({
           whiteSpace: "pre-wrap",
         }}
       >
-        {renderTemplate(layer.text, eventType)}
+        {renderTemplate(layer.text, eventType, testPayload)}
         {selected && <SelectionHandles disabled={layer.locked} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} />}
       </div>
     );
@@ -441,7 +721,7 @@ function PreviewLayer({
       <div
         onPointerDown={onPointerDown}
         style={{
-          ...layerStyle(layer),
+          ...layerStyle(layer, playheadMs),
           ...selectionStyle,
           background: layer.fill,
           border: `${layer.borderWidth}px solid ${layer.borderColor}`,
@@ -455,8 +735,33 @@ function PreviewLayer({
 
   if (layer.type === "audio") return null;
 
+  if (layer.type === "particle") {
+    return (
+      <div onPointerDown={onPointerDown} style={{ ...layerStyle(layer, playheadMs), ...selectionStyle }}>
+        <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", color: layer.color, border: `2px dashed ${layer.color}`, borderRadius: 12 }}>
+          {layer.particle} particles
+        </div>
+        {selected && <SelectionHandles disabled={layer.locked} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} />}
+      </div>
+    );
+  }
+
+  if (layer.type === "browser") {
+    return (
+      <div onPointerDown={onPointerDown} style={{ ...layerStyle(layer, playheadMs), ...selectionStyle }}>
+        <iframe
+          title={layer.name}
+          sandbox={layer.sandbox ? "allow-same-origin" : undefined}
+          srcDoc={`<style>${layer.css}</style>${layer.html}`}
+          style={{ width: "100%", height: "100%", border: 0, pointerEvents: "none", background: "transparent" }}
+        />
+        {selected && <SelectionHandles disabled={layer.locked} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} />}
+      </div>
+    );
+  }
+
   return (
-    <div onPointerDown={onPointerDown} style={{ ...layerStyle(layer), ...selectionStyle }}>
+    <div onPointerDown={onPointerDown} style={{ ...layerStyle(layer, playheadMs), ...selectionStyle }}>
       {layer.assetUrl ? (
         layer.type === "video" ? (
           <video src={mediaUrl} muted={layer.muted} loop={layer.loop} autoPlay style={{ width: "100%", height: "100%", objectFit: layer.fit }} />
@@ -469,6 +774,61 @@ function PreviewLayer({
         </div>
       )}
       {selected && <SelectionHandles disabled={layer.locked} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} />}
+    </div>
+  );
+}
+
+function TemplatePreview({
+  templateId,
+  overlayOrigin,
+  testPayload,
+  onApply,
+}: {
+  templateId: TemplateId;
+  overlayOrigin: string;
+  testPayload: TestPayload;
+  onApply: () => void;
+}) {
+  const previewProject = useMemo(() => createTemplateProject(templateId), [templateId]);
+  const info = templateInfo(templateId);
+  const scale = 0.12;
+  const noopPointer = () => undefined;
+  const noopResize = () => undefined;
+  const noopRotate = () => undefined;
+
+  return (
+    <div className="alert-template-preview">
+      <div>
+        <h3>{info.name}</h3>
+        <p>{info.description}</p>
+      </div>
+      <div className="alert-template-preview-frame">
+        <div
+          className="alert-preview-canvas checkerboard"
+          style={{
+            width: previewProject.canvas.width,
+            height: previewProject.canvas.height,
+            transform: `scale(${scale})`,
+          }}
+        >
+          {previewProject.layers.map((layer) => (
+            <PreviewLayer
+              key={layer.id}
+              layer={layer}
+              eventType={previewProject.eventType}
+              testPayload={testPayload}
+              selected={false}
+              overlayOrigin={overlayOrigin}
+              onPointerDown={noopPointer}
+              onResizePointerDown={noopResize}
+              onRotatePointerDown={noopRotate}
+            />
+          ))}
+        </div>
+      </div>
+      <button type="button" className="btn btn-primary btn-sm" onClick={onApply}>
+        Use this template
+      </button>
     </div>
   );
 }
@@ -517,10 +877,127 @@ function formatBytes(size: number): string {
   return `${size} B`;
 }
 
+function assetAttribution(asset: MediaAssetInfo | SoundAssetInfo): string {
+  const metadata = asset.metadata;
+  if (!metadata?.source) return "";
+  if (metadata.source === "giphy") {
+    const kind = metadata.sourceType === "sticker" ? "GIPHY sticker" : "GIPHY GIF";
+    return metadata.username ? `${kind} by ${metadata.username}` : kind;
+  }
+  return "Uploaded locally";
+}
+
+function pct(value: number, total: number): string {
+  if (total <= 0) return "0%";
+  return `${Math.max(0, Math.min(100, (value / total) * 100))}%`;
+}
+
+function templateInfo(id: TemplateId): TemplateInfo {
+  return TEMPLATE_INFOS.find((template) => template.id === id) ?? TEMPLATE_INFOS[0]!;
+}
+
+function loadLocalTemplates(): LocalTemplate[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_TEMPLATES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as LocalTemplate[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((template) => {
+      if (!template || typeof template !== "object") return false;
+      if (typeof template.id !== "string" || typeof template.name !== "string") return false;
+      return AlertProjectSchema.safeParse(template.project).success;
+    });
+  } catch {
+    return [];
+  }
+}
+
+function persistLocalTemplates(templates: LocalTemplate[]): void {
+  localStorage.setItem(LOCAL_TEMPLATES_KEY, JSON.stringify(templates));
+}
+
+function cloneProjectAsNew(project: AlertProject, name = project.name): AlertProject {
+  const now = nowIso();
+  return {
+    ...project,
+    id: newId("alert"),
+    name,
+    layers: project.layers.map((layer) => ({ ...layer, id: newId(layer.type) }) as AlertLayer),
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function resetProjectToTemplate(project: AlertProject, template: TemplateId): AlertProject {
+  const defaults = createTemplateProject(template);
+  return {
+    ...defaults,
+    id: project.id,
+    name: project.name,
+    createdAt: project.createdAt,
+    updatedAt: nowIso(),
+    tags: [...new Set([...(defaults.tags ?? []), ...(project.tags ?? []), `template:${template}`])],
+  };
+}
+
+function withTimeline(project: AlertProject): AlertProject {
+  return {
+    ...project,
+    timeline: project.timeline ?? {
+      durationMs: project.durationMs,
+      fps: 60,
+      snapMs: 100,
+      zoom: 1,
+    },
+    chaos: project.chaos ?? DEFAULT_CHAOS,
+  };
+}
+
+function normalizeAssetUrl(url: string): string {
+  try {
+    return decodeURIComponent(url);
+  } catch {
+    return url;
+  }
+}
+
+function applyAudioFade(audio: HTMLAudioElement, targetVolume: number, fadeInMs = 0, fadeOutMs = 0, durationMs?: number): ReturnType<typeof setInterval>[] {
+  const timers: ReturnType<typeof setInterval>[] = [];
+  const clampedTarget = Math.max(0, Math.min(1, targetVolume));
+  if (fadeInMs > 0) {
+    audio.volume = 0;
+    const startedAt = Date.now();
+    const timer = setInterval(() => {
+      const progress = Math.min(1, (Date.now() - startedAt) / fadeInMs);
+      audio.volume = clampedTarget * progress;
+      if (progress >= 1) clearInterval(timer);
+    }, 33);
+    timers.push(timer);
+  } else {
+    audio.volume = clampedTarget;
+  }
+
+  if (fadeOutMs > 0 && durationMs && durationMs > fadeOutMs) {
+    const timeout = setTimeout(() => {
+      const startedAt = Date.now();
+      const startVolume = audio.volume;
+      const timer = setInterval(() => {
+        const progress = Math.min(1, (Date.now() - startedAt) / fadeOutMs);
+        audio.volume = Math.max(0, startVolume * (1 - progress));
+        if (progress >= 1) clearInterval(timer);
+      }, 33);
+      timers.push(timer);
+    }, durationMs - fadeOutMs);
+    timers.push(timeout as unknown as ReturnType<typeof setInterval>);
+  }
+
+  return timers;
+}
+
 function analyzeProject(project: AlertProject, media: MediaAssetInfo[], sounds: SoundAssetInfo[]): AlertProjectWarning[] {
   const warnings: AlertProjectWarning[] = [];
-  const mediaByUrl = new Map(media.map((asset) => [asset.url, asset]));
-  const soundsByUrl = new Map(sounds.map((asset) => [asset.url, asset]));
+  const mediaByUrl = new Map(media.flatMap((asset) => [[asset.url, asset], [normalizeAssetUrl(asset.url), asset]]));
+  const soundsByUrl = new Map(sounds.flatMap((asset) => [[asset.url, asset], [normalizeAssetUrl(asset.url), asset]]));
   const mediaLayers = project.layers.filter((layer) => ["image", "gif", "video", "audio"].includes(layer.type));
   const heavyFilterLayers = project.layers.filter((layer) => (layer.filter?.blur ?? 0) > 20 || (layer.filter?.glow ?? 0) > 50);
   const videoLayers = project.layers.filter((layer) => layer.type === "video");
@@ -532,7 +1009,8 @@ function analyzeProject(project: AlertProject, media: MediaAssetInfo[], sounds: 
       continue;
     }
     if (/^(https?:|data:|blob:)/i.test(layer.assetUrl)) continue;
-    const asset = layer.type === "audio" ? soundsByUrl.get(layer.assetUrl) : mediaByUrl.get(layer.assetUrl);
+    const lookupUrl = normalizeAssetUrl(layer.assetUrl);
+    const asset = layer.type === "audio" ? soundsByUrl.get(lookupUrl) : mediaByUrl.get(lookupUrl);
     if (!asset) {
       warnings.push({ level: "error", message: `${layer.name} points to a local asset that was not found: ${layer.assetUrl}` });
       continue;
@@ -557,12 +1035,18 @@ export default function AlertEditorPage() {
   const [projects, setProjects] = useState<AlertProject[]>([]);
   const [project, setProject] = useState<AlertProject | null>(null);
   const [selectedLayerId, setSelectedLayerId] = useState<string>("");
+  const [selectedVariationId, setSelectedVariationId] = useState<string>("");
   const [playheadMs, setPlayheadMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [showSafeZones, setShowSafeZones] = useState(true);
   const [previewBackground, setPreviewBackground] = useState<"checkerboard" | "dark" | "transparent">("checkerboard");
   const [previewZoom, setPreviewZoom] = useState<PreviewZoom>("fit");
   const [previewFitScale, setPreviewFitScale] = useState(0.34);
+  const [templatePreviewId, setTemplatePreviewId] = useState<TemplateId>("clean-follow");
+  const [localTemplates, setLocalTemplates] = useState<LocalTemplate[]>([]);
+  const [selectedLocalTemplateId, setSelectedLocalTemplateId] = useState("");
+  const [testPayloadJson, setTestPayloadJson] = useState(DEFAULT_TEST_PAYLOAD);
+  const [giphyAssetType, setGiphyAssetType] = useState<GiphyAssetType>("gif");
   const [giphyQuery, setGiphyQuery] = useState("");
   const [giphyResults, setGiphyResults] = useState<GiphyResult[]>([]);
   const [giphyLoading, setGiphyLoading] = useState(false);
@@ -578,6 +1062,8 @@ export default function AlertEditorPage() {
   const previewShellRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<CanvasDragState | null>(null);
+  const testAudioRef = useRef<HTMLAudioElement | null>(null);
+  const testAudioTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const toast = useToast();
 
   const selectedLayer = useMemo(
@@ -596,6 +1082,30 @@ export default function AlertEditorPage() {
     () => project ? analyzeProject(project, mediaAssets, soundAssets) : [],
     [project, mediaAssets, soundAssets],
   );
+  const selectedLocalTemplate = useMemo(
+    () => localTemplates.find((template) => template.id === selectedLocalTemplateId) ?? null,
+    [localTemplates, selectedLocalTemplateId],
+  );
+  const selectedVariation = useMemo(
+    () => project?.variations.find((variation) => variation.id === selectedVariationId) ?? null,
+    [project?.variations, selectedVariationId],
+  );
+  const previewTestPayload = useMemo<TestPayload>(() => {
+    try {
+      const parsed = JSON.parse(testPayloadJson) as TestPayload;
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }, [testPayloadJson]);
+  const testPayloadError = useMemo(() => {
+    try {
+      JSON.parse(testPayloadJson);
+      return "";
+    } catch (err) {
+      return err instanceof Error ? err.message : "Invalid JSON";
+    }
+  }, [testPayloadJson]);
   const filteredMediaAssets = useMemo(() => {
     const query = assetSearch.trim().toLowerCase();
     return mediaAssets.filter((asset) => {
@@ -610,8 +1120,9 @@ export default function AlertEditorPage() {
   }, [assetKind, assetSearch, soundAssets]);
 
   const selectProject = (next: AlertProject | null) => {
-    setProject(next);
+    setProject(next ? withTimeline(next) : null);
     setSelectedLayerId(next?.layers[0]?.id ?? "");
+    setSelectedVariationId(next?.variations[0]?.id ?? "");
     setPlayheadMs(0);
     setPlaying(false);
     setHistory({ past: [], future: [] });
@@ -623,7 +1134,7 @@ export default function AlertEditorPage() {
     if (recordHistory && project && project.id === next.id) {
       setHistory((prev) => ({ past: [...prev.past.slice(-49), project], future: [] }));
     }
-    setProject(next);
+    setProject(withTimeline(next));
   };
 
   const load = () => {
@@ -636,14 +1147,21 @@ export default function AlertEditorPage() {
         const next = (requested ? items.find((item) => item.id === requested) : null) ?? prev ?? items[0] ?? null;
         if (!prev) {
           setSelectedLayerId(next?.layers[0]?.id ?? "");
+          setSelectedVariationId(next?.variations[0]?.id ?? "");
           setSavedSignature(projectSignature(next));
         }
-        return next;
+        return next ? withTimeline(next) : null;
       });
     });
   };
 
   useEffect(load, []);
+
+  useEffect(() => {
+    const templates = loadLocalTemplates();
+    setLocalTemplates(templates);
+    setSelectedLocalTemplateId(templates[0]?.id ?? "");
+  }, []);
 
   useEffect(() => {
     const id = routeProjectId ?? searchParams.get("id");
@@ -702,11 +1220,18 @@ export default function AlertEditorPage() {
     return () => clearInterval(timer);
   }, [playing, project?.durationMs]);
 
+  useEffect(() => () => {
+    testAudioRef.current?.pause();
+    testAudioRef.current = null;
+    for (const timer of testAudioTimersRef.current) clearTimeout(timer);
+    testAudioTimersRef.current = [];
+  }, []);
+
   const save = async () => {
     if (!project) return;
     setSaving(true);
     try {
-      const next = { ...project, updatedAt: nowIso() };
+      const next = withTimeline({ ...project, timeline: { ...(project.timeline ?? withTimeline(project).timeline), durationMs: project.durationMs }, updatedAt: nowIso() });
       await api.saveAlertProject(next);
       setProject(next);
       setSavedSignature(projectSignature(next));
@@ -719,21 +1244,22 @@ export default function AlertEditorPage() {
     }
   };
 
-  const testProjectInObs = async (eventType: StreamEventType) => {
+  const testProjectInObs = async (eventType: StreamEventType, variationId?: string) => {
     if (!project) return;
     setSaving(true);
     try {
+      const parsedPayload = JSON.parse(testPayloadJson) as Record<string, unknown>;
       const next = { ...project, eventType, updatedAt: nowIso() };
       await api.saveAlertProject(next);
       setProject(next);
       setSavedSignature(projectSignature(next));
-      await api.testAlertProject(next.id, eventType);
+      await api.testAlertProject(next.id, eventType, parsedPayload, variationId);
       setPlayheadMs(0);
       setPlaying(true);
-      toast(`Test ${eventType} sent to OBS alert source`);
+      toast(`Test ${eventType}${variationId ? " variation" : ""} sent to OBS alert source`);
       load();
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Test alert failed");
+      toast(err instanceof Error ? err.message : "Test alert failed. Check payload JSON.");
     } finally {
       setSaving(false);
     }
@@ -757,6 +1283,82 @@ export default function AlertEditorPage() {
     setPlayheadMs(0);
     setHistory({ past: [], future: [] });
     setSavedSignature("");
+  };
+
+  const resetCurrentToTemplate = (template: TemplateId) => {
+    if (!project) return;
+    const info = templateInfo(template);
+    const confirmed = window.confirm(`Reset "${project.name}" to the ${info.name} template defaults? This keeps the project name and can be undone before saving.`);
+    if (!confirmed) return;
+    const next = resetProjectToTemplate(project, template);
+    commitProject(next);
+    setSelectedLayerId(next.layers[0]?.id ?? "");
+    setPlayheadMs(0);
+    setPlaying(false);
+    toast(`Reset to ${info.name} defaults`);
+  };
+
+  const saveCurrentAsLocalTemplate = () => {
+    if (!project) return;
+    const name = window.prompt("Template name", `${project.name} template`)?.trim();
+    if (!name) return;
+    const template: LocalTemplate = {
+      id: newId("local-template"),
+      name,
+      description: `Saved from ${project.name}`,
+      project: {
+        ...project,
+        tags: [...new Set([...(project.tags ?? []), "local-template"])],
+      },
+      savedAt: nowIso(),
+    };
+    const next = [template, ...localTemplates].slice(0, 50);
+    setLocalTemplates(next);
+    setSelectedLocalTemplateId(template.id);
+    persistLocalTemplates(next);
+    toast("Local template saved");
+  };
+
+  const createFromLocalTemplate = (template: LocalTemplate) => {
+    const next = cloneProjectAsNew(template.project, template.name);
+    setProjects((prev) => [next, ...prev]);
+    setProject(next);
+    setSelectedLayerId(next.layers[0]?.id ?? "");
+    setPlayheadMs(0);
+    setPlaying(false);
+    setHistory({ past: [], future: [] });
+    setSavedSignature("");
+  };
+
+  const deleteLocalTemplate = (templateId: string) => {
+    const next = localTemplates.filter((template) => template.id !== templateId);
+    setLocalTemplates(next);
+    setSelectedLocalTemplateId(next[0]?.id ?? "");
+    persistLocalTemplates(next);
+    toast("Local template deleted");
+  };
+
+  const createSamplePack = async () => {
+    setSaving(true);
+    try {
+      const now = nowIso();
+      const pack = TEMPLATE_INFOS.map((template) => ({
+        ...createTemplateProject(template.id),
+        name: `Starter Pack - ${template.name}`,
+        tags: ["starter-pack", template.id],
+        createdAt: now,
+        updatedAt: now,
+      }));
+      await Promise.all(pack.map((item) => api.saveAlertProject(item)));
+      setProjects((prev) => [...pack, ...prev]);
+      selectProject(pack[0] ?? null);
+      toast("Sample alert pack created");
+      load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Sample pack failed");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const duplicateProject = () => {
@@ -839,9 +1441,9 @@ export default function AlertEditorPage() {
   const searchGiphy = async (query = giphyQuery) => {
     setGiphyLoading(true);
     try {
-      const res = query.trim() ? await api.giphySearch(query.trim()) : await api.giphyTrending();
+      const res = query.trim() ? await api.giphySearch(query.trim(), giphyAssetType) : await api.giphyTrending(giphyAssetType);
       setGiphyResults(res.results);
-      if (!res.results.length) toast("No GIPHY results");
+      if (!res.results.length) toast(`No GIPHY ${giphyAssetType === "sticker" ? "stickers" : "GIFs"} found`);
     } catch (err) {
       toast(err instanceof Error ? err.message : "GIPHY search failed");
     } finally {
@@ -854,12 +1456,27 @@ export default function AlertEditorPage() {
     setGiphyLoading(true);
     try {
       const saved = await api.importGiphy(gif);
+      const media: MediaAssetInfo = {
+        ...saved,
+        kind: saved.kind as MediaAssetInfo["kind"],
+        size: saved.size,
+        metadata: {
+          source: "giphy",
+          sourceType: gif.type,
+          sourceId: gif.id,
+          sourceUrl: gif.sourceUrl,
+          title: gif.title,
+          username: gif.username,
+          importedAt: new Date().toISOString(),
+        },
+      };
+      setMediaAssets((prev) => [...prev.filter((asset) => asset.name !== media.name), media].sort((a, b) => a.name.localeCompare(b.name)));
       if (selectedLayer && (selectedLayer.type === "gif" || selectedLayer.type === "image" || selectedLayer.type === "video")) {
         updateSelected({ type: "gif", assetUrl: saved.url, fit: "contain", loop: true, muted: true, volume: 1 } as Partial<AlertLayer>);
       } else {
         const layer = {
           ...createLayer("gif"),
-          name: gif.title || "GIPHY GIF",
+          name: gif.title || (gif.type === "sticker" ? "GIPHY Sticker" : "GIPHY GIF"),
           assetUrl: saved.url,
           width: Math.min(520, Math.max(240, gif.width || 360)),
           height: Math.min(420, Math.max(180, gif.height || 260)),
@@ -867,7 +1484,7 @@ export default function AlertEditorPage() {
         commitProject({ ...project, layers: [...project.layers, layer], updatedAt: nowIso() });
         setSelectedLayerId(layer.id);
       }
-      toast("GIF imported");
+      toast(`${gif.type === "sticker" ? "Sticker" : "GIF"} imported`);
     } catch (err) {
       toast(err instanceof Error ? err.message : "GIPHY import failed");
     } finally {
@@ -923,6 +1540,44 @@ export default function AlertEditorPage() {
     } as AlertLayer;
     commitProject({ ...project, layers: [...project.layers, layer], updatedAt: nowIso() });
     setSelectedLayerId(layer.id);
+  };
+
+  const testSelectedAudio = () => {
+    if (!selectedLayer || selectedLayer.type !== "audio" || !selectedLayer.assetUrl) {
+      toast("Select an audio layer with an asset URL first");
+      return;
+    }
+    stopTestAudio();
+    if (selectedLayer.muted) {
+      toast("Audio layer is muted");
+      return;
+    }
+    const audio = new Audio(resolvePreviewAssetUrl(selectedLayer.assetUrl, overlayOrigin));
+    audio.loop = Boolean(selectedLayer.loop);
+    const offsetMs = Math.max(0, Number(selectedLayer.startOffsetMs ?? 0));
+    audio.currentTime = offsetMs / 1000;
+    testAudioTimersRef.current = applyAudioFade(
+      audio,
+      Number(selectedLayer.volume ?? 1),
+      Number(selectedLayer.fadeInMs ?? 0),
+      Number(selectedLayer.fadeOutMs ?? 0),
+      Math.max(0, Number(selectedLayer.endMs ?? 0) - Number(selectedLayer.startMs ?? 0)),
+    );
+    testAudioRef.current = audio;
+    audio.addEventListener("ended", () => {
+      if (testAudioRef.current === audio) testAudioRef.current = null;
+    }, { once: true });
+    void audio.play().catch(() => {
+      if (testAudioRef.current === audio) testAudioRef.current = null;
+      toast("Could not play test audio");
+    });
+  };
+
+  const stopTestAudio = () => {
+    testAudioRef.current?.pause();
+    testAudioRef.current = null;
+    for (const timer of testAudioTimersRef.current) clearTimeout(timer);
+    testAudioTimersRef.current = [];
   };
 
   const uploadLibraryAsset = async (file: File, kind: "media" | "sound") => {
@@ -981,6 +1636,114 @@ export default function AlertEditorPage() {
         ...patch,
       },
     } as Partial<AlertLayer>);
+  };
+
+  const addKeyframe = (property: typeof KEYFRAME_PROPERTIES[number]) => {
+    if (!selectedLayer) return;
+    const properties: Record<string, unknown> = {};
+    if (property === "opacity") properties.opacity = selectedLayer.opacity;
+    if (property === "position") {
+      properties.x = selectedLayer.x;
+      properties.y = selectedLayer.y;
+    }
+    if (property === "scale") properties.scale = selectedLayer.scale;
+    if (property === "rotation") properties.rotation = selectedLayer.rotation;
+    const frame: AlertKeyframe = {
+      id: newId("keyframe"),
+      atMs: Math.round(playheadMs),
+      easing: "ease-out",
+      properties,
+    };
+    const keyframes = [...selectedLayer.keyframes.filter((item) => item.atMs !== frame.atMs || Object.keys(item.properties).some((key) => !(key in properties))), frame]
+      .sort((a, b) => a.atMs - b.atMs);
+    updateSelected({ keyframes } as Partial<AlertLayer>);
+  };
+
+  const updateKeyframe = (keyframeId: string, patch: Partial<AlertKeyframe>) => {
+    if (!selectedLayer) return;
+    updateSelected({
+      keyframes: selectedLayer.keyframes
+        .map((frame) => frame.id === keyframeId ? { ...frame, ...patch } : frame)
+        .sort((a, b) => a.atMs - b.atMs),
+    } as Partial<AlertLayer>);
+  };
+
+  const deleteKeyframe = (keyframeId: string) => {
+    if (!selectedLayer) return;
+    updateSelected({ keyframes: selectedLayer.keyframes.filter((frame) => frame.id !== keyframeId) } as Partial<AlertLayer>);
+  };
+
+  const addVariationFromCurrent = () => {
+    if (!project) return;
+    const variation: AlertVariation = {
+      id: newId("variation"),
+      name: `Variant ${project.variations.length + 1}`,
+      enabled: true,
+      priority: project.variations.length,
+      legendary: false,
+      condition: { eventType: project.eventType },
+      durationMs: project.durationMs,
+      canvas: project.canvas,
+      timeline: project.timeline,
+      layers: project.layers.map((layer) => ({ ...layer, id: newId(layer.type) }) as AlertLayer),
+    };
+    commitProject({ ...project, variations: [...project.variations, variation], updatedAt: nowIso() });
+    setSelectedVariationId(variation.id);
+  };
+
+  const updateVariation = (variationId: string, patch: Partial<AlertVariation>) => {
+    if (!project) return;
+    commitProject({
+      ...project,
+      variations: project.variations.map((variation) => variation.id === variationId ? { ...variation, ...patch } : variation),
+      updatedAt: nowIso(),
+    });
+  };
+
+  const duplicateVariation = (variation: AlertVariation) => {
+    if (!project) return;
+    const copy = {
+      ...variation,
+      id: newId("variation"),
+      name: `${variation.name} copy`,
+      layers: variation.layers.map((layer) => ({ ...layer, id: newId(layer.type) }) as AlertLayer),
+    };
+    commitProject({ ...project, variations: [...project.variations, copy], updatedAt: nowIso() });
+    setSelectedVariationId(copy.id);
+  };
+
+  const deleteVariation = (variationId: string) => {
+    if (!project) return;
+    const variations = project.variations.filter((variation) => variation.id !== variationId);
+    commitProject({ ...project, variations, updatedAt: nowIso() });
+    setSelectedVariationId(variations[0]?.id ?? "");
+  };
+
+  const updateTimeline = (patch: Partial<NonNullable<AlertProject["timeline"]>>) => {
+    if (!project) return;
+    const current = project.timeline ?? withTimeline(project).timeline!;
+    const timeline = { ...current, ...patch };
+    commitProject({
+      ...project,
+      timeline,
+      durationMs: patch.durationMs ?? project.durationMs,
+      updatedAt: nowIso(),
+    });
+  };
+
+  const updateChaos = (patch: Partial<AlertProject["chaos"]>) => {
+    if (!project) return;
+    const current = withTimeline(project).chaos;
+    commitProject({ ...project, chaos: { ...current, ...patch }, updatedAt: nowIso() });
+  };
+
+  const toggleChaosModifier = (modifier: AlertChaosModifier) => {
+    if (!project) return;
+    const current = withTimeline(project).chaos;
+    const modifiers = current.modifiers.includes(modifier)
+      ? current.modifiers.filter((item) => item !== modifier)
+      : [...current.modifiers, modifier];
+    updateChaos({ modifiers });
   };
 
   const visibleAtPlayhead = (layer: AlertLayer) => {
@@ -1292,6 +2055,8 @@ export default function AlertEditorPage() {
         <button type="button" className="btn btn-secondary btn-sm" onClick={undoProject} disabled={!history.past.length}>Undo</button>
         <button type="button" className="btn btn-secondary btn-sm" onClick={redoProject} disabled={!history.future.length}>Redo</button>
         <button type="button" className="btn btn-secondary btn-sm" onClick={createNew}>New project</button>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={() => void createSamplePack()} disabled={saving}>Sample pack</button>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={saveCurrentAsLocalTemplate} disabled={!project}>Save as template</button>
         <button type="button" className="btn btn-secondary btn-sm" onClick={duplicateProject} disabled={!project}>Duplicate project</button>
         <button type="button" className="btn btn-secondary btn-sm" onClick={exportProject} disabled={!project}>Export JSON</button>
         <label className="btn btn-secondary btn-sm">
@@ -1314,20 +2079,153 @@ export default function AlertEditorPage() {
         <span className={`alert-save-status${dirty ? " dirty" : ""}`}>{dirty ? "Unsaved changes" : "Saved"}</span>
       </div>
 
+      {!project && (
+        <section className="card alert-empty-state">
+          <div>
+            <h2>Create your first alert</h2>
+            <p className="subtitle">
+              Start with a template, test it in OBS, then swap in your own GIFs, stickers, sounds, and text.
+            </p>
+            <ol>
+              <li>Pick a template that matches the Twitch event.</li>
+              <li>Edit layers, timing, animation, and media in the panels.</li>
+              <li>Use the test buttons to fire the alert into your OBS browser source.</li>
+            </ol>
+          </div>
+          <div className="alert-template-grid">
+            {TEMPLATE_INFOS.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                className={`alert-template-card${templatePreviewId === template.id ? " active" : ""}`}
+                onClick={() => setTemplatePreviewId(template.id)}
+              >
+                <strong>{template.name}</strong>
+                <span>{template.description}</span>
+              </button>
+            ))}
+          </div>
+          <TemplatePreview
+            templateId={templatePreviewId}
+            overlayOrigin={overlayOrigin}
+            testPayload={previewTestPayload}
+            onApply={() => createFromTemplate(templatePreviewId)}
+          />
+          <div className="actions" style={{ marginBottom: 0 }}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={createNew}>Blank alert</button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void createSamplePack()} disabled={saving}>
+              Add sample pack
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void copyObsAlertUrl()}>Copy OBS URL</button>
+          </div>
+        </section>
+      )}
+
       {project && (
         <div className="alert-editor-grid">
+          <section className="card alert-shortcuts-card">
+            <h2>Quick Reference</h2>
+            <div className="shortcut-grid">
+              <span><kbd>Ctrl</kbd> <kbd>Z</kbd> Undo</span>
+              <span><kbd>Ctrl</kbd> <kbd>Y</kbd> Redo</span>
+              <span><kbd>Ctrl</kbd> <kbd>D</kbd> Duplicate layer</span>
+              <span><kbd>Delete</kbd> Delete layer</span>
+              <span><kbd>Arrows</kbd> Nudge 1px</span>
+              <span><kbd>Shift</kbd> <kbd>Arrows</kbd> Nudge 10px</span>
+            </div>
+          </section>
+
+          <section className="card alert-help-card">
+            <div>
+              <h2>OBS Setup</h2>
+              <ol>
+                <li>Add a Browser Source in OBS using the copied alert URL.</li>
+                <li>Set the source to 1920x1080 or match your canvas preset.</li>
+                <li>Keep custom CSS transparent and leave the source active while testing.</li>
+              </ol>
+              <div className="actions" style={{ marginBottom: 0 }}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => void copyObsAlertUrl()}>Copy OBS URL</button>
+                <Link className="btn btn-secondary btn-sm" to="/overlays">All overlay URLs</Link>
+                <Link className="btn btn-secondary btn-sm" to="/">Dashboard checks</Link>
+              </div>
+            </div>
+            <div>
+              <h2>Transparent Source Troubleshooting</h2>
+              <ul>
+                <li>If OBS shows black, verify the Browser Source URL starts with <code>http://127.0.0.1:4782</code>.</li>
+                <li>If tests do nothing, open Dashboard and run browser-source repair.</li>
+                <li>If media is missing, check Project Checks for broken local asset paths.</li>
+              </ul>
+            </div>
+          </section>
+
           <section className="card">
             <h2>Project</h2>
             <div className="form-row">
               <label>Start from template</label>
-              <select value="" onChange={(e) => e.target.value && createFromTemplate(e.target.value as TemplateId)}>
-                <option value="">Choose template</option>
-                <option value="clean-follow">Clean Follow</option>
-                <option value="neon-sub">Neon Sub</option>
-                <option value="raid-warning">Raid Warning</option>
-                <option value="cheer-burst">Cheer Burst</option>
-                <option value="meme-pop">Meme Pop</option>
+              <select value={templatePreviewId} onChange={(e) => setTemplatePreviewId(e.target.value as TemplateId)}>
+                {TEMPLATE_INFOS.map((template) => (
+                  <option key={template.id} value={template.id}>{template.name}</option>
+                ))}
               </select>
+            </div>
+            <div className="alert-template-grid compact">
+              {TEMPLATE_INFOS.map((template) => (
+                <button
+                  key={template.id}
+                  type="button"
+                  className={`alert-template-card${templatePreviewId === template.id ? " active" : ""}`}
+                  onClick={() => setTemplatePreviewId(template.id)}
+                  title={template.description}
+                >
+                  <strong>{template.name}</strong>
+                  <span>{template.description}</span>
+                </button>
+              ))}
+            </div>
+            <TemplatePreview
+              templateId={templatePreviewId}
+              overlayOrigin={overlayOrigin}
+              testPayload={previewTestPayload}
+              onApply={() => createFromTemplate(templatePreviewId)}
+            />
+            <div className="actions" style={{ marginTop: -6 }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => resetCurrentToTemplate(templatePreviewId)}>
+                Reset current to template
+              </button>
+            </div>
+            <div className="alert-local-templates">
+              <h2>Local Templates</h2>
+              {localTemplates.length ? (
+                <>
+                  <div className="alert-template-grid compact">
+                    {localTemplates.map((template) => (
+                      <button
+                        key={template.id}
+                        type="button"
+                        className={`alert-template-card${selectedLocalTemplateId === template.id ? " active" : ""}`}
+                        onClick={() => setSelectedLocalTemplateId(template.id)}
+                        title={`Saved ${new Date(template.savedAt).toLocaleString()}`}
+                      >
+                        <strong>{template.name}</strong>
+                        <span>{template.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {selectedLocalTemplate && (
+                    <div className="actions" style={{ marginBottom: 0 }}>
+                      <button type="button" className="btn btn-primary btn-sm" onClick={() => createFromLocalTemplate(selectedLocalTemplate)}>
+                        Use local template
+                      </button>
+                      <button type="button" className="btn btn-danger btn-sm" onClick={() => deleteLocalTemplate(selectedLocalTemplate.id)}>
+                        Delete template
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="subtitle">Save a finished alert as a local template to reuse it in future alert projects.</p>
+              )}
             </div>
             <div className="form-row">
               <label>Name</label>
@@ -1344,6 +2242,99 @@ export default function AlertEditorPage() {
                 <label>Duration (ms)</label>
                 <input type="number" min={500} max={60000} value={project.durationMs} onChange={(e) => commitProject({ ...project, durationMs: Number(e.target.value), updatedAt: nowIso() })} />
               </div>
+            </div>
+            <div className="alert-variation-panel">
+              <div className="alert-editor-panel-title">
+                <h2>Variations</h2>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={addVariationFromCurrent}>Capture current</button>
+              </div>
+              {project.variations.length ? (
+                <>
+                  <div className="alert-template-grid compact">
+                    {project.variations.map((variation) => (
+                      <button
+                        key={variation.id}
+                        type="button"
+                        className={`alert-template-card${selectedVariationId === variation.id ? " active" : ""}`}
+                        onClick={() => setSelectedVariationId(variation.id)}
+                      >
+                        <strong>{variation.name}</strong>
+                        <span>{variation.enabled ? "Enabled" : "Disabled"} - priority {variation.priority}{variation.legendary ? " - legendary" : ""}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {selectedVariation && (
+                    <div className="variation-editor">
+                      <div className="form-row">
+                        <label>Name</label>
+                        <input value={selectedVariation.name} onChange={(e) => updateVariation(selectedVariation.id, { name: e.target.value })} />
+                      </div>
+                      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                        <label><input type="checkbox" checked={selectedVariation.enabled} onChange={(e) => updateVariation(selectedVariation.id, { enabled: e.target.checked })} /> Enabled</label>
+                        <label><input type="checkbox" checked={selectedVariation.legendary} onChange={(e) => updateVariation(selectedVariation.id, { legendary: e.target.checked })} /> Legendary</label>
+                        <div><label>Priority</label><input type="number" value={selectedVariation.priority} onChange={(e) => updateVariation(selectedVariation.id, { priority: Number(e.target.value) })} /></div>
+                        <div><label>Random chance %</label><input type="number" min={0} max={100} value={selectedVariation.condition.randomChance ?? ""} onChange={(e) => updateVariation(selectedVariation.id, { condition: { ...selectedVariation.condition, randomChance: e.target.value ? Number(e.target.value) : undefined } })} /></div>
+                        <div><label>Event type</label><select value={selectedVariation.condition.eventType ?? ""} onChange={(e) => updateVariation(selectedVariation.id, { condition: { ...selectedVariation.condition, eventType: e.target.value ? e.target.value as StreamEventType : undefined } })}><option value="">Any</option>{EVENT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}</select></div>
+                        <div><label>Min amount</label><input type="number" min={0} value={selectedVariation.condition.minAmount ?? ""} onChange={(e) => updateVariation(selectedVariation.id, { condition: { ...selectedVariation.condition, minAmount: e.target.value ? Number(e.target.value) : undefined } })} /></div>
+                        <div><label>User role</label><select value={selectedVariation.condition.userRole ?? ""} onChange={(e) => updateVariation(selectedVariation.id, { condition: { ...selectedVariation.condition, userRole: e.target.value ? e.target.value as NonNullable<AlertVariation["condition"]["userRole"]> : undefined } })}><option value="">Any</option><option value="broadcaster">Broadcaster</option><option value="moderator">Moderator</option><option value="subscriber">Subscriber</option><option value="vip">VIP</option></select></div>
+                        <div><label>Channel point title</label><input value={selectedVariation.condition.channelPointTitle ?? ""} onChange={(e) => updateVariation(selectedVariation.id, { condition: { ...selectedVariation.condition, channelPointTitle: e.target.value || undefined } })} /></div>
+                      </div>
+                      <div className="actions" style={{ marginBottom: 0 }}>
+                        <button type="button" className="btn btn-primary btn-sm" onClick={() => void testProjectInObs(selectedVariation.condition.eventType ?? project.eventType, selectedVariation.id)}>Test selected variation</button>
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => duplicateVariation(selectedVariation)}>Duplicate variation</button>
+                        <button type="button" className="btn btn-danger btn-sm" onClick={() => deleteVariation(selectedVariation.id)}>Delete variation</button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="subtitle">Capture the current alert as a variation to add rare, threshold, role, or channel-point-specific versions.</p>
+              )}
+            </div>
+            <div className="alert-chaos-panel">
+              <h2>Chaos Engine</h2>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={project.chaos.enabled}
+                  onChange={(e) => updateChaos({ enabled: e.target.checked })}
+                /> Enable random modifiers
+              </label>
+              <div className="form-row">
+                <label>Chaos intensity ({Math.round(project.chaos.intensity * 100)}%)</label>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={project.chaos.intensity}
+                  onChange={(e) => updateChaos({ intensity: Number(e.target.value) })}
+                />
+              </div>
+              <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                <div>
+                  <label>Legendary boost %</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={project.chaos.legendaryBoost}
+                    onChange={(e) => updateChaos({ legendaryBoost: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+              <div className="chaos-modifier-list">
+                {CHAOS_MODIFIERS.map((modifier) => (
+                  <label key={modifier.id}>
+                    <input
+                      type="checkbox"
+                      checked={project.chaos.modifiers.includes(modifier.id)}
+                      onChange={() => toggleChaosModifier(modifier.id)}
+                    /> {modifier.label}
+                  </label>
+                ))}
+              </div>
+              <p className="subtitle">When enabled, BTV may apply one selected modifier during alert playback. Legendary variants can receive an extra chance boost.</p>
             </div>
             <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
               <div>
@@ -1383,11 +2374,29 @@ export default function AlertEditorPage() {
                   type="button"
                   className={`btn btn-sm ${project.eventType === type ? "btn-primary" : "btn-secondary"}`}
                   onClick={() => void testProjectInObs(type)}
-                  disabled={saving}
+                  disabled={saving || Boolean(testPayloadError)}
                 >
                   Test {type}
                 </button>
               ))}
+            </div>
+            <div className="form-row">
+              <label>Test payload JSON</label>
+              <textarea
+                rows={7}
+                value={testPayloadJson}
+                onChange={(e) => setTestPayloadJson(e.target.value)}
+                spellCheck={false}
+              />
+              <p className={testPayloadError ? "form-error" : "subtitle"}>
+                {testPayloadError
+                  ? `Invalid JSON: ${testPayloadError}`
+                  : (
+                    <>
+                      Template variables: <code>{"{user}"}</code>, <code>{"{login}"}</code>, <code>{"{event}"}</code>, <code>{"{amount}"}</code>, <code>{"{message}"}</code>, <code>{"{payload.rewardTitle}"}</code>.
+                    </>
+                  )}
+              </p>
             </div>
 
             <h2 style={{ marginTop: 16 }}>Layers</h2>
@@ -1411,6 +2420,8 @@ export default function AlertEditorPage() {
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => addLayer("gif")}>GIF</button>
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => addLayer("video")}>Video</button>
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => addLayer("audio")}>Audio</button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => addLayer("particle")}>Particles</button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => addLayer("browser")}>HTML</button>
             </div>
             <div className="layer-list">
               {project.layers.map((layer) => (
@@ -1419,6 +2430,7 @@ export default function AlertEditorPage() {
                   type="button"
                   className={`layer-row${selectedLayer?.id === layer.id ? " active" : ""}`}
                   onClick={() => setSelectedLayerId(layer.id)}
+                  title="Select this layer to edit its timeline, visual, and media properties."
                 >
                   <span>{layer.visible ? "Shown" : "Hidden"}</span>
                   <strong>{layer.name}</strong>
@@ -1427,10 +2439,10 @@ export default function AlertEditorPage() {
               ))}
             </div>
             <div className="actions">
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => moveLayer(-1)} disabled={!selectedLayer}>Up</button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => moveLayer(1)} disabled={!selectedLayer}>Down</button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={duplicateLayer} disabled={!selectedLayer}>Duplicate</button>
-              <button type="button" className="btn btn-danger btn-sm" onClick={deleteLayer} disabled={!selectedLayer}>Delete layer</button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => moveLayer(-1)} disabled={!selectedLayer} title="Move selected layer earlier in the stack.">Up</button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => moveLayer(1)} disabled={!selectedLayer} title="Move selected layer later in the stack.">Down</button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={duplicateLayer} disabled={!selectedLayer} title="Duplicate selected layer. Shortcut: Ctrl+D.">Duplicate</button>
+              <button type="button" className="btn btn-danger btn-sm" onClick={deleteLayer} disabled={!selectedLayer} title="Delete selected layer. Shortcut: Delete.">Delete layer</button>
             </div>
 
             <h2 style={{ marginTop: 18 }}>Assets</h2>
@@ -1491,6 +2503,7 @@ export default function AlertEditorPage() {
                     )}
                     <strong>{asset.name}</strong>
                     <span>{asset.kind} - {formatBytes(asset.size)}</span>
+                    {assetAttribution(asset) && <span>{assetAttribution(asset)}</span>}
                   </button>
                   <button type="button" className="asset-delete" onClick={() => void deleteLibraryAsset(asset, "media")}>Delete</button>
                 </div>
@@ -1500,6 +2513,7 @@ export default function AlertEditorPage() {
                   <button type="button" onClick={() => applySoundAsset(asset)} title={`Use ${asset.name}`}>
                     <strong>{asset.name}</strong>
                     <span>audio - {formatBytes(asset.size)}</span>
+                    {assetAttribution(asset) && <span>{assetAttribution(asset)}</span>}
                   </button>
                   <button type="button" className="asset-delete" onClick={() => void deleteLibraryAsset(asset, "sound")}>Delete</button>
                 </div>
@@ -1510,15 +2524,37 @@ export default function AlertEditorPage() {
             )}
 
             <h2 style={{ marginTop: 18 }}>GIPHY</h2>
+            <div className="segmented" style={{ marginBottom: 12 }}>
+              <button
+                type="button"
+                className={giphyAssetType === "gif" ? "active" : ""}
+                onClick={() => {
+                  setGiphyAssetType("gif");
+                  setGiphyResults([]);
+                }}
+              >
+                GIFs
+              </button>
+              <button
+                type="button"
+                className={giphyAssetType === "sticker" ? "active" : ""}
+                onClick={() => {
+                  setGiphyAssetType("sticker");
+                  setGiphyResults([]);
+                }}
+              >
+                Stickers
+              </button>
+            </div>
             <div className="form-row">
-              <label>Search GIFs</label>
+              <label>Search {giphyAssetType === "sticker" ? "stickers" : "GIFs"}</label>
               <input
                 value={giphyQuery}
                 onChange={(e) => setGiphyQuery(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") void searchGiphy();
                 }}
-                placeholder="hype, raid, explosion..."
+                placeholder={giphyAssetType === "sticker" ? "sparkle, hype, emote..." : "hype, raid, explosion..."}
               />
             </div>
             <div className="actions" style={{ marginTop: 0, marginBottom: 12 }}>
@@ -1526,14 +2562,14 @@ export default function AlertEditorPage() {
                 {giphyLoading ? "Searching..." : "Search"}
               </button>
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => void searchGiphy("")} disabled={giphyLoading}>
-                Trending
+                Trending {giphyAssetType === "sticker" ? "stickers" : "GIFs"}
               </button>
             </div>
             <div className="giphy-grid">
               {giphyResults.map((gif) => (
                 <button key={gif.id} type="button" className="giphy-card" onClick={() => void importGif(gif)} title={gif.title}>
                   <img src={gif.previewUrl} alt={gif.title} />
-                  <span>{gif.title || "Import GIF"}</span>
+                  <span>{gif.title || (gif.type === "sticker" ? "Import sticker" : "Import GIF")}</span>
                 </button>
               ))}
             </div>
@@ -1565,10 +2601,10 @@ export default function AlertEditorPage() {
             <div className="alert-preview-tools">
               <span>{project.canvas.width}x{project.canvas.height}</span>
               <div className="segmented">
-                <button type="button" className={previewZoom === "fit" ? "active" : ""} onClick={() => setPreviewZoom("fit")}>Fit</button>
-                <button type="button" className={previewZoom === 0.25 ? "active" : ""} onClick={() => setPreviewZoom(0.25)}>25%</button>
-                <button type="button" className={previewZoom === 0.5 ? "active" : ""} onClick={() => setPreviewZoom(0.5)}>50%</button>
-                <button type="button" className={previewZoom === 1 ? "active" : ""} onClick={() => setPreviewZoom(1)}>100%</button>
+                <button type="button" className={previewZoom === "fit" ? "active" : ""} onClick={() => setPreviewZoom("fit")} title="Fit the full alert canvas into the preview area.">Fit</button>
+                <button type="button" className={previewZoom === 0.25 ? "active" : ""} onClick={() => setPreviewZoom(0.25)} title="Preview at 25% scale.">25%</button>
+                <button type="button" className={previewZoom === 0.5 ? "active" : ""} onClick={() => setPreviewZoom(0.5)} title="Preview at 50% scale.">50%</button>
+                <button type="button" className={previewZoom === 1 ? "active" : ""} onClick={() => setPreviewZoom(1)} title="Preview at full canvas scale.">100%</button>
               </div>
             </div>
             <div className="alert-preview-shell" ref={previewShellRef}>
@@ -1585,25 +2621,30 @@ export default function AlertEditorPage() {
                   transform: `scale(${previewScale})`,
                 }}
               >
-                {showSafeZones && <div className="alert-safe-zone" />}
-                {project.layers.filter(visibleAtPlayhead).map((layer) => (
-                  <PreviewLayer
-                    key={layer.id}
-                    layer={layer}
-                    eventType={project.eventType}
-                    selected={selectedLayer?.id === layer.id}
-                    overlayOrigin={overlayOrigin}
-                    onPointerDown={(event) => startDrag(layer, event)}
-                    onResizePointerDown={(handle, event) => startResize(layer, handle, event)}
-                    onRotatePointerDown={(event) => startRotate(layer, event)}
-                  />
-                ))}
+                <AlertPreviewErrorBoundary>
+                  {showSafeZones && <div className="alert-safe-zone" />}
+                  {project.layers.filter(visibleAtPlayhead).map((layer) => (
+                    <PreviewLayer
+                      key={layer.id}
+                      layer={layer}
+                      eventType={project.eventType}
+                      testPayload={previewTestPayload}
+                      selected={selectedLayer?.id === layer.id}
+                      playheadMs={playheadMs}
+                      overlayOrigin={overlayOrigin}
+                      onPointerDown={(event) => startDrag(layer, event)}
+                      onResizePointerDown={(handle, event) => startResize(layer, handle, event)}
+                      onRotatePointerDown={(event) => startRotate(layer, event)}
+                    />
+                  ))}
+                </AlertPreviewErrorBoundary>
               </div>
             </div>
             <div className="alert-timeline">
               <div className="alert-timeline-header">
                 <span>{Math.round(playheadMs)}ms</span>
                 <input
+                  title="Scrub the alert timeline preview."
                   type="range"
                   min={0}
                   max={project.durationMs}
@@ -1614,20 +2655,45 @@ export default function AlertEditorPage() {
                   }}
                 />
                 <span>{project.durationMs}ms</span>
+                <label className="timeline-zoom-control">
+                  Zoom
+                  <input
+                    type="range"
+                    min={0.5}
+                    max={4}
+                    step={0.25}
+                    value={project.timeline?.zoom ?? 1}
+                    onChange={(e) => updateTimeline({ zoom: Number(e.target.value) })}
+                  />
+                </label>
               </div>
-              <div className="alert-timeline-tracks">
+              <div className="alert-timeline-tracks" style={{ minWidth: `${Math.round((project.timeline?.zoom ?? 1) * 100)}%` }}>
                 {project.layers.map((layer) => {
-                  const left = `${(layer.startMs / project.durationMs) * 100}%`;
-                  const width = `${((layer.endMs - layer.startMs) / project.durationMs) * 100}%`;
+                  const left = pct(layer.startMs, project.durationMs);
+                  const width = pct(layer.endMs - layer.startMs, project.durationMs);
+                  const layerDuration = Math.max(1, layer.endMs - layer.startMs);
                   return (
                     <button
                       key={layer.id}
                       type="button"
-                      className={`alert-timeline-track${selectedLayer?.id === layer.id ? " active" : ""}`}
+                      className={`alert-timeline-track${selectedLayer?.id === layer.id ? " active" : ""}${layer.type === "audio" ? " audio" : ""}`}
                       onClick={() => setSelectedLayerId(layer.id)}
+                      title="Layer timing. Edit Start and End in Properties."
                     >
                       <span>{layer.name}</span>
                       <i style={{ left, width }} />
+                      {layer.type === "audio" && (
+                        <b
+                          className="alert-audio-bar"
+                          style={{
+                            left,
+                            width,
+                            "--offset": pct(layer.startOffsetMs ?? 0, layerDuration),
+                            "--fade-in": pct(layer.fadeInMs ?? 0, layerDuration),
+                            "--fade-out": pct(layer.fadeOutMs ?? 0, layerDuration),
+                          } as CSSProperties}
+                        />
+                      )}
                     </button>
                   );
                 })}
@@ -1641,7 +2707,7 @@ export default function AlertEditorPage() {
             {selectedLayer ? (
               <>
                 <div className="form-row">
-                  <label>Layer name</label>
+                  <label title="Name shown in the layer stack and timeline.">Layer name</label>
                   <input value={selectedLayer.name} onChange={(e) => updateSelected({ name: e.target.value })} />
                 </div>
                 <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
@@ -1757,8 +2823,46 @@ export default function AlertEditorPage() {
                   </div>
                 </div>
                 <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                  <div><label>Start (ms)</label><input type="number" value={selectedLayer.startMs} onChange={(e) => updateSelected({ startMs: Number(e.target.value) })} /></div>
-                  <div><label>End (ms)</label><input type="number" value={selectedLayer.endMs} onChange={(e) => updateSelected({ endMs: Number(e.target.value) })} /></div>
+                  <div><label title="When this layer appears during the alert.">Start (ms)</label><input type="number" value={selectedLayer.startMs} onChange={(e) => updateSelected({ startMs: Number(e.target.value) })} /></div>
+                  <div><label title="When this layer disappears during the alert.">End (ms)</label><input type="number" value={selectedLayer.endMs} onChange={(e) => updateSelected({ endMs: Number(e.target.value) })} /></div>
+                </div>
+                <div className="alert-keyframe-panel">
+                  <h3>Keyframes</h3>
+                  <div className="actions" style={{ marginBottom: 10 }}>
+                    {KEYFRAME_PROPERTIES.map((property) => (
+                      <button key={property} type="button" className="btn btn-secondary btn-sm" onClick={() => addKeyframe(property)}>
+                        Add {property}
+                      </button>
+                    ))}
+                  </div>
+                  {selectedLayer.keyframes.length ? (
+                    <div className="keyframe-list">
+                      {selectedLayer.keyframes.map((frame) => (
+                        <div key={frame.id} className="keyframe-row">
+                          <input
+                            type="number"
+                            min={0}
+                            max={project.durationMs}
+                            value={frame.atMs}
+                            title="Keyframe time in milliseconds."
+                            onChange={(e) => updateKeyframe(frame.id, { atMs: Number(e.target.value) })}
+                          />
+                          <select value={frame.easing} onChange={(e) => updateKeyframe(frame.id, { easing: e.target.value as AlertKeyframe["easing"] })}>
+                            <option value="linear">linear</option>
+                            <option value="ease-in">ease-in</option>
+                            <option value="ease-out">ease-out</option>
+                            <option value="ease-in-out">ease-in-out</option>
+                            <option value="bounce">bounce</option>
+                            <option value="elastic">elastic</option>
+                          </select>
+                          <span>{Object.keys(frame.properties).join(", ") || "empty"}</span>
+                          <button type="button" className="btn btn-danger btn-sm" onClick={() => deleteKeyframe(frame.id)}>Delete</button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="subtitle">Move the playhead, adjust the layer, then add a keyframe for the property you want to animate.</p>
+                  )}
                 </div>
 
                 {selectedLayer.type === "text" && (
@@ -1784,6 +2888,25 @@ export default function AlertEditorPage() {
                   </div>
                 )}
 
+                {selectedLayer.type === "particle" && (
+                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                    <div><label>Particle type</label><select value={selectedLayer.particle} onChange={(e) => updateSelected({ particle: e.target.value } as Partial<AlertLayer>)}><option value="confetti">Confetti</option><option value="spark">Spark</option><option value="burst">Burst</option><option value="embers">Embers</option><option value="snow">Snow</option></select></div>
+                    <div><label>Count</label><input type="number" min={1} max={1000} value={selectedLayer.count} onChange={(e) => updateSelected({ count: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
+                    <div><label>Color</label><input type="color" value={selectedLayer.color} onChange={(e) => updateSelected({ color: e.target.value } as Partial<AlertLayer>)} /></div>
+                    <div><label>Spread</label><input type="number" min={0} max={360} value={selectedLayer.spread} onChange={(e) => updateSelected({ spread: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
+                    <div><label>Speed</label><input type="number" min={0} max={10} step={0.1} value={selectedLayer.speed} onChange={(e) => updateSelected({ speed: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
+                  </div>
+                )}
+
+                {selectedLayer.type === "browser" && (
+                  <>
+                    <div className="form-row"><label>HTML</label><textarea rows={4} value={selectedLayer.html} onChange={(e) => updateSelected({ html: e.target.value } as Partial<AlertLayer>)} /></div>
+                    <div className="form-row"><label>CSS</label><textarea rows={4} value={selectedLayer.css} onChange={(e) => updateSelected({ css: e.target.value } as Partial<AlertLayer>)} /></div>
+                    <div className="form-row"><label>JavaScript hook</label><textarea rows={3} value={selectedLayer.js} onChange={(e) => updateSelected({ js: e.target.value } as Partial<AlertLayer>)} /></div>
+                    <label><input type="checkbox" checked={selectedLayer.sandbox} onChange={(e) => updateSelected({ sandbox: e.target.checked } as Partial<AlertLayer>)} /> Sandbox iframe</label>
+                  </>
+                )}
+
                 {(selectedLayer.type === "image" || selectedLayer.type === "gif" || selectedLayer.type === "video" || selectedLayer.type === "audio") && (
                   <>
                     <div className="form-row"><label>Asset URL</label><input value={selectedLayer.assetUrl} onChange={(e) => updateSelected({ assetUrl: e.target.value } as Partial<AlertLayer>)} /></div>
@@ -1807,10 +2930,58 @@ export default function AlertEditorPage() {
                       <div className="form-row"><label>Fit</label><select value={selectedLayer.fit} onChange={(e) => updateSelected({ fit: e.target.value } as Partial<AlertLayer>)}><option value="contain">Contain</option><option value="cover">Cover</option><option value="fill">Fill</option></select></div>
                     )}
                     {selectedLayer.type === "audio" && (
-                      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                        <div><label>Volume</label><input type="number" min={0} max={1} step={0.05} value={selectedLayer.volume} onChange={(e) => updateSelected({ volume: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                        <label style={{ alignSelf: "center", marginTop: 16 }}><input type="checkbox" checked={selectedLayer.loop} onChange={(e) => updateSelected({ loop: e.target.checked } as Partial<AlertLayer>)} /> Loop</label>
-                      </div>
+                      <>
+                        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                          <div><label>Volume</label><input type="number" min={0} max={1} step={0.05} value={selectedLayer.volume} onChange={(e) => updateSelected({ volume: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
+                          <div><label>Start offset (ms)</label><input type="number" min={0} value={selectedLayer.startOffsetMs ?? 0} onChange={(e) => updateSelected({ startOffsetMs: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
+                          <div><label>Fade in (ms)</label><input type="number" min={0} value={selectedLayer.fadeInMs ?? 0} onChange={(e) => updateSelected({ fadeInMs: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
+                          <div><label>Fade out (ms)</label><input type="number" min={0} value={selectedLayer.fadeOutMs ?? 0} onChange={(e) => updateSelected({ fadeOutMs: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
+                          <label style={{ alignSelf: "center", marginTop: 16 }}><input type="checkbox" checked={selectedLayer.loop} onChange={(e) => updateSelected({ loop: e.target.checked } as Partial<AlertLayer>)} /> Loop</label>
+                          <label style={{ alignSelf: "center", marginTop: 0 }}><input type="checkbox" checked={selectedLayer.muted} onChange={(e) => updateSelected({ muted: e.target.checked } as Partial<AlertLayer>)} /> Muted</label>
+                        </div>
+                        <div className="actions" style={{ marginTop: 0 }}>
+                          <button type="button" className="btn btn-secondary btn-sm" onClick={testSelectedAudio} disabled={!selectedLayer.assetUrl || selectedLayer.muted}>
+                            Test sound
+                          </button>
+                          <button type="button" className="btn btn-secondary btn-sm" onClick={stopTestAudio}>
+                            Stop sound
+                          </button>
+                        </div>
+                        <div className="form-row">
+                          <label>Future audio-reactive data</label>
+                          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                            <label style={{ alignSelf: "center", marginTop: 16 }}>
+                              <input
+                                type="checkbox"
+                                checked={selectedLayer.reactive?.enabled ?? false}
+                                onChange={(e) => updateSelected({ reactive: { ...(selectedLayer.reactive ?? { mode: "none", sensitivity: 1 }), enabled: e.target.checked } } as Partial<AlertLayer>)}
+                              /> Reactive
+                            </label>
+                            <div>
+                              <label>Mode</label>
+                              <select
+                                value={selectedLayer.reactive?.mode ?? "none"}
+                                onChange={(e) => updateSelected({ reactive: { ...(selectedLayer.reactive ?? { enabled: false, sensitivity: 1 }), mode: e.target.value as "none" | "amplitude" | "bass" } } as Partial<AlertLayer>)}
+                              >
+                                <option value="none">None</option>
+                                <option value="amplitude">Amplitude</option>
+                                <option value="bass">Bass</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label>Sensitivity</label>
+                              <input
+                                type="number"
+                                min={0}
+                                max={5}
+                                step={0.1}
+                                value={selectedLayer.reactive?.sensitivity ?? 1}
+                                onChange={(e) => updateSelected({ reactive: { ...(selectedLayer.reactive ?? { enabled: false, mode: "none" }), sensitivity: Number(e.target.value) } } as Partial<AlertLayer>)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </>
                     )}
                     {selectedLayer.type === "video" && (
                       <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>

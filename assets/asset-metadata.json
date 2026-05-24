@@ -1,0 +1,22 @@
+{
+  "media": {
+    "giphy-rf8XiO1pjULHqRtTu2-Food_Coffee_GIF_by_Gofrette.gif": {
+      "source": "giphy",
+      "sourceType": "gif",
+      "sourceId": "rf8XiO1pjULHqRtTu2",
+      "sourceUrl": "https://giphy.com/gifs/rf8XiO1pjULHqRtTu2",
+      "title": "Food Coffee GIF by Gofrette",
+      "username": "gofrette",
+      "importedAt": "2026-05-24T11:05:13.049Z"
+    },
+    "giphy-sticker-9uIwGt9C6CYyVAc2tt-Donut_Love_Sticker_by_Dunkin_.gif": {
+      "source": "giphy",
+      "sourceType": "sticker",
+      "sourceId": "9uIwGt9C6CYyVAc2tt",
+      "sourceUrl": "https://giphy.com/stickers/dunkindonuts-love-like-donut-9uIwGt9C6CYyVAc2tt",
+      "title": "Donut Love Sticker by Dunkin’",
+      "username": "dunkin",
+      "importedAt": "2026-05-24T11:05:38.670Z"
+    }
+  }
+}
