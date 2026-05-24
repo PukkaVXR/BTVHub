@@ -153,8 +153,8 @@ Properties panel:
 
 Acceptance criteria:
 
-- [ ] User can visually compose a layered alert without editing code.
-- [ ] Canvas preview and saved overlay output match closely.
+- [x] User can visually compose a layered alert without editing code.
+- [x] Canvas preview and saved overlay output match closely.
 
 ## Milestone 4: Timeline MVP
 
@@ -193,8 +193,8 @@ Keyframes:
 
 Acceptance criteria:
 
-- [ ] User can build a two-stage alert sequence.
-- [ ] Timeline playback matches browser-source alert playback.
+- [x] User can build a two-stage alert sequence.
+- [x] Timeline playback matches browser-source alert playback.
 
 ## Milestone 5: Animation Presets
 
@@ -216,29 +216,29 @@ Loop/active presets:
 - [x] Pulse.
 - [x] Float.
 - [x] Wiggle.
-- [ ] RGB split.
-- [ ] VHS jitter.
-- [ ] Bass shake placeholder.
+- [x] RGB split.
+- [x] VHS jitter.
+- [x] Bass shake placeholder.
 - [x] Glow pulse.
 
 Exit presets:
 
 - [x] Fade out.
-- [ ] Pop out.
-- [ ] Slide out.
+- [x] Pop out.
+- [x] Slide out.
 - [x] Glitch out.
-- [ ] Explode out placeholder.
+- [x] Explode out placeholder.
 
 Preset UX:
 
-- [ ] Preset gallery with thumbnails or mini previews.
+- [x] Preset gallery with thumbnails or mini previews.
 - [x] One-click apply to selected layer.
 - [x] Presets translate into timeline/keyframe data.
 - [x] User can tweak preset duration/easing/intensity.
 
 Acceptance criteria:
 
-- [ ] User can create a polished animated alert in under five minutes.
+- [x] User can create a polished animated alert in under five minutes.
 
 ## Milestone 6: Real-Time OBS-Accurate Preview
 
@@ -366,32 +366,32 @@ Acceptance criteria:
 Goal: plant the seeds for BTV's signature features without overbuilding too early.
 
 - [x] Add "random chance" variation support.
-- [ ] Add chaos intensity variable in alert project settings.
-- [ ] Add modifiers: shake, flash, hue shift, scale punch.
-- [ ] Add random modifier action.
-- [ ] Add "legendary variant" flag.
+- [x] Add chaos intensity variable in alert project settings.
+- [x] Add modifiers: shake, flash, hue shift, scale punch.
+- [x] Add random modifier action.
+- [x] Add "legendary variant" flag.
 - [x] Add event payload template variables: user, amount, message, event type.
-- [ ] Add variable template support from automation state: `{var:hype}`.
+- [x] Add variable template support from automation state: `{var:hype}`.
 
 Acceptance criteria:
 
-- [ ] User can make an alert that occasionally chooses a rare variant.
+- [x] User can make an alert that occasionally chooses a rare variant.
 
 ## Milestone 12: Advanced Code Escape Hatch
 
 Goal: keep power users happy without making code the default path.
 
-- [ ] Advanced tab for custom CSS.
-- [ ] Advanced tab for custom JS hook.
-- [ ] Show warning when custom code disables visual editing for some fields.
-- [ ] Document event payload shape.
-- [ ] Document lifecycle hooks: onShow, onHide, onEvent.
-- [ ] Keep custom code sandboxed to overlay page context.
+- [x] Advanced tab for custom CSS.
+- [x] Advanced tab for custom JS hook.
+- [x] Show warning when custom code disables visual editing for some fields.
+- [x] Document event payload shape.
+- [x] Document lifecycle hooks: onShow, onHide, onEvent.
+- [x] Keep custom code sandboxed to overlay page context.
 
 Acceptance criteria:
 
 - [x] Existing custom themes remain supported.
-- [ ] Power users can extend alerts without blocking the visual editor roadmap.
+- [x] Power users can extend alerts without blocking the visual editor roadmap.
 
 ## Milestone 13: Performance And Safety
 
@@ -401,15 +401,15 @@ Goal: no cinematic alert should take down the stream.
 - [x] Add alert duration validation.
 - [x] Add missing asset warnings.
 - [x] Add broken layer warnings.
-- [ ] Add unsupported browser feature warning.
+- [x] Add unsupported browser feature warning.
 - [x] Add preview render error boundary.
 - [x] Add overlay render error logging.
-- [ ] Add "safe mode" playback that disables custom JS/heavy effects.
+- [x] Add "safe mode" playback that disables custom JS/heavy effects.
 - [x] Add fallback visual for failed media.
 
 Acceptance criteria:
 
-- [ ] Broken alerts fail visibly in the dashboard, not silently on stream.
+- [x] Broken alerts fail visibly in the dashboard, not silently on stream.
 - [x] Emergency controls still clear/stop alerts created by the visual editor.
 
 ## Milestone 14: Documentation And Creator Workflow
@@ -485,4 +485,4 @@ Renderer:
 - [x] Existing custom HTML/CSS/JS alerts continue to work.
 - [x] Broken assets or render errors are visible in the dashboard.
 - [x] Alert output remains compatible with the current alert queue.
-- [ ] The main Phase 2 checklist item "Visual alert editor polish" can be checked off.
+- [x] The main Phase 2 checklist item "Visual alert editor polish" can be checked off.

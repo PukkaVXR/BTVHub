@@ -91,6 +91,7 @@ export function initDb(): DatabaseSync {
       layers_json TEXT NOT NULL DEFAULT '[]',
       variations_json TEXT NOT NULL DEFAULT '[]',
       chaos_json TEXT NOT NULL DEFAULT '{}',
+      safe_mode INTEGER NOT NULL DEFAULT 0,
       tags_json TEXT NOT NULL DEFAULT '[]',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
@@ -250,6 +251,9 @@ function migrateSchemaColumns(): void {
   if (!alertCols.some((c) => c.name === "chaos_json")) {
     db.exec("ALTER TABLE alert_projects ADD COLUMN chaos_json TEXT NOT NULL DEFAULT '{}'");
   }
+  if (!alertCols.some((c) => c.name === "safe_mode")) {
+    db.exec("ALTER TABLE alert_projects ADD COLUMN safe_mode INTEGER NOT NULL DEFAULT 0");
+  }
 }
 
 function seedDefaults(): void {
@@ -379,6 +383,7 @@ function rowToAlertProject(row: Record<string, unknown>): AlertProject {
     layers: parseJsonValue(row.layers_json, []),
     variations: parseJsonValue(row.variations_json, []),
     chaos: parseJsonValue(row.chaos_json, {}),
+    safeMode: Number(row.safe_mode ?? 0) === 1,
     tags: parseJsonValue(row.tags_json, []),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -404,6 +409,7 @@ function defaultAlertProjectFromTheme(theme: Theme): AlertProject {
       modifiers: ["shake", "flash", "hue_shift", "scale_punch"],
       legendaryBoost: 0,
     },
+    safeMode: false,
     canvas: {
       width: 1920,
       height: 1080,
@@ -557,8 +563,8 @@ export function upsertAlertProject(project: AlertProject): void {
   const parsed = AlertProjectSchema.parse(project);
   db.prepare(
     `INSERT INTO alert_projects
-      (id, name, event_type, duration_ms, timeline_json, canvas_json, layers_json, variations_json, chaos_json, tags_json, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, name, event_type, duration_ms, timeline_json, canvas_json, layers_json, variations_json, chaos_json, safe_mode, tags_json, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
       name=excluded.name,
       event_type=excluded.event_type,
@@ -568,6 +574,7 @@ export function upsertAlertProject(project: AlertProject): void {
       layers_json=excluded.layers_json,
       variations_json=excluded.variations_json,
       chaos_json=excluded.chaos_json,
+      safe_mode=excluded.safe_mode,
       tags_json=excluded.tags_json,
       updated_at=excluded.updated_at`,
   ).run(
@@ -580,6 +587,7 @@ export function upsertAlertProject(project: AlertProject): void {
     JSON.stringify(parsed.layers),
     JSON.stringify(parsed.variations),
     JSON.stringify(parsed.chaos),
+    parsed.safeMode ? 1 : 0,
     JSON.stringify(parsed.tags),
     parsed.createdAt,
     parsed.updatedAt,
@@ -1146,6 +1154,11 @@ export function getAutomationStateValue(key: string): unknown {
     | undefined;
   if (!row) return undefined;
   return parseJsonValue(row.value_json, undefined);
+}
+
+export function getAutomationStateSnapshot(): Record<string, unknown> {
+  const rows = db.prepare("SELECT key, value_json FROM automation_state").all() as Array<{ key: string; value_json: string }>;
+  return Object.fromEntries(rows.map((row) => [row.key, parseJsonValue(row.value_json, undefined)]));
 }
 
 export function setAutomationStateValue(key: string, value: unknown): void {

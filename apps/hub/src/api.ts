@@ -196,6 +196,18 @@ export const api = {
       method: "POST",
     }),
 
+  skipCurrentAlert: () =>
+    request<{ ok: boolean; queue: AlertQueueInfo }>("/alerts/skip", { method: "POST" }),
+
+  pauseAlertQueue: () =>
+    request<{ ok: boolean; queue: AlertQueueInfo }>("/alerts/pause", { method: "POST" }),
+
+  resumeAlertQueue: () =>
+    request<{ ok: boolean; queue: AlertQueueInfo }>("/alerts/resume", { method: "POST" }),
+
+  replayLastAlert: () =>
+    request<{ ok: boolean; queue: AlertQueueInfo }>("/alerts/replay-last", { method: "POST" }),
+
   emergencyAction: (action: string) =>
     request<ActionResponse>("/emergency/" + encodeURIComponent(action), {
       method: "POST",
@@ -665,6 +677,7 @@ export interface SystemLogEntry {
 
 export interface AlertQueueInfo {
   playing: boolean;
+  paused: boolean;
   queued: number;
   current: {
     id: string;

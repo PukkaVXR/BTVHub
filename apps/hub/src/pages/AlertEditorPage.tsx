@@ -24,6 +24,9 @@ const DEFAULT_TEST_PAYLOAD = `{
   "login": "testuser",
   "amount": 100,
   "message": "Test visual alert from hub",
+  "variables": {
+    "hype": 10
+  },
   "payload": {
     "rewardTitle": "Hydrate",
     "streak": 3
@@ -42,10 +45,41 @@ const ANIMATION_PRESETS: AlertLayerAnimation["preset"][] = [
   "pulse",
   "float",
   "wiggle",
+  "rgb-split",
+  "vhs-jitter",
+  "bass-shake",
   "glow-pulse",
   "fade-out",
+  "pop-out",
+  "slide-out",
   "glitch-out",
+  "explode-out",
 ];
+const LOOPING_ANIMATION_PRESETS: AlertLayerAnimation["preset"][] = ["pulse", "float", "wiggle", "glow-pulse", "rgb-split", "vhs-jitter", "bass-shake"];
+const EXIT_ANIMATION_PRESETS: AlertLayerAnimation["preset"][] = ["fade-out", "pop-out", "slide-out", "glitch-out", "explode-out"];
+const ANIMATION_PRESET_LABELS: Record<AlertLayerAnimation["preset"], string> = {
+  "none": "None",
+  "fade-in": "Fade in",
+  "pop-in": "Pop in",
+  "slide-in": "Slide in",
+  "bounce-in": "Bounce in",
+  "elastic-in": "Elastic in",
+  "spin-in": "Spin in",
+  "screen-slam": "Screen slam",
+  "glitch-reveal": "Glitch reveal",
+  "pulse": "Pulse",
+  "float": "Float",
+  "wiggle": "Wiggle",
+  "rgb-split": "RGB split",
+  "vhs-jitter": "VHS jitter",
+  "bass-shake": "Bass shake",
+  "glow-pulse": "Glow pulse",
+  "fade-out": "Fade out",
+  "pop-out": "Pop out",
+  "slide-out": "Slide out",
+  "glitch-out": "Glitch out",
+  "explode-out": "Explode out",
+};
 
 type TemplateId =
   | "clean-follow"
@@ -75,6 +109,7 @@ type TestPayload = {
   login?: string;
   amount?: number;
   message?: string;
+  variables?: Record<string, unknown>;
   payload?: Record<string, unknown>;
 };
 
@@ -139,6 +174,7 @@ function createProject(): AlertProject {
       zoom: 1,
     },
     chaos: DEFAULT_CHAOS,
+    safeMode: false,
     canvas: {
       width: 1920,
       height: 1080,
@@ -237,6 +273,7 @@ function withProjectMeta(project: AlertProjectDraft): AlertProject {
       zoom: 1,
     },
     chaos: project.chaos ?? DEFAULT_CHAOS,
+    safeMode: project.safeMode ?? false,
     id: newId("alert"),
     createdAt: now,
     updatedAt: now,
@@ -507,6 +544,7 @@ function renderTemplate(text: string, eventType: StreamEventType, testPayload: T
     .replaceAll("{event}", eventType)
     .replaceAll("{amount}", String(testPayload.amount ?? (eventType === "cheer" ? 100 : 1)))
     .replaceAll("{message}", testPayload.message ?? "Test visual alert from hub")
+    .replace(/\{var:([^}]+)\}/g, (_, key: string) => payloadPath(testPayload.variables, key.trim()))
     .replace(/\{payload\.([^}]+)\}/g, (_, path: string) => payloadPath(testPayload.payload, path));
 }
 
@@ -950,6 +988,7 @@ function withTimeline(project: AlertProject): AlertProject {
       zoom: 1,
     },
     chaos: project.chaos ?? DEFAULT_CHAOS,
+    safeMode: project.safeMode ?? false,
   };
 }
 
@@ -1001,6 +1040,8 @@ function analyzeProject(project: AlertProject, media: MediaAssetInfo[], sounds: 
   const mediaLayers = project.layers.filter((layer) => ["image", "gif", "video", "audio"].includes(layer.type));
   const heavyFilterLayers = project.layers.filter((layer) => (layer.filter?.blur ?? 0) > 20 || (layer.filter?.glow ?? 0) > 50);
   const videoLayers = project.layers.filter((layer) => layer.type === "video");
+  const browserLayers = project.layers.filter((layer) => layer.type === "browser");
+  const customScriptLayers = browserLayers.filter((layer) => layer.js.trim() || layer.sandbox === false);
 
   for (const layer of mediaLayers) {
     if (layer.type !== "image" && layer.type !== "gif" && layer.type !== "video" && layer.type !== "audio") continue;
@@ -1024,6 +1065,9 @@ function analyzeProject(project: AlertProject, media: MediaAssetInfo[], sounds: 
   if (mediaLayers.length > 8) warnings.push({ level: "warning", message: `${mediaLayers.length} media layers may be heavy for OBS browser source playback.` });
   if (videoLayers.length > 2) warnings.push({ level: "warning", message: `${videoLayers.length} video layers may stutter on lower-end stream PCs.` });
   if (heavyFilterLayers.length > 3) warnings.push({ level: "warning", message: `${heavyFilterLayers.length} layers use heavy blur/glow effects.` });
+  if (browserLayers.length) warnings.push({ level: "warning", message: "Browser/custom HTML layers depend on iframe support in OBS browser sources." });
+  if (customScriptLayers.length && !project.safeMode) warnings.push({ level: "warning", message: "Custom JS layers can behave differently in OBS. Enable Safe mode before going live if this alert misbehaves." });
+  if (customScriptLayers.length && project.safeMode) warnings.push({ level: "warning", message: "Safe mode is enabled, so custom JS in browser layers will be disabled during playback." });
   if (project.durationMs > 30000) warnings.push({ level: "warning", message: "Alert duration is over 30 seconds." });
 
   return warnings;
@@ -1954,10 +1998,10 @@ export default function AlertEditorPage() {
     const animation: AlertLayerAnimation = {
       preset,
       delayMs: selectedLayer.animation?.delayMs ?? 0,
-      durationMs: selectedLayer.animation?.durationMs ?? (preset.includes("out") ? 550 : 700),
+      durationMs: selectedLayer.animation?.durationMs ?? (EXIT_ANIMATION_PRESETS.includes(preset) ? 550 : 700),
       easing: preset === "bounce-in" ? "bounce" : preset === "elastic-in" ? "elastic" : "ease-out",
       intensity: selectedLayer.animation?.intensity ?? 1,
-      loop: ["pulse", "float", "wiggle", "glow-pulse"].includes(preset),
+      loop: LOOPING_ANIMATION_PRESETS.includes(preset),
     };
     updateSelected({ animation } as Partial<AlertLayer>);
     restartPreview();
@@ -2123,8 +2167,8 @@ export default function AlertEditorPage() {
 
       {project && (
         <div className="alert-editor-grid">
-          <section className="card alert-shortcuts-card">
-            <h2>Quick Reference</h2>
+          <details className="card alert-shortcuts-card alert-collapsible-card">
+            <summary>Quick Reference</summary>
             <div className="shortcut-grid">
               <span><kbd>Ctrl</kbd> <kbd>Z</kbd> Undo</span>
               <span><kbd>Ctrl</kbd> <kbd>Y</kbd> Redo</span>
@@ -2133,9 +2177,10 @@ export default function AlertEditorPage() {
               <span><kbd>Arrows</kbd> Nudge 1px</span>
               <span><kbd>Shift</kbd> <kbd>Arrows</kbd> Nudge 10px</span>
             </div>
-          </section>
+          </details>
 
-          <section className="card alert-help-card">
+          <details className="card alert-help-card alert-collapsible-card">
+            <summary>OBS Setup & Troubleshooting</summary>
             <div>
               <h2>OBS Setup</h2>
               <ol>
@@ -2157,76 +2202,79 @@ export default function AlertEditorPage() {
                 <li>If media is missing, check Project Checks for broken local asset paths.</li>
               </ul>
             </div>
-          </section>
+          </details>
 
-          <section className="card">
+          <section className="card alert-editor-side-panel">
             <h2>Project</h2>
-            <div className="form-row">
-              <label>Start from template</label>
-              <select value={templatePreviewId} onChange={(e) => setTemplatePreviewId(e.target.value as TemplateId)}>
+            <details className="alert-compact-section">
+              <summary>Templates</summary>
+              <div className="form-row">
+                <label>Start from template</label>
+                <select value={templatePreviewId} onChange={(e) => setTemplatePreviewId(e.target.value as TemplateId)}>
+                  {TEMPLATE_INFOS.map((template) => (
+                    <option key={template.id} value={template.id}>{template.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="alert-template-grid compact">
                 {TEMPLATE_INFOS.map((template) => (
-                  <option key={template.id} value={template.id}>{template.name}</option>
+                  <button
+                    key={template.id}
+                    type="button"
+                    className={`alert-template-card${templatePreviewId === template.id ? " active" : ""}`}
+                    onClick={() => setTemplatePreviewId(template.id)}
+                    title={template.description}
+                  >
+                    <strong>{template.name}</strong>
+                    <span>{template.description}</span>
+                  </button>
                 ))}
-              </select>
-            </div>
-            <div className="alert-template-grid compact">
-              {TEMPLATE_INFOS.map((template) => (
-                <button
-                  key={template.id}
-                  type="button"
-                  className={`alert-template-card${templatePreviewId === template.id ? " active" : ""}`}
-                  onClick={() => setTemplatePreviewId(template.id)}
-                  title={template.description}
-                >
-                  <strong>{template.name}</strong>
-                  <span>{template.description}</span>
+              </div>
+              <TemplatePreview
+                templateId={templatePreviewId}
+                overlayOrigin={overlayOrigin}
+                testPayload={previewTestPayload}
+                onApply={() => createFromTemplate(templatePreviewId)}
+              />
+              <div className="actions" style={{ marginTop: -6 }}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => resetCurrentToTemplate(templatePreviewId)}>
+                  Reset current to template
                 </button>
-              ))}
-            </div>
-            <TemplatePreview
-              templateId={templatePreviewId}
-              overlayOrigin={overlayOrigin}
-              testPayload={previewTestPayload}
-              onApply={() => createFromTemplate(templatePreviewId)}
-            />
-            <div className="actions" style={{ marginTop: -6 }}>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => resetCurrentToTemplate(templatePreviewId)}>
-                Reset current to template
-              </button>
-            </div>
-            <div className="alert-local-templates">
-              <h2>Local Templates</h2>
-              {localTemplates.length ? (
-                <>
-                  <div className="alert-template-grid compact">
-                    {localTemplates.map((template) => (
-                      <button
-                        key={template.id}
-                        type="button"
-                        className={`alert-template-card${selectedLocalTemplateId === template.id ? " active" : ""}`}
-                        onClick={() => setSelectedLocalTemplateId(template.id)}
-                        title={`Saved ${new Date(template.savedAt).toLocaleString()}`}
-                      >
-                        <strong>{template.name}</strong>
-                        <span>{template.description}</span>
-                      </button>
-                    ))}
-                  </div>
-                  {selectedLocalTemplate && (
-                    <div className="actions" style={{ marginBottom: 0 }}>
-                      <button type="button" className="btn btn-primary btn-sm" onClick={() => createFromLocalTemplate(selectedLocalTemplate)}>
-                        Use local template
-                      </button>
-                      <button type="button" className="btn btn-danger btn-sm" onClick={() => deleteLocalTemplate(selectedLocalTemplate.id)}>
-                        Delete template
-                      </button>
+              </div>
+              <div className="alert-local-templates">
+                <h2>Local Templates</h2>
+                {localTemplates.length ? (
+                  <>
+                    <div className="alert-template-grid compact">
+                      {localTemplates.map((template) => (
+                        <button
+                          key={template.id}
+                          type="button"
+                          className={`alert-template-card${selectedLocalTemplateId === template.id ? " active" : ""}`}
+                          onClick={() => setSelectedLocalTemplateId(template.id)}
+                          title={`Saved ${new Date(template.savedAt).toLocaleString()}`}
+                        >
+                          <strong>{template.name}</strong>
+                          <span>{template.description}</span>
+                        </button>
+                      ))}
                     </div>
-                  )}
-                </>
-              ) : (
-                <p className="subtitle">Save a finished alert as a local template to reuse it in future alert projects.</p>
-              )}
-            </div>
+                    {selectedLocalTemplate && (
+                      <div className="actions" style={{ marginBottom: 0 }}>
+                        <button type="button" className="btn btn-primary btn-sm" onClick={() => createFromLocalTemplate(selectedLocalTemplate)}>
+                          Use local template
+                        </button>
+                        <button type="button" className="btn btn-danger btn-sm" onClick={() => deleteLocalTemplate(selectedLocalTemplate.id)}>
+                          Delete template
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="subtitle">Save a finished alert as a local template to reuse it in future alert projects.</p>
+                )}
+              </div>
+            </details>
             <div className="form-row">
               <label>Name</label>
               <input value={project.name} onChange={(e) => commitProject({ ...project, name: e.target.value, updatedAt: nowIso() })} />
@@ -2243,9 +2291,9 @@ export default function AlertEditorPage() {
                 <input type="number" min={500} max={60000} value={project.durationMs} onChange={(e) => commitProject({ ...project, durationMs: Number(e.target.value), updatedAt: nowIso() })} />
               </div>
             </div>
-            <div className="alert-variation-panel">
+            <details className="alert-variation-panel alert-compact-section">
+              <summary>Variations</summary>
               <div className="alert-editor-panel-title">
-                <h2>Variations</h2>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={addVariationFromCurrent}>Capture current</button>
               </div>
               {project.variations.length ? (
@@ -2290,9 +2338,9 @@ export default function AlertEditorPage() {
               ) : (
                 <p className="subtitle">Capture the current alert as a variation to add rare, threshold, role, or channel-point-specific versions.</p>
               )}
-            </div>
-            <div className="alert-chaos-panel">
-              <h2>Chaos Engine</h2>
+            </details>
+            <details className="alert-chaos-panel alert-compact-section">
+              <summary>Chaos Engine</summary>
               <label>
                 <input
                   type="checkbox"
@@ -2335,7 +2383,18 @@ export default function AlertEditorPage() {
                 ))}
               </div>
               <p className="subtitle">When enabled, BTV may apply one selected modifier during alert playback. Legendary variants can receive an extra chance boost.</p>
-            </div>
+            </details>
+            <details className="alert-safety-panel alert-compact-section">
+              <summary>Safety</summary>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={project.safeMode}
+                  onChange={(e) => commitProject({ ...project, safeMode: e.target.checked, updatedAt: nowIso() })}
+                /> Safe mode playback
+              </label>
+              <p className="subtitle">Safe mode disables custom browser-layer JavaScript during playback and keeps risky custom code contained before going live.</p>
+            </details>
             <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
               <div>
                 <label>Canvas preset</label>
@@ -2380,24 +2439,26 @@ export default function AlertEditorPage() {
                 </button>
               ))}
             </div>
-            <div className="form-row">
-              <label>Test payload JSON</label>
-              <textarea
-                rows={7}
-                value={testPayloadJson}
-                onChange={(e) => setTestPayloadJson(e.target.value)}
-                spellCheck={false}
-              />
-              <p className={testPayloadError ? "form-error" : "subtitle"}>
-                {testPayloadError
-                  ? `Invalid JSON: ${testPayloadError}`
-                  : (
-                    <>
-                      Template variables: <code>{"{user}"}</code>, <code>{"{login}"}</code>, <code>{"{event}"}</code>, <code>{"{amount}"}</code>, <code>{"{message}"}</code>, <code>{"{payload.rewardTitle}"}</code>.
-                    </>
-                  )}
-              </p>
-            </div>
+            <details className="alert-compact-section">
+              <summary>Test payload JSON</summary>
+              <div className="form-row">
+                <textarea
+                  rows={7}
+                  value={testPayloadJson}
+                  onChange={(e) => setTestPayloadJson(e.target.value)}
+                  spellCheck={false}
+                />
+                <p className={testPayloadError ? "form-error" : "subtitle"}>
+                  {testPayloadError
+                    ? `Invalid JSON: ${testPayloadError}`
+                    : (
+                      <>
+                        Template variables: <code>{"{user}"}</code>, <code>{"{login}"}</code>, <code>{"{event}"}</code>, <code>{"{amount}"}</code>, <code>{"{message}"}</code>, <code>{"{payload.rewardTitle}"}</code>.
+                      </>
+                    )}
+                </p>
+              </div>
+            </details>
 
             <h2 style={{ marginTop: 16 }}>Layers</h2>
             {projectWarnings.length > 0 && (
@@ -2445,134 +2506,138 @@ export default function AlertEditorPage() {
               <button type="button" className="btn btn-danger btn-sm" onClick={deleteLayer} disabled={!selectedLayer} title="Delete selected layer. Shortcut: Delete.">Delete layer</button>
             </div>
 
-            <h2 style={{ marginTop: 18 }}>Assets</h2>
-            <div className="grid" style={{ gridTemplateColumns: "1fr 120px" }}>
-              <div>
-                <label>Search local assets</label>
-                <input value={assetSearch} onChange={(e) => setAssetSearch(e.target.value)} placeholder="filename..." />
-              </div>
-              <div>
-                <label>Type</label>
-                <select value={assetKind} onChange={(e) => setAssetKind(e.target.value as typeof assetKind)}>
-                  <option value="all">All</option>
-                  <option value="image">Images</option>
-                  <option value="gif">GIFs</option>
-                  <option value="video">Videos</option>
-                  <option value="audio">Audio</option>
-                </select>
-              </div>
-            </div>
-            <div className="actions" style={{ marginTop: 0, marginBottom: 12 }}>
-              <label className="btn btn-secondary btn-sm">
-                Upload media
-                <input
-                  type="file"
-                  accept="image/*,video/*,.gif,.png,.jpg,.jpeg,.webp,.mp4,.webm,.mov"
-                  style={{ display: "none" }}
-                  disabled={assetUploading}
-                  onChange={(e) => {
-                    const file = e.currentTarget.files?.[0];
-                    e.currentTarget.value = "";
-                    if (file) void uploadLibraryAsset(file, "media");
-                  }}
-                />
-              </label>
-              <label className="btn btn-secondary btn-sm">
-                Upload sound
-                <input
-                  type="file"
-                  accept="audio/*,.mp3,.wav,.ogg,.m4a,.webm"
-                  style={{ display: "none" }}
-                  disabled={assetUploading}
-                  onChange={(e) => {
-                    const file = e.currentTarget.files?.[0];
-                    e.currentTarget.value = "";
-                    if (file) void uploadLibraryAsset(file, "sound");
-                  }}
-                />
-              </label>
-            </div>
-            <div className="asset-library-grid">
-              {filteredMediaAssets.map((asset) => (
-                <div key={asset.url} className="asset-card">
-                  <button type="button" onClick={() => applyMediaAsset(asset)} title={`Use ${asset.name}`}>
-                    {asset.kind === "video" ? (
-                      <video src={resolvePreviewAssetUrl(asset.url, overlayOrigin)} muted />
-                    ) : (
-                      <img src={resolvePreviewAssetUrl(asset.url, overlayOrigin)} alt="" />
-                    )}
-                    <strong>{asset.name}</strong>
-                    <span>{asset.kind} - {formatBytes(asset.size)}</span>
-                    {assetAttribution(asset) && <span>{assetAttribution(asset)}</span>}
-                  </button>
-                  <button type="button" className="asset-delete" onClick={() => void deleteLibraryAsset(asset, "media")}>Delete</button>
+            <details className="alert-compact-section">
+              <summary>Assets</summary>
+              <div className="grid" style={{ gridTemplateColumns: "1fr 120px" }}>
+                <div>
+                  <label>Search local assets</label>
+                  <input value={assetSearch} onChange={(e) => setAssetSearch(e.target.value)} placeholder="filename..." />
                 </div>
-              ))}
-              {filteredSoundAssets.map((asset) => (
-                <div key={asset.url} className="asset-card audio">
-                  <button type="button" onClick={() => applySoundAsset(asset)} title={`Use ${asset.name}`}>
-                    <strong>{asset.name}</strong>
-                    <span>audio - {formatBytes(asset.size)}</span>
-                    {assetAttribution(asset) && <span>{assetAttribution(asset)}</span>}
-                  </button>
-                  <button type="button" className="asset-delete" onClick={() => void deleteLibraryAsset(asset, "sound")}>Delete</button>
+                <div>
+                  <label>Type</label>
+                  <select value={assetKind} onChange={(e) => setAssetKind(e.target.value as typeof assetKind)}>
+                    <option value="all">All</option>
+                    <option value="image">Images</option>
+                    <option value="gif">GIFs</option>
+                    <option value="video">Videos</option>
+                    <option value="audio">Audio</option>
+                  </select>
                 </div>
-              ))}
-            </div>
-            {!filteredMediaAssets.length && !filteredSoundAssets.length && (
-              <p className="subtitle">No local assets match this filter.</p>
-            )}
+              </div>
+              <div className="actions" style={{ marginTop: 0, marginBottom: 12 }}>
+                <label className="btn btn-secondary btn-sm">
+                  Upload media
+                  <input
+                    type="file"
+                    accept="image/*,video/*,.gif,.png,.jpg,.jpeg,.webp,.mp4,.webm,.mov"
+                    style={{ display: "none" }}
+                    disabled={assetUploading}
+                    onChange={(e) => {
+                      const file = e.currentTarget.files?.[0];
+                      e.currentTarget.value = "";
+                      if (file) void uploadLibraryAsset(file, "media");
+                    }}
+                  />
+                </label>
+                <label className="btn btn-secondary btn-sm">
+                  Upload sound
+                  <input
+                    type="file"
+                    accept="audio/*,.mp3,.wav,.ogg,.m4a,.webm"
+                    style={{ display: "none" }}
+                    disabled={assetUploading}
+                    onChange={(e) => {
+                      const file = e.currentTarget.files?.[0];
+                      e.currentTarget.value = "";
+                      if (file) void uploadLibraryAsset(file, "sound");
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="asset-library-grid">
+                {filteredMediaAssets.map((asset) => (
+                  <div key={asset.url} className="asset-card">
+                    <button type="button" onClick={() => applyMediaAsset(asset)} title={`Use ${asset.name}`}>
+                      {asset.kind === "video" ? (
+                        <video src={resolvePreviewAssetUrl(asset.url, overlayOrigin)} muted />
+                      ) : (
+                        <img src={resolvePreviewAssetUrl(asset.url, overlayOrigin)} alt="" />
+                      )}
+                      <strong>{asset.name}</strong>
+                      <span>{asset.kind} - {formatBytes(asset.size)}</span>
+                      {assetAttribution(asset) && <span>{assetAttribution(asset)}</span>}
+                    </button>
+                    <button type="button" className="asset-delete" onClick={() => void deleteLibraryAsset(asset, "media")}>Delete</button>
+                  </div>
+                ))}
+                {filteredSoundAssets.map((asset) => (
+                  <div key={asset.url} className="asset-card audio">
+                    <button type="button" onClick={() => applySoundAsset(asset)} title={`Use ${asset.name}`}>
+                      <strong>{asset.name}</strong>
+                      <span>audio - {formatBytes(asset.size)}</span>
+                      {assetAttribution(asset) && <span>{assetAttribution(asset)}</span>}
+                    </button>
+                    <button type="button" className="asset-delete" onClick={() => void deleteLibraryAsset(asset, "sound")}>Delete</button>
+                  </div>
+                ))}
+              </div>
+              {!filteredMediaAssets.length && !filteredSoundAssets.length && (
+                <p className="subtitle">No local assets match this filter.</p>
+              )}
+            </details>
 
-            <h2 style={{ marginTop: 18 }}>GIPHY</h2>
-            <div className="segmented" style={{ marginBottom: 12 }}>
-              <button
-                type="button"
-                className={giphyAssetType === "gif" ? "active" : ""}
-                onClick={() => {
-                  setGiphyAssetType("gif");
-                  setGiphyResults([]);
-                }}
-              >
-                GIFs
-              </button>
-              <button
-                type="button"
-                className={giphyAssetType === "sticker" ? "active" : ""}
-                onClick={() => {
-                  setGiphyAssetType("sticker");
-                  setGiphyResults([]);
-                }}
-              >
-                Stickers
-              </button>
-            </div>
-            <div className="form-row">
-              <label>Search {giphyAssetType === "sticker" ? "stickers" : "GIFs"}</label>
-              <input
-                value={giphyQuery}
-                onChange={(e) => setGiphyQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void searchGiphy();
-                }}
-                placeholder={giphyAssetType === "sticker" ? "sparkle, hype, emote..." : "hype, raid, explosion..."}
-              />
-            </div>
-            <div className="actions" style={{ marginTop: 0, marginBottom: 12 }}>
-              <button type="button" className="btn btn-primary btn-sm" onClick={() => void searchGiphy()} disabled={giphyLoading}>
-                {giphyLoading ? "Searching..." : "Search"}
-              </button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => void searchGiphy("")} disabled={giphyLoading}>
-                Trending {giphyAssetType === "sticker" ? "stickers" : "GIFs"}
-              </button>
-            </div>
-            <div className="giphy-grid">
-              {giphyResults.map((gif) => (
-                <button key={gif.id} type="button" className="giphy-card" onClick={() => void importGif(gif)} title={gif.title}>
-                  <img src={gif.previewUrl} alt={gif.title} />
-                  <span>{gif.title || (gif.type === "sticker" ? "Import sticker" : "Import GIF")}</span>
+            <details className="alert-compact-section">
+              <summary>GIPHY</summary>
+              <div className="segmented" style={{ marginBottom: 12 }}>
+                <button
+                  type="button"
+                  className={giphyAssetType === "gif" ? "active" : ""}
+                  onClick={() => {
+                    setGiphyAssetType("gif");
+                    setGiphyResults([]);
+                  }}
+                >
+                  GIFs
                 </button>
-              ))}
-            </div>
+                <button
+                  type="button"
+                  className={giphyAssetType === "sticker" ? "active" : ""}
+                  onClick={() => {
+                    setGiphyAssetType("sticker");
+                    setGiphyResults([]);
+                  }}
+                >
+                  Stickers
+                </button>
+              </div>
+              <div className="form-row">
+                <label>Search {giphyAssetType === "sticker" ? "stickers" : "GIFs"}</label>
+                <input
+                  value={giphyQuery}
+                  onChange={(e) => setGiphyQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void searchGiphy();
+                  }}
+                  placeholder={giphyAssetType === "sticker" ? "sparkle, hype, emote..." : "hype, raid, explosion..."}
+                />
+              </div>
+              <div className="actions" style={{ marginTop: 0, marginBottom: 12 }}>
+                <button type="button" className="btn btn-primary btn-sm" onClick={() => void searchGiphy()} disabled={giphyLoading}>
+                  {giphyLoading ? "Searching..." : "Search"}
+                </button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => void searchGiphy("")} disabled={giphyLoading}>
+                  Trending {giphyAssetType === "sticker" ? "stickers" : "GIFs"}
+                </button>
+              </div>
+              <div className="giphy-grid">
+                {giphyResults.map((gif) => (
+                  <button key={gif.id} type="button" className="giphy-card" onClick={() => void importGif(gif)} title={gif.title}>
+                    <img src={gif.previewUrl} alt={gif.title} />
+                    <span>{gif.title || (gif.type === "sticker" ? "Import sticker" : "Import GIF")}</span>
+                  </button>
+                ))}
+              </div>
+            </details>
           </section>
 
           <section className="card alert-preview-card">
@@ -2702,7 +2767,7 @@ export default function AlertEditorPage() {
             </div>
           </section>
 
-          <section className="card">
+          <section className="card alert-editor-side-panel">
             <h2>Properties</h2>
             {selectedLayer ? (
               <>
@@ -2729,9 +2794,23 @@ export default function AlertEditorPage() {
                     onChange={(e) => applyAnimationPreset(e.target.value as AlertLayerAnimation["preset"])}
                   >
                     {ANIMATION_PRESETS.map((preset) => (
-                      <option key={preset} value={preset}>{preset}</option>
+                      <option key={preset} value={preset}>{ANIMATION_PRESET_LABELS[preset]}</option>
                     ))}
                   </select>
+                </div>
+                <div className="animation-preset-gallery">
+                  {ANIMATION_PRESETS.filter((preset) => preset !== "none").map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      className={selectedLayer.animation?.preset === preset ? "active" : ""}
+                      onClick={() => applyAnimationPreset(preset)}
+                      title={`Apply ${ANIMATION_PRESET_LABELS[preset]}`}
+                    >
+                      <span className={`animation-preset-swatch preset-${preset}`} />
+                      <strong>{ANIMATION_PRESET_LABELS[preset]}</strong>
+                    </button>
+                  ))}
                 </div>
                 {selectedLayer.animation && selectedLayer.animation.preset !== "none" && (
                   <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
@@ -2899,12 +2978,18 @@ export default function AlertEditorPage() {
                 )}
 
                 {selectedLayer.type === "browser" && (
-                  <>
+                  <div className="alert-advanced-panel">
+                    <h3>Advanced Code</h3>
+                    <p className="subtitle">Custom browser layers are sandboxed by default. JavaScript is disabled unless you turn off the sandbox, and Safe mode disables it during playback.</p>
                     <div className="form-row"><label>HTML</label><textarea rows={4} value={selectedLayer.html} onChange={(e) => updateSelected({ html: e.target.value } as Partial<AlertLayer>)} /></div>
                     <div className="form-row"><label>CSS</label><textarea rows={4} value={selectedLayer.css} onChange={(e) => updateSelected({ css: e.target.value } as Partial<AlertLayer>)} /></div>
                     <div className="form-row"><label>JavaScript hook</label><textarea rows={3} value={selectedLayer.js} onChange={(e) => updateSelected({ js: e.target.value } as Partial<AlertLayer>)} /></div>
                     <label><input type="checkbox" checked={selectedLayer.sandbox} onChange={(e) => updateSelected({ sandbox: e.target.checked } as Partial<AlertLayer>)} /> Sandbox iframe</label>
-                  </>
+                    <details>
+                      <summary>Event payload and lifecycle notes</summary>
+                      <p className="subtitle">Text layers support <code>{"{user}"}</code>, <code>{"{login}"}</code>, <code>{"{event}"}</code>, <code>{"{amount}"}</code>, <code>{"{message}"}</code>, <code>{"{var:hype}"}</code>, and <code>{"{payload.rewardTitle}"}</code>. Browser layer JavaScript runs inside the iframe when sandbox scripts are allowed; keep setup code self-contained.</p>
+                    </details>
+                  </div>
                 )}
 
                 {(selectedLayer.type === "image" || selectedLayer.type === "gif" || selectedLayer.type === "video" || selectedLayer.type === "audio") && (

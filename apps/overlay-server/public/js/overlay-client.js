@@ -351,7 +351,7 @@ function renderVisualAlert(container, alert, project) {
 
   for (const layer of project.layers ?? []) {
     if (layer.visible === false) continue;
-    const el = createVisualLayer(layer, alert);
+    const el = createVisualLayer(layer, alert, Boolean(project.safeMode));
     if (!el) continue;
     root.appendChild(el);
     const startMs = Math.max(0, Number(layer.startMs ?? 0));
@@ -395,7 +395,7 @@ function renderVisualAlert(container, alert, project) {
   return cleanup;
 }
 
-function createVisualLayer(layer, alert) {
+function createVisualLayer(layer, alert, safeMode = false) {
   if (layer.type === "audio") {
     if (!layer.assetUrl || layer.muted) return null;
     const audio = new Audio(layer.assetUrl);
@@ -484,8 +484,8 @@ function createVisualLayer(layer, alert) {
   if (layer.type === "browser") {
     const iframe = document.createElement("iframe");
     iframe.sandbox.add("allow-same-origin");
-    if (layer.sandbox === false) iframe.sandbox.add("allow-scripts");
-    iframe.srcdoc = `<style>${layer.css ?? ""}</style>${layer.html ?? ""}${layer.sandbox === false && layer.js ? `<script>${layer.js}<\/script>` : ""}`;
+    if (!safeMode && layer.sandbox === false) iframe.sandbox.add("allow-scripts");
+    iframe.srcdoc = `<style>${layer.css ?? ""}</style>${layer.html ?? ""}${!safeMode && layer.sandbox === false && layer.js ? `<script>${layer.js}<\/script>` : ""}`;
     Object.assign(iframe.style, {
       width: "100%",
       height: "100%",
@@ -553,6 +553,7 @@ function renderAlertTemplate(template, alert) {
     .replaceAll("{event}", alert.event.type)
     .replaceAll("{amount}", String(alert.event.amount ?? ""))
     .replaceAll("{message}", alert.event.message ?? "")
+    .replace(/\{var:([^}]+)\}/g, (_, key) => payloadTemplatePath(alert.event.payload.variables, key.trim()))
     .replace(/\{payload\.([^}]+)\}/g, (_, path) => payloadTemplatePath(alert.event.payload, path));
 }
 
@@ -631,6 +632,12 @@ const VISUAL_ALERT_ANIMATION_CSS = `
 @keyframes float { 50% { transform: translateY(calc(-24px * var(--btv-intensity, 1))); } }
 @keyframes wiggle { 25% { transform: rotate(calc(-3deg * var(--btv-intensity, 1))); } 75% { transform: rotate(calc(3deg * var(--btv-intensity, 1))); } }
 @keyframes glow-pulse { 50% { filter: drop-shadow(0 0 calc(24px * var(--btv-intensity, 1)) rgba(91, 140, 255, 0.95)); } }
+@keyframes rgb-split { 0%, 100% { filter: drop-shadow(0 0 0 transparent); transform: translateX(0); } 35% { filter: drop-shadow(calc(-6px * var(--btv-intensity, 1)) 0 0 rgba(255,55,90,.8)) drop-shadow(calc(6px * var(--btv-intensity, 1)) 0 0 rgba(62,230,255,.8)); transform: translateX(calc(2px * var(--btv-intensity, 1))); } 65% { filter: drop-shadow(calc(5px * var(--btv-intensity, 1)) 0 0 rgba(255,55,90,.8)) drop-shadow(calc(-5px * var(--btv-intensity, 1)) 0 0 rgba(62,230,255,.8)); transform: translateX(calc(-2px * var(--btv-intensity, 1))); } }
+@keyframes vhs-jitter { 0%, 100% { transform: translate(0,0); filter: contrast(1); } 20% { transform: translate(calc(-5px * var(--btv-intensity, 1)), calc(2px * var(--btv-intensity, 1))); filter: contrast(1.25) saturate(1.25); } 40% { transform: translate(calc(4px * var(--btv-intensity, 1)), calc(-2px * var(--btv-intensity, 1))); } 60% { transform: translate(calc(-2px * var(--btv-intensity, 1)), calc(3px * var(--btv-intensity, 1))); } }
+@keyframes bass-shake { 0%, 100% { transform: scale(1) translateX(0); } 18% { transform: scale(calc(1 + (0.08 * var(--btv-intensity, 1)))) translateX(calc(-8px * var(--btv-intensity, 1))); } 36% { transform: scale(1) translateX(calc(8px * var(--btv-intensity, 1))); } }
 @keyframes fade-out { to { opacity: 0; } }
+@keyframes pop-out { to { opacity: 0; transform: scale(0.35); } }
+@keyframes slide-out { to { opacity: 0; transform: translateX(calc(160px * var(--btv-intensity, 1))); } }
 @keyframes glitch-out { to { opacity: 0; filter: hue-rotate(180deg) blur(6px); transform: translateX(calc(40px * var(--btv-intensity, 1))); } }
+@keyframes explode-out { to { opacity: 0; filter: blur(calc(10px * var(--btv-intensity, 1))); transform: scale(calc(1 + (1.4 * var(--btv-intensity, 1)))) rotate(calc(18deg * var(--btv-intensity, 1))); } }
 `;

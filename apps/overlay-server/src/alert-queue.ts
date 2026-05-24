@@ -11,8 +11,12 @@ export interface QueuedAlert {
 export class AlertQueue {
   private queue: QueuedAlert[] = [];
   private playing = false;
+  private paused = false;
   private current: QueuedAlert | null = null;
   private currentStartedAt: string | null = null;
+  private currentTimer: ReturnType<typeof setTimeout> | null = null;
+  private finishCurrent: (() => void) | null = null;
+  private lastPlayed: QueuedAlert | null = null;
   private lastByType = new Map<string, number>();
 
   constructor(private readonly bus: OverlayBus) {}
@@ -29,18 +33,24 @@ export class AlertQueue {
   }
 
   private async process(): Promise<void> {
-    if (this.playing || this.queue.length === 0) return;
+    if (this.paused || this.playing || this.queue.length === 0) return;
     this.playing = true;
     const item = this.queue.shift()!;
     this.current = item;
+    this.lastPlayed = item;
     this.currentStartedAt = new Date().toISOString();
     this.lastByType.set(item.message.alert.event.type, Date.now());
 
     this.bus.broadcast(item.message, item.channel);
 
     const duration = item.message.alert.durationMs ?? 5000;
-    await new Promise((r) => setTimeout(r, duration + 300));
+    await new Promise<void>((resolve) => {
+      this.finishCurrent = resolve;
+      this.currentTimer = setTimeout(resolve, duration + 300);
+    });
 
+    this.currentTimer = null;
+    this.finishCurrent = null;
     this.current = null;
     this.currentStartedAt = null;
     this.playing = false;
@@ -53,9 +63,44 @@ export class AlertQueue {
     return count;
   }
 
+  skipCurrent(): boolean {
+    if (!this.current) return false;
+    this.bus.broadcast({ kind: "alert:control", action: "clear_current" }, this.current.channel);
+    if (this.currentTimer) clearTimeout(this.currentTimer);
+    this.currentTimer = null;
+    this.finishCurrent?.();
+    return true;
+  }
+
+  pause(): void {
+    this.paused = true;
+  }
+
+  resume(): void {
+    this.paused = false;
+    void this.process();
+  }
+
+  replayLast(): boolean {
+    if (!this.lastPlayed) return false;
+    this.enqueue({
+      ...this.lastPlayed,
+      id: `${this.lastPlayed.id}-replay-${Date.now()}`,
+      message: {
+        ...this.lastPlayed.message,
+        alert: {
+          ...this.lastPlayed.message.alert,
+          id: `${this.lastPlayed.message.alert.id}-replay-${Date.now()}`,
+        },
+      },
+    });
+    return true;
+  }
+
   getStatus() {
     return {
       playing: this.playing,
+      paused: this.paused,
       queued: this.queue.length,
       current: this.current
         ? {

@@ -109,8 +109,8 @@ Visual alert editor polish is tracked in detail in `Visual Alert Editor Plan.md`
 - [x] Goal widget.
 - [x] Event ticker widget.
 - [x] Now-playing widget.
-- [ ] Visual alert editor polish.
-- [ ] Alert variations per event type.
+- [x] Visual alert editor polish.
+- [x] Alert variations per event type.
 - [ ] Alert sound manager polish.
 - [ ] Alert media manager polish.
 - [ ] Event list widget.
@@ -119,9 +119,9 @@ Visual alert editor polish is tracked in detail in `Visual Alert Editor Plan.md`
 - [ ] Theme system for packs.
 - [ ] OBS URL copy/install helper.
 - [ ] Alert replay from recent events.
-- [ ] Alert queue controls: skip current.
-- [ ] Alert queue controls: pause queue.
-- [ ] Alert queue controls: replay last.
+- [x] Alert queue controls: skip current.
+- [x] Alert queue controls: pause queue.
+- [x] Alert queue controls: replay last.
 - [ ] Alert queue priority UI.
 
 ## Phase 3: Chat and Community Layer

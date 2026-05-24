@@ -32,6 +32,13 @@ function handleMessage(msg) {
       activeAlertCleanup?.();
       activeAlertCleanup = renderAlert(alertContainer, msg.alert);
       break;
+    case "alert:control":
+      if (msg.action === "clear_current") {
+        activeAlertCleanup?.();
+        activeAlertCleanup = null;
+        if (alertContainer && alertContainer !== document.body) alertContainer.innerHTML = "";
+      }
+      break;
     case "chat:message":
       appendChat(msg.message);
       break;

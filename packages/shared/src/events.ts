@@ -96,6 +96,10 @@ export const BusMessageSchema = z.discriminatedUnion("kind", [
     }),
   }),
   z.object({
+    kind: z.literal("alert:control"),
+    action: z.enum(["clear_current"]),
+  }),
+  z.object({
     kind: z.literal("chat:message"),
     message: z.object({
       id: z.string(),
@@ -249,9 +253,15 @@ export const AlertAnimationPresetSchema = z.enum([
   "pulse",
   "float",
   "wiggle",
+  "rgb-split",
+  "vhs-jitter",
+  "bass-shake",
   "glow-pulse",
   "fade-out",
+  "pop-out",
+  "slide-out",
   "glitch-out",
+  "explode-out",
 ]);
 
 export const AlertLayerAnimationSchema = z.object({
@@ -406,6 +416,7 @@ export const AlertProjectSchema = z.object({
   layers: z.array(AlertLayerSchema).default([]),
   variations: z.array(AlertVariationSchema).default([]),
   chaos: AlertChaosSchema.default({}),
+  safeMode: z.boolean().default(false),
   tags: z.array(z.string()).default([]),
   createdAt: z.string(),
   updatedAt: z.string(),

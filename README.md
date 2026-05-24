@@ -56,6 +56,11 @@ Twitch requires **HTTPS** for OAuth redirect URIs. BTV uses:
 
 Resolution: 1920×1080, transparent background.
 
+## Tutorials
+
+- [Visual Alert Editor Tutorial](tutorials/visual-alert-editor.md)
+- [Stream Deck Setup Guide](tutorials/stream-deck-setup.md)
+
 ## Windows start script
 
 ```cmd

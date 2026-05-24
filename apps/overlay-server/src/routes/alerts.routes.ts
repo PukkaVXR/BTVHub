@@ -16,6 +16,26 @@ export const registerAlertsRoutes: RouteModule = (app, ctx) => {
     queue: ctx.alertQueue.getStatus(),
   }));
 
+  app.post("/api/alerts/skip", async () => ({
+    ok: ctx.alertQueue.skipCurrent(),
+    queue: ctx.alertQueue.getStatus(),
+  }));
+
+  app.post("/api/alerts/pause", async () => {
+    ctx.alertQueue.pause();
+    return { ok: true, queue: ctx.alertQueue.getStatus() };
+  });
+
+  app.post("/api/alerts/resume", async () => {
+    ctx.alertQueue.resume();
+    return { ok: true, queue: ctx.alertQueue.getStatus() };
+  });
+
+  app.post("/api/alerts/replay-last", async () => ({
+    ok: ctx.alertQueue.replayLast(),
+    queue: ctx.alertQueue.getStatus(),
+  }));
+
   app.get("/api/activity", async () =>
     getActivity().flatMap((r) => {
       try {

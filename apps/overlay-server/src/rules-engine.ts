@@ -6,6 +6,7 @@ import {
 import { getAlertProject, getAlertRules, getTheme, getWidgets, logActivity, logSessionEvent, updateGoal } from "./db.js";
 import type { AlertQueue } from "./alert-queue.js";
 import { resolveAlertProjectVariation } from "./alert-variations.js";
+import { withAutomationVariables } from "./alert-template-vars.js";
 import type { OverlayBus } from "./bus.js";
 import type { EffectRunner } from "./effect-runner.js";
 import type { EventAutomationEngine } from "./event-automation-engine.js";
@@ -94,6 +95,7 @@ export class RulesEngine {
   }
 
   private async processAlerts(event: StreamEvent): Promise<void> {
+    event = withAutomationVariables(event);
     const rules = getAlertRules().filter(
       (r) => r.enabled && r.eventType === event.type,
     );

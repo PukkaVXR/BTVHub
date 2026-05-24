@@ -37,6 +37,7 @@ import {
 } from "./obs-client.js";
 import type { AlertQueue } from "./alert-queue.js";
 import { resolveAlertProjectVariation } from "./alert-variations.js";
+import { withAutomationVariables } from "./alert-template-vars.js";
 
 const MAX_WAIT_MS = 60 * 60_000;
 
@@ -297,7 +298,7 @@ export class EventAutomationEngine {
         const rawVisualProject = getAlertProject(action.themeId) ?? getAlertProject(`alert-${action.themeId}`) ?? undefined;
         const theme = getTheme(action.themeId) ?? getTheme("default");
         if (!theme && !rawVisualProject) throw new Error(`Alert project not found: ${action.themeId}`);
-        const alertEvent = createStreamEvent({
+        const alertEvent = withAutomationVariables(createStreamEvent({
           source: "manual",
           type: action.eventType,
           user: {
@@ -307,7 +308,7 @@ export class EventAutomationEngine {
           },
           message: renderTemplate(action.message, event),
           payload: { sourceEvent: event },
-        });
+        }));
         const visualProject = rawVisualProject ? resolveAlertProjectVariation(rawVisualProject, alertEvent).project : undefined;
         this.alertQueue.enqueue({
           id: crypto.randomUUID(),

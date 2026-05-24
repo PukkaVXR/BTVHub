@@ -209,6 +209,24 @@ export default function Dashboard() {
     load();
   };
 
+  const skipCurrentAlert = async () => {
+    const res = await api.skipCurrentAlert();
+    toast(res.ok ? "Skipped current alert" : "No alert is currently playing");
+    load();
+  };
+
+  const toggleAlertQueuePause = async () => {
+    const res = preflight?.alerts.paused ? await api.resumeAlertQueue() : await api.pauseAlertQueue();
+    toast(res.queue.paused ? "Alert queue paused" : "Alert queue resumed");
+    load();
+  };
+
+  const replayLastAlert = async () => {
+    const res = await api.replayLastAlert();
+    toast(res.ok ? "Replayed last alert" : "No previous alert to replay");
+    load();
+  };
+
   const emergencyAction = async (action: string) => {
     const res = await api.emergencyAction(action);
     toast(res.ok ? res.title : res.message);
@@ -993,9 +1011,20 @@ export default function Dashboard() {
       <div className="card">
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
           <h2 style={{ margin: 0 }}>Alert Queue</h2>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void clearQueue()}>
-            Clear queued
-          </button>
+          <div className="actions" style={{ marginTop: 0 }}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void skipCurrentAlert()} disabled={!preflight?.alerts.current}>
+              Skip current
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void toggleAlertQueuePause()}>
+              {preflight?.alerts.paused ? "Resume queue" : "Pause queue"}
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void replayLastAlert()}>
+              Replay last
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void clearQueue()}>
+              Clear queued
+            </button>
+          </div>
         </div>
         <div className="grid" style={{ marginTop: 12 }}>
           <div>
@@ -1010,7 +1039,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>Queued</p>
-            <strong>{preflight?.alerts.queued ?? 0}</strong>
+            <strong>{preflight?.alerts.queued ?? 0}{preflight?.alerts.paused ? " paused" : ""}</strong>
           </div>
           <div>
             <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>Updated</p>

@@ -2,6 +2,7 @@ import { createStreamEvent, type AlertProject, type StreamEventType } from "@btv
 import type { OverlayBus } from "./bus.js";
 import { getAlertProject, getAlertProjects } from "./db.js";
 import { resolveAlertProjectVariation } from "./alert-variations.js";
+import { withAutomationVariables } from "./alert-template-vars.js";
 
 export interface VisualAlertTestPayload {
   user?: string;
@@ -26,7 +27,7 @@ export function broadcastVisualAlertTest(
   testPayload: VisualAlertTestPayload = {},
   variationId?: string,
 ): ReturnType<typeof createStreamEvent> {
-  const event = createStreamEvent({
+  const event = withAutomationVariables(createStreamEvent({
     source: "manual",
     type: eventType,
     user: {
@@ -41,7 +42,7 @@ export function broadcastVisualAlertTest(
       alertProjectId: project.id,
       test: true,
     },
-  });
+  }));
   const resolved = resolveAlertProjectVariation(project, event, variationId);
 
   bus.broadcast(

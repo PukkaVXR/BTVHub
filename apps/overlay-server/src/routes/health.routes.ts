@@ -107,6 +107,8 @@ function analyzeAlertProjects(projects: AlertProject[], assetsDir: string): {
     const mediaLayers = project.layers.filter((layer) => ["image", "gif", "video", "audio"].includes(layer.type));
     const videoLayers = project.layers.filter((layer) => layer.type === "video");
     const heavyFilterLayers = project.layers.filter((layer) => (layer.filter?.blur ?? 0) > 20 || (layer.filter?.glow ?? 0) > 50);
+    const browserLayers = project.layers.filter((layer) => layer.type === "browser");
+    const customScriptLayers = browserLayers.filter((layer) => layer.js.trim() || layer.sandbox === false);
 
     for (const layer of mediaLayers) {
       if (layer.type !== "image" && layer.type !== "gif" && layer.type !== "video" && layer.type !== "audio") continue;
@@ -125,6 +127,9 @@ function analyzeAlertProjects(projects: AlertProject[], assetsDir: string): {
     if (mediaLayers.length > 8) issues.push({ level: "warning", message: `${mediaLayers.length} media layers may be heavy for OBS browser source playback.` });
     if (videoLayers.length > 2) issues.push({ level: "warning", message: `${videoLayers.length} video layers may stutter on lower-end stream PCs.` });
     if (heavyFilterLayers.length > 3) issues.push({ level: "warning", message: `${heavyFilterLayers.length} layers use heavy blur/glow effects.` });
+    if (browserLayers.length) issues.push({ level: "warning", message: "Browser/custom HTML layers depend on iframe support in OBS browser sources." });
+    if (customScriptLayers.length && !project.safeMode) issues.push({ level: "warning", message: "Custom JS layers can behave differently in OBS. Enable Safe mode before going live if this alert misbehaves." });
+    if (customScriptLayers.length && project.safeMode) issues.push({ level: "warning", message: "Safe mode is enabled, so custom JS in browser layers will be disabled during playback." });
     if (project.durationMs > 30000) issues.push({ level: "warning", message: "Alert duration is over 30 seconds." });
 
     return {

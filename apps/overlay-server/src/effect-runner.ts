@@ -4,6 +4,7 @@ import type { OverlayBus } from "./bus.js";
 import { runLocalCommand } from "./command-runner.js";
 import { sendTwitchChatMessage } from "./twitch-service.js";
 import { resolveAlertProjectVariation } from "./alert-variations.js";
+import { withAutomationVariables } from "./alert-template-vars.js";
 
 type EffectType = "visual" | "soundboard" | "obs_scene" | "obs_transform" | "chat_message" | "alert" | "media" | "run_command";
 
@@ -160,7 +161,7 @@ export class EffectRunner {
       const rawVisualProject = getAlertProject(themeId) ?? getAlertProject(`alert-${themeId}`) ?? undefined;
       const theme = getTheme(themeId) ?? getTheme("default");
       if (!theme && !rawVisualProject) return false;
-      const alertEvent = createStreamEvent({
+      const alertEvent = withAutomationVariables(createStreamEvent({
         source: "manual",
         type: (config.eventType as StreamEvent["type"]) ?? "channel_points",
         user: event.user,
@@ -169,7 +170,7 @@ export class EffectRunner {
           : event.message,
         amount: event.amount,
         payload: event.payload,
-      });
+      }));
       const soundAsset = config.soundAsset ? String(config.soundAsset) : undefined;
       const visualProject = rawVisualProject ? resolveAlertProjectVariation(rawVisualProject, alertEvent).project : undefined;
       this.bus.broadcast(
