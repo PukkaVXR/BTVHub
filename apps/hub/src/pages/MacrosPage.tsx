@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, type MacroConfig, type MacroStep } from "../api";
 import { useToast } from "../hooks/useToast";
+import { PageHeader } from "../ui";
 
 const emptyMacro = (): MacroConfig => ({
   id: `macro-${Date.now()}`,
@@ -139,8 +140,7 @@ export default function MacrosPage() {
 
   return (
     <>
-      <h1>Macros</h1>
-      <p className="subtitle">Create ordered stream actions for Stream Deck keys and dashboard controls.</p>
+      <PageHeader title="Macros" description="Create ordered stream actions for Stream Deck keys and dashboard controls." />
 
       <div className="actions" style={{ marginBottom: 16 }}>
         <button type="button" className="btn btn-primary btn-sm" onClick={() => edit(emptyMacro())}>

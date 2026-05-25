@@ -12,6 +12,7 @@ import {
 } from "../api";
 import type { StreamEventType } from "@btv/shared";
 import { useToast } from "../hooks/useToast";
+import { PageHeader } from "../ui";
 
 const emptyAutomation = (): AutomationConfig => ({
   id: `automation-${Date.now()}`,
@@ -388,8 +389,7 @@ export default function AutomationsPage() {
 
   return (
     <>
-      <h1>Automations</h1>
-      <p className="subtitle">Phase 1 event rules plus the older repeating timer jobs.</p>
+      <PageHeader title="Automations" description="Phase 1 event rules plus the older repeating timer jobs." />
 
       <div className="card">
         <h2>Event automation rules</h2>

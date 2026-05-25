@@ -9,6 +9,7 @@ import { api } from "../api";
 import { SaveIndicator } from "../hooks/SaveIndicator";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useToast } from "../hooks/useToast";
+import { PageHeader } from "../ui";
 
 type TriggerType = Effect["triggerType"];
 type EffectType = Effect["type"];
@@ -268,10 +269,10 @@ export default function InteractivePage() {
 
   return (
     <>
-      <h1>Interactive</h1>
-      <p className="subtitle">
-        Channel point redemptions, chat commands, chat messages on overlay, sounds, and alerts.
-      </p>
+      <PageHeader
+        title="Interactive"
+        description="Channel point redemptions, chat commands, chat messages on overlay, sounds, and alerts."
+      />
 
       <div className="actions" style={{ marginBottom: 16 }}>
         <button type="button" className="btn btn-primary btn-sm" onClick={() => setEditing(emptyEffect())}>
@@ -282,7 +283,7 @@ export default function InteractivePage() {
       {editing && (
         <div className="card" style={{ marginBottom: 16 }}>
           <h2>
-            Edit interaction <SaveIndicator status={saveStatus} />
+            Edit interaction <SaveIndicator status={saveStatus} label="Interactive effect" />
           </h2>
 
           <div className="form-row">

@@ -6,6 +6,7 @@ import MediaPicker from "../components/MediaPicker";
 import { SaveIndicator } from "../hooks/SaveIndicator";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useToast } from "../hooks/useToast";
+import { PageHeader } from "../ui";
 
 const TICKER_EVENT_TYPES = ["follow", "sub", "resub", "gift_sub", "cheer", "raid", "channel_points", "goal_milestone"];
 const DEFAULT_OVERLAY_THEME: OverlayThemeConfig = {
@@ -175,10 +176,9 @@ export default function WidgetsPage() {
 
   return (
     <>
-      <h1>Widgets</h1>
-      <p className="subtitle">Configure chat, goals, ticker, and now playing widgets.</p>
-      <SaveIndicator status={widgetSaveStatus} />
-      <SaveIndicator status={themeSaveStatus} />
+      <PageHeader title="Widgets" description="Configure chat, goals, ticker, and now playing widgets." />
+      <SaveIndicator status={widgetSaveStatus} label="Widgets" />
+      <SaveIndicator status={themeSaveStatus} label="Widget theme" />
 
       <div className="card overlay-theme-editor">
         <div>

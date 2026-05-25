@@ -11,6 +11,7 @@ import {
   type SourceGroup,
 } from "../api";
 import { useToast } from "../hooks/useToast";
+import { PageHeader } from "../ui";
 
 function StatusDot({ ok }: { ok: boolean }) {
   return (
@@ -504,8 +505,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <h1>Dashboard</h1>
-      <p className="subtitle">Live readiness for OBS, overlays, alerts, and integrations.</p>
+      <PageHeader title="Dashboard" description="Live readiness for OBS, overlays, alerts, and integrations." />
 
       <div className="grid">
         {preflight?.checks.map((check) => (
@@ -1128,7 +1128,7 @@ export default function Dashboard() {
                     {project.issues[0]?.message ?? `${project.errors} error(s), ${project.warnings} warning(s)`}
                   </td>
                   <td>
-                    <Link className="btn btn-secondary btn-sm" to={`/alerts/editor/${encodeURIComponent(project.id)}`}>
+                    <Link className="btn btn-secondary btn-sm" to={`/alerts/${encodeURIComponent(project.id)}`}>
                       Open
                     </Link>
                   </td>

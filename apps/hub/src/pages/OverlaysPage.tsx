@@ -11,6 +11,7 @@ import {
   type PreflightInfo,
 } from "../api";
 import { useToast } from "../hooks/useToast";
+import { PageHeader } from "../ui";
 
 const CANVAS_WIDTH = 1920;
 const CANVAS_HEIGHT = 1080;
@@ -289,19 +290,23 @@ export default function OverlaysPage() {
 
   return (
     <>
-      <h1>Overlays</h1>
-      <p className="subtitle">
-        Add these URLs as Browser Sources in OBS and use the layout editor to place, size, and shape them.
-        {wsOk != null && (
-          <span style={{ marginLeft: 8 }}>
-            Server: {wsOk ? (
-              <span className="badge badge-ok">online</span>
-            ) : (
-              <span className="badge badge-off">offline</span>
+      <PageHeader
+        title="Overlays"
+        description={
+          <>
+            Add these URLs as Browser Sources in OBS and use the layout editor to place, size, and shape them.
+            {wsOk != null && (
+              <span style={{ marginLeft: 8 }}>
+                Server: {wsOk ? (
+                  <span className="badge badge-ok">online</span>
+                ) : (
+                  <span className="badge badge-off">offline</span>
+                )}
+              </span>
             )}
-          </span>
-        )}
-      </p>
+          </>
+        }
+      />
       <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 16 }}>
         Live chat requires <code>http://127.0.0.1:4782/o/chat.html</code> and Twitch reconnect with{" "}
         <code>user:read:chat</code>.

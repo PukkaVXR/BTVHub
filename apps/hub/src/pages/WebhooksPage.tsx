@@ -4,6 +4,7 @@ import { api, type WebhookInfo } from "../api";
 import { SaveIndicator } from "../hooks/SaveIndicator";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useToast } from "../hooks/useToast";
+import { PageHeader } from "../ui";
 
 function configTemplate(action: WebhookHook["action"]): Record<string, unknown> {
   switch (action) {
@@ -88,8 +89,7 @@ export default function WebhooksPage() {
 
   return (
     <>
-      <h1>Webhooks</h1>
-      <p className="subtitle">POST external events to trigger alerts, goals, effects, macros, or custom events.</p>
+      <PageHeader title="Webhooks" description="POST external events to trigger alerts, goals, effects, macros, or custom events." />
 
       <button
         type="button"
@@ -110,7 +110,7 @@ export default function WebhooksPage() {
       {editing && (
         <div className="card">
           <h2>
-            Edit webhook <SaveIndicator status={saveStatus} />
+            Edit webhook <SaveIndicator status={saveStatus} label="Webhook" />
           </h2>
           <div className="form-row">
             <label>Name</label>

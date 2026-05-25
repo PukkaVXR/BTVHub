@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, type IntegrationsInfo } from "../api";
 import { useToast } from "../hooks/useToast";
+import { PageHeader } from "../ui";
 
 export default function IntegrationsPage() {
   const [info, setInfo] = useState<IntegrationsInfo | null>(null);
@@ -68,8 +69,7 @@ export default function IntegrationsPage() {
 
   return (
     <>
-      <h1>Integrations</h1>
-      <p className="subtitle">Connect Twitch, Spotify, and OBS WebSocket.</p>
+      <PageHeader title="Integrations" description="Connect Twitch, Spotify, and OBS WebSocket." />
 
       {info?.twitch.connected && chatSubError && (
         <div

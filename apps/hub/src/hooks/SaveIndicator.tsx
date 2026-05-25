@@ -1,10 +1,14 @@
+import { useId } from "react";
+import { useRegisterSaveStatus } from "../context/SaveStatusContext";
 import type { SaveStatus } from "./useAutoSave";
 
-export function SaveIndicator({ status }: { status: SaveStatus }) {
+export function SaveIndicator({ status, label = "Changes" }: { status: SaveStatus; label?: string }) {
+  const id = useId();
+  useRegisterSaveStatus(id, label, status);
+
   if (status === "idle") return null;
-  const label =
-    status === "saving" ? "Saving…" : status === "saved" ? "Saved" : "Save failed";
+  const text = status === "saving" ? "Saving..." : status === "saved" ? "Saved" : "Save failed";
   return (
-    <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: 8 }}>{label}</span>
+    <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: 8 }}>{text}</span>
   );
 }

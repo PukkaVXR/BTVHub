@@ -4,7 +4,9 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { AlertProjectSchema } from "@btv/shared";
 import type { AlertChaosModifier, AlertKeyframe, AlertLayer, AlertLayerAnimation, AlertProject, AlertVariation, StreamEventType } from "@btv/shared";
 import { api, type GiphyAssetType, type GiphyResult, type MediaAssetInfo, type SoundAssetInfo } from "../api";
+import { useRegisterSaveStatus } from "../context/SaveStatusContext";
 import { useToast } from "../hooks/useToast";
+import { PageHeader } from "../ui";
 
 const EVENT_TYPES: StreamEventType[] = ["follow", "sub", "resub", "gift_sub", "cheer", "raid", "channel_points"];
 const CANVAS_PRESETS = [
@@ -1134,6 +1136,7 @@ export default function AlertEditorPage() {
   );
 
   const dirty = useMemo(() => projectSignature(project) !== savedSignature, [project, savedSignature]);
+  useRegisterSaveStatus("visual-alert-editor", "Alert editor", saving ? "saving" : dirty ? "dirty" : "saved");
   const previewScale = previewZoom === "fit" ? previewFitScale : previewZoom;
   const activeCanvasPreset = useMemo(() => {
     if (!project) return "";
@@ -2110,8 +2113,7 @@ export default function AlertEditorPage() {
 
   return (
     <>
-      <h1>Visual Alert Editor</h1>
-      <p className="subtitle">Create, test, and manage BTV's primary cinematic alert projects.</p>
+      <PageHeader title="Visual Alert Editor" description="Create, test, and manage BTV's primary cinematic alert projects." />
 
       <div className="actions" style={{ marginBottom: 16, alignItems: "center" }}>
         <select
@@ -2148,7 +2150,7 @@ export default function AlertEditorPage() {
         </label>
         <button type="button" className="btn btn-secondary btn-sm" onClick={() => void copyObsAlertUrl()}>Copy OBS URL</button>
         <button type="button" className="btn btn-danger btn-sm" onClick={() => void removeProject()} disabled={!project}>Delete</button>
-        <Link className="btn btn-secondary btn-sm" to="/alert-rules">Advanced routing</Link>
+        <Link className="btn btn-secondary btn-sm" to="/alerts/routing">Advanced routing</Link>
         <Link className="btn btn-secondary btn-sm" to="/themes">Legacy themes</Link>
         <span className={`alert-save-status${dirty ? " dirty" : ""}`}>{dirty ? "Unsaved changes" : "Saved"}</span>
       </div>

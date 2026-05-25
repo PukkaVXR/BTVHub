@@ -6,6 +6,7 @@ import { api } from "../api";
 import { SaveIndicator } from "../hooks/SaveIndicator";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useToast } from "../hooks/useToast";
+import { PageHeader } from "../ui";
 
 const EVENT_TYPES: StreamEventType[] = [
   "follow",
@@ -59,9 +60,8 @@ export default function AlertsPage() {
 
   return (
     <>
-      <h1>Alerts</h1>
-      <p className="subtitle">Advanced routing: map Twitch events to visual alert projects and sounds.</p>
-      <SaveIndicator status={saveStatus} />
+      <PageHeader title="Alerts" description="Advanced routing: map Twitch events to visual alert projects and sounds." />
+      <SaveIndicator status={saveStatus} label="Alert routing" />
 
       <div className="card">
         <h2>Test alerts</h2>
@@ -117,7 +117,7 @@ export default function AlertsPage() {
                     ))}
                   </select>
                   <Link
-                    to={`/alerts?id=${selectedProjectId(rule.themeId)}`}
+                    to={`/alerts/${encodeURIComponent(selectedProjectId(rule.themeId))}`}
                     style={{ fontSize: 12, marginLeft: 8 }}
                   >
                     Edit alert

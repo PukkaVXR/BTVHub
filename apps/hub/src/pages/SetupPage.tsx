@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { api, type IntegrationsInfo, type PreflightInfo } from "../api";
 import { useToast } from "../hooks/useToast";
+import { PageHeader } from "../ui";
 
 interface SetupStep {
   id: string;
@@ -105,8 +106,10 @@ export default function SetupPage() {
 
   return (
     <>
-      <h1>Setup Wizard</h1>
-      <p className="subtitle">A quick readiness path for Twitch, OBS, browser sources, and test alerts.</p>
+      <PageHeader
+        title="Setup Wizard"
+        description="A quick readiness path for Twitch, OBS, browser sources, and test alerts."
+      />
 
       <div className="card">
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>

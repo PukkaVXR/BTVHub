@@ -54,19 +54,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
 
-  health: () =>
-
-    request<{
-
-      ok: boolean;
-
-      overlayUrl?: string;
-
-      overlayWsUrl?: string;
-
-      twitch: Record<string, unknown>;
-
-    }>("/health"),
+  health: () => request<HealthInfo>("/health"),
 
   preflight: () => request<PreflightInfo>("/preflight"),
 
@@ -796,11 +784,29 @@ export interface PreflightInfo {
     channelPointActionsDisabled: boolean;
   };
   alerts: AlertQueueInfo;
-  twitch: Record<string, unknown>;
-  spotify: Record<string, unknown>;
+  twitch: IntegrationStatus;
+  spotify: IntegrationStatus;
   obs: { host: string; port: number; hasPassword: boolean; connected: boolean };
   activity: Array<{ id: string; event: import("@btv/shared").StreamEvent; at: string }>;
   session: StreamSessionSummary;
+}
+
+export interface IntegrationStatus {
+  configured?: boolean;
+  connected?: boolean;
+  login?: string;
+  displayName?: string;
+  eventsubStatus?: string;
+  userId?: string;
+}
+
+export interface HealthInfo {
+  ok: boolean;
+  overlayUrl?: string;
+  overlayWsUrl?: string;
+  twitch: IntegrationStatus;
+  spotify?: IntegrationStatus;
+  obs?: { host?: string; port?: number; hasPassword?: boolean; connected?: boolean };
 }
 
 export interface ObsBrowserSourceStatus {

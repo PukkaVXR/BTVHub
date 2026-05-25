@@ -12,6 +12,7 @@ import {
   type ThemeLayoutId,
   type ThemeVisualModel,
 } from "../theme-builder/types";
+import { PageHeader } from "../ui";
 
 const PREVIEW_TYPES: StreamEventType[] = ["follow", "sub", "cheer", "raid"];
 
@@ -199,7 +200,10 @@ export default function ThemesPage() {
 
   return (
     <>
-      <h1>Theme Editor</h1>
+      <PageHeader
+        title="Theme Editor"
+        description="Position and size alerts on the 1920x1080 canvas. Use Design for visuals, Advanced for code."
+      />
       <p className="subtitle">
         Position and size alerts on the 1920×1080 canvas. Use Design for visuals, Advanced for code.
       </p>

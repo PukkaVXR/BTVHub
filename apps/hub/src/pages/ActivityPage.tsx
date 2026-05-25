@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { BtvEvent, StreamEvent } from "@btv/shared";
 import { api, type StreamSession, type StreamSessionDetail, type SystemLogEntry } from "../api";
 import { useToast } from "../hooks/useToast";
+import { PageHeader } from "../ui";
 
 function formatDuration(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -52,8 +53,7 @@ export default function ActivityPage() {
 
   return (
     <>
-      <h1>Activity</h1>
-      <p className="subtitle">Recent stream events, session history, and local analytics exports.</p>
+      <PageHeader title="Activity" description="Recent stream events, session history, and local analytics exports." />
 
       <div className="card">
         <h2>System Logs</h2>
