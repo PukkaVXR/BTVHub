@@ -99,6 +99,8 @@ Goal: compete with the most useful parts of Streamer.bot.
 
 Goal: compete with StreamElements and Streamlabs for daily streamer needs.
 
+Status: complete as of 2026-05-25.
+
 Visual alert editor polish is tracked in detail in `Visual Alert Editor Plan.md`.
 
 - [x] Basic alert rules.
@@ -116,7 +118,7 @@ Visual alert editor polish is tracked in detail in `Visual Alert Editor Plan.md`
 - [x] Event list widget.
 - [x] Stream ticker configuration polish.
 - [x] Overlay pack system.
-- [ ] Theme system for packs.
+- [x] Theme system for packs.
 - [x] OBS URL copy/install helper.
 - [x] Alert replay from recent events.
 - [x] Alert queue controls: skip current.

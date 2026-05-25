@@ -11,6 +11,7 @@
     <ul id="ticker-list"></ul>
   </div>
   <script type="module">
+    import "/js/overlay-theme.js";
     import { OverlayClient } from "/js/overlay-client.js";
     const widget = document.querySelector(".ticker-widget");
     const title = document.querySelector(".ticker-widget h3");
@@ -26,9 +27,7 @@
       showAmount = cfg.showAmount === true;
       eventTypes = Array.isArray(cfg.eventTypes) ? cfg.eventTypes : [];
       title.textContent = cfg.title || "Recent Events";
-      widget.dataset.position = cfg.position || "top-left";
       widget.dataset.compact = cfg.compact ? "true" : "false";
-      widget.style.width = `${Math.max(220, Math.min(900, Number(cfg.width) || 360))}px`;
     } catch { /* default */ }
     const labels = { follow: "Follow", sub: "Sub", resub: "Resub", cheer: "Cheer", raid: "Raid", gift_sub: "Gift Sub", channel_points: "Channel Point", goal_milestone: "Goal" };
     const client = new OverlayClient({

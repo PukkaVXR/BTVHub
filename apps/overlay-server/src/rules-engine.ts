@@ -1,4 +1,5 @@
 import {
+  type ChatBadge,
   createStreamEvent,
   type StreamEvent,
   type StreamEventType,
@@ -39,18 +40,20 @@ export class RulesEngine {
     if (event.type === "chat" && event.user) {
       const chatWidget = getWidgets().find((w) => w.type === "chat");
       if (!chatWidget || chatWidget.enabled) {
-      this.bus.broadcast(
-        {
-          kind: "chat:message",
-          message: {
-            id: event.id,
-            user: event.user,
-            text: event.message ?? "",
-            at: event.at,
+        this.bus.broadcast(
+          {
+            kind: "chat:message",
+            message: {
+              id: event.id,
+              user: event.user,
+              text: event.message ?? "",
+              color: readChatColor(event),
+              badges: readChatBadges(event),
+              at: event.at,
+            },
           },
-        },
-        "chat",
-      );
+          "chat",
+        );
       }
     }
 
@@ -155,4 +158,26 @@ export class RulesEngine {
       }),
     );
   }
+}
+
+function readChatColor(event: StreamEvent): string | undefined {
+  const color = event.payload.color;
+  return typeof color === "string" && color.trim() ? color : undefined;
+}
+
+function readChatBadges(event: StreamEvent): ChatBadge[] | undefined {
+  const badges = event.payload.badges;
+  if (!Array.isArray(badges)) return undefined;
+  const normalized = badges
+    .map((badge): ChatBadge | undefined => {
+      if (!badge || typeof badge !== "object") return undefined;
+      const raw = badge as Record<string, unknown>;
+      const setId = raw.setId ?? raw.set_id;
+      const id = raw.id;
+      if (typeof setId !== "string" || typeof id !== "string") return undefined;
+      const info = typeof raw.info === "string" && raw.info ? raw.info : undefined;
+      return { setId, id, info };
+    })
+    .filter((badge): badge is ChatBadge => Boolean(badge));
+  return normalized.length ? normalized : undefined;
 }

@@ -96,7 +96,7 @@ type ProjectHistory = { past: AlertProject[]; future: AlertProject[] };
 type PreviewZoom = "fit" | 0.25 | 0.5 | 1;
 type AlertProjectWarning = { level: "warning" | "error"; message: string };
 type TemplateInfo = { id: TemplateId; name: string; description: string };
-type AlertProjectDraft = Omit<AlertProject, "id" | "createdAt" | "updatedAt" | "timeline" | "chaos"> & Pick<Partial<AlertProject>, "timeline" | "chaos">;
+type AlertProjectDraft = Partial<Omit<AlertProject, "id" | "createdAt" | "updatedAt">> & Pick<AlertProject, "name" | "eventType" | "durationMs" | "canvas" | "layers">;
 type LocalTemplate = {
   id: string;
   name: string;
@@ -112,6 +112,10 @@ type TestPayload = {
   variables?: Record<string, unknown>;
   payload?: Record<string, unknown>;
 };
+type LayerStyle = CSSProperties & { "--btv-intensity"?: string };
+type LayerOf<T extends AlertLayer["type"]> = T extends "image" | "gif" | "video"
+  ? Extract<AlertLayer, { type: "image" | "gif" | "video" }>
+  : Extract<AlertLayer, { type: T }>;
 
 const TEMPLATE_INFOS: TemplateInfo[] = [
   { id: "clean-follow", name: "Clean Follow", description: "Simple starter card with title and subtitle text." },
@@ -423,7 +427,7 @@ function createTemplateProject(template: TemplateId): AlertProject {
   });
 }
 
-function createLayer(type: AlertLayer["type"]): AlertLayer {
+function createLayer<T extends AlertLayer["type"]>(type: T): LayerOf<T> {
   const base = {
     id: newId(type),
     name: type === "text" ? "Text" : type === "shape" ? "Shape" : "Media",
@@ -462,7 +466,7 @@ function createLayer(type: AlertLayer["type"]): AlertLayer {
       color: "#ffffff",
       align: "center",
       strokeWidth: 0,
-    };
+    } as unknown as LayerOf<T>;
   }
 
   if (type === "shape") {
@@ -474,7 +478,7 @@ function createLayer(type: AlertLayer["type"]): AlertLayer {
       borderColor: "transparent",
       borderWidth: 0,
       radius: 16,
-    };
+    } as unknown as LayerOf<T>;
   }
 
   if (type === "particle") {
@@ -487,7 +491,7 @@ function createLayer(type: AlertLayer["type"]): AlertLayer {
       color: "#5b8cff",
       spread: 120,
       speed: 3,
-    };
+    } as unknown as LayerOf<T>;
   }
 
   if (type === "browser") {
@@ -499,7 +503,7 @@ function createLayer(type: AlertLayer["type"]): AlertLayer {
       css: ".custom-alert { color: white; font: 800 48px Inter, sans-serif; }",
       js: "",
       sandbox: true,
-    };
+    } as unknown as LayerOf<T>;
   }
 
   if (type === "audio") {
@@ -518,7 +522,7 @@ function createLayer(type: AlertLayer["type"]): AlertLayer {
         mode: "none",
         sensitivity: 1,
       },
-    };
+    } as unknown as LayerOf<T>;
   }
 
   return {
@@ -529,7 +533,7 @@ function createLayer(type: AlertLayer["type"]): AlertLayer {
     loop: true,
     muted: true,
     volume: 1,
-  };
+  } as unknown as LayerOf<T>;
 }
 
 function payloadPath(payload: Record<string, unknown> | undefined, path: string): string {
@@ -616,7 +620,7 @@ function layerAtPlayhead(layer: AlertLayer, playheadMs: number): AlertLayer {
   } as AlertLayer;
 }
 
-function layerStyle(layer: AlertLayer, playheadMs?: number): CSSProperties {
+function layerStyle(layer: AlertLayer, playheadMs?: number): LayerStyle {
   const displayLayer = playheadMs == null ? layer : layerAtPlayhead(layer, playheadMs);
   const animation = layer.animation?.preset && layer.animation.preset !== "none"
     ? `${layer.animation.preset} ${layer.animation.durationMs}ms ${cssEasing(layer.animation.easing)} ${layer.animation.delayMs}ms ${layer.animation.loop ? "infinite" : "both"}`
@@ -639,7 +643,7 @@ function layerStyle(layer: AlertLayer, playheadMs?: number): CSSProperties {
     cursor: layer.locked ? "not-allowed" : "move",
     animation,
     "--btv-intensity": String(layer.animation?.intensity ?? 1),
-  };
+  } satisfies LayerStyle;
 }
 
 function cssEasing(easing?: AlertLayerAnimation["easing"]): string {
@@ -1291,7 +1295,17 @@ export default function AlertEditorPage() {
     if (!project) return;
     setSaving(true);
     try {
-      const next = withTimeline({ ...project, timeline: { ...(project.timeline ?? withTimeline(project).timeline), durationMs: project.durationMs }, updatedAt: nowIso() });
+      const timeline = project.timeline ?? {
+        durationMs: project.durationMs,
+        fps: 60,
+        snapMs: 100,
+        zoom: 1,
+      };
+      const next = withTimeline({
+        ...project,
+        timeline: { durationMs: project.durationMs, fps: timeline.fps, snapMs: timeline.snapMs, zoom: timeline.zoom },
+        updatedAt: nowIso(),
+      });
       await api.saveAlertProject(next);
       setProject(next);
       setSavedSignature(projectSignature(next));

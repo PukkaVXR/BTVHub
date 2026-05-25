@@ -365,6 +365,7 @@ export default function OverlaysPage() {
                 <p>
                   {pack.counts.alertProjects} alert projects, {pack.counts.alertRules} rules,{" "}
                   {pack.counts.widgets} widgets, {pack.counts.browserSourceLayouts} source layouts
+                  {pack.counts.overlayTheme ? ", theme included" : ""}
                 </p>
                 <div className="actions" style={{ marginTop: 0 }}>
                   <button

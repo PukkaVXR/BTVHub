@@ -8,11 +8,13 @@
 <body>
   <div class="chat-widget"><div id="chat-messages"></div></div>
   <script type="module">
+    import "/js/overlay-theme.js";
     import { OverlayClient } from "/js/overlay-client.js";
 
     let maxMessages = 20;
     let fadeMs = 8000;
     const bttvEmotes = new Map();
+    const twitchBadges = new Map();
     const fadeStartMs = () => Math.max(0, fadeMs - 1000);
 
     try {
@@ -24,6 +26,7 @@
     }
 
     void loadBttvEmotes();
+    void loadTwitchBadges();
 
     const box = document.getElementById("chat-messages");
     const client = new OverlayClient({
@@ -34,7 +37,7 @@
         el.className = "chat-line";
         const m = msg.message;
         const userStyle = m.color ? ` style="color:${escapeAttr(m.color)}"` : "";
-        el.innerHTML = `<span class="chat-user"${userStyle}>${escapeHtml(m.user.displayName)}:</span> ${renderChatText(m.text)}`;
+        el.innerHTML = `${renderBadges(m.badges)}<span class="chat-user"${userStyle}>${escapeHtml(m.user.displayName)}:</span> <span class="chat-message-text">${renderChatText(m.text)}</span>`;
         if (m.user.id === "btv-effect") el.classList.add("chat-system");
         box.appendChild(el);
         while (box.children.length > maxMessages) box.firstChild?.remove();
@@ -71,6 +74,26 @@
       }
     }
 
+    async function loadTwitchBadges() {
+      try {
+        const payload = await fetch("/api/widgets/chat-badges", { cache: "no-store" }).then((r) => r.ok ? r.json() : null);
+        for (const [setId, versions] of Object.entries(payload?.badges ?? {})) {
+          if (!versions || typeof versions !== "object") continue;
+          for (const [id, badge] of Object.entries(versions)) {
+            if (!badge || typeof badge !== "object") continue;
+            const imageUrl = String(badge.imageUrl ?? "");
+            if (!imageUrl) continue;
+            twitchBadges.set(`${setId}:${id}`, {
+              title: String(badge.title ?? setId),
+              imageUrl,
+            });
+          }
+        }
+      } catch {
+        /* Badge images are decorative; chat text should keep working. */
+      }
+    }
+
     function withCacheBust(url, refreshedAt) {
       const next = new URL(url);
       next.searchParams.set("_btvRefresh", String(refreshedAt));
@@ -87,6 +110,35 @@
           return `<img class="chat-emote chat-emote-bttv" src="${escapeAttr(emote.url)}" alt="${escapeAttr(emote.code)}" title="${escapeAttr(emote.code)}" />`;
         })
         .join("");
+    }
+
+    function renderBadges(badges) {
+      if (!Array.isArray(badges) || !badges.length) return "";
+      const html = badges
+        .map((badge) => {
+          const normalized = normalizeBadge(badge);
+          if (!normalized) return "";
+          const meta = twitchBadges.get(`${normalized.setId}:${normalized.id}`);
+          const label = meta?.title ?? `${normalized.setId} ${normalized.id}`;
+          if (!meta?.imageUrl) {
+            return `<span class="chat-badge chat-badge-fallback" title="${escapeAttr(label)}">${escapeHtml(normalized.setId.slice(0, 1).toUpperCase())}</span>`;
+          }
+          return `<img class="chat-badge" src="${escapeAttr(meta.imageUrl)}" alt="${escapeAttr(label)}" title="${escapeAttr(label)}" />`;
+        })
+        .filter(Boolean)
+        .join("");
+      return html ? `<span class="chat-badges">${html}</span>` : "";
+    }
+
+    function normalizeBadge(badge) {
+      if (typeof badge === "string") {
+        const [setId, id] = badge.split("/");
+        return setId && id ? { setId, id } : null;
+      }
+      if (!badge || typeof badge !== "object") return null;
+      const setId = String(badge.setId ?? badge.set_id ?? "");
+      const id = String(badge.id ?? "");
+      return setId && id ? { setId, id } : null;
     }
 
     function escapeHtml(value) {

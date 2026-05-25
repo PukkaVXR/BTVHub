@@ -90,6 +90,9 @@ function readRoles(event: StreamEvent): string[] | undefined {
       if (badge && typeof badge === "object" && "set_id" in badge) {
         return String((badge as { set_id: unknown }).set_id);
       }
+      if (badge && typeof badge === "object" && "setId" in badge) {
+        return String((badge as { setId: unknown }).setId);
+      }
       return undefined;
     })
     .filter((role): role is string => Boolean(role));

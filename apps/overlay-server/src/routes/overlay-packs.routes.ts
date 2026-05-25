@@ -16,6 +16,7 @@ import type { RouteModule } from "./types.js";
 
 const OVERLAY_PACKS_KEY = "overlay_packs";
 const BROWSER_SOURCE_LAYOUTS_KEY = "obs_browser_source_layouts";
+const OVERLAY_THEME_KEY = "overlay_theme";
 const PACK_VERSION = 1;
 
 interface OverlayPack {
@@ -41,6 +42,7 @@ interface OverlayPackSummary {
     themes: number;
     widgets: number;
     browserSourceLayouts: number;
+    overlayTheme: boolean;
   };
 }
 
@@ -53,6 +55,7 @@ interface OverlayPackSnapshot {
     canvas: ObsBrowserSourceCanvas;
     layouts: ObsBrowserSourceLayout[];
   };
+  overlayTheme?: unknown;
 }
 
 export const registerOverlayPacksRoutes: RouteModule = (app) => {
@@ -110,6 +113,7 @@ function createSnapshot(): OverlayPackSnapshot {
     themes: getThemes(),
     widgets: getWidgets(),
     browserSourceLayouts: readBrowserSourceLayouts(),
+    overlayTheme: readSettingJson(OVERLAY_THEME_KEY),
   };
 }
 
@@ -120,6 +124,9 @@ function applySnapshot(snapshot: OverlayPackSnapshot): void {
   for (const widget of snapshot.widgets ?? []) upsertWidget(widget);
   if (snapshot.browserSourceLayouts) {
     setSetting(BROWSER_SOURCE_LAYOUTS_KEY, JSON.stringify(snapshot.browserSourceLayouts));
+  }
+  if (snapshot.overlayTheme) {
+    setSetting(OVERLAY_THEME_KEY, JSON.stringify(snapshot.overlayTheme));
   }
 }
 
@@ -156,17 +163,22 @@ function normalizePack(item: unknown): OverlayPack[] {
       themes: Array.isArray(raw.snapshot.themes) ? raw.snapshot.themes : [],
       widgets: Array.isArray(raw.snapshot.widgets) ? raw.snapshot.widgets : [],
       browserSourceLayouts: raw.snapshot.browserSourceLayouts,
+      overlayTheme: raw.snapshot.overlayTheme,
     },
   }];
 }
 
 function readBrowserSourceLayouts(): OverlayPackSnapshot["browserSourceLayouts"] | undefined {
-  const raw = getSetting(BROWSER_SOURCE_LAYOUTS_KEY);
+  const parsed = readSettingJson(BROWSER_SOURCE_LAYOUTS_KEY) as OverlayPackSnapshot["browserSourceLayouts"];
+  if (!parsed?.canvas || !Array.isArray(parsed.layouts)) return undefined;
+  return parsed;
+}
+
+function readSettingJson(key: string): unknown {
+  const raw = getSetting(key);
   if (!raw) return undefined;
   try {
-    const parsed = JSON.parse(raw) as OverlayPackSnapshot["browserSourceLayouts"];
-    if (!parsed?.canvas || !Array.isArray(parsed.layouts)) return undefined;
-    return parsed;
+    return JSON.parse(raw);
   } catch {
     return undefined;
   }
@@ -186,6 +198,7 @@ function packSummary(pack: OverlayPack): OverlayPackSummary {
       themes: pack.snapshot.themes.length,
       widgets: pack.snapshot.widgets.length,
       browserSourceLayouts: pack.snapshot.browserSourceLayouts?.layouts.length ?? 0,
+      overlayTheme: Boolean(pack.snapshot.overlayTheme),
     },
   };
 }

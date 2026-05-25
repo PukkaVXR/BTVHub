@@ -50,6 +50,14 @@ export type StreamEventType = z.infer<typeof StreamEventTypeSchema>;
 export type StreamUser = z.infer<typeof StreamUserSchema>;
 export type StreamEvent = z.infer<typeof StreamEventSchema>;
 
+export const ChatBadgeSchema = z.object({
+  setId: z.string(),
+  id: z.string(),
+  info: z.string().optional(),
+});
+
+export type ChatBadge = z.infer<typeof ChatBadgeSchema>;
+
 export const BtvEventSourceSchema = z.enum([
   "twitch",
   "obs",
@@ -106,7 +114,7 @@ export const BusMessageSchema = z.discriminatedUnion("kind", [
       user: StreamUserSchema,
       text: z.string(),
       color: z.string().optional(),
-      badges: z.array(z.string()).optional(),
+      badges: z.array(z.union([z.string(), ChatBadgeSchema])).optional(),
       at: z.string(),
     }),
   }),

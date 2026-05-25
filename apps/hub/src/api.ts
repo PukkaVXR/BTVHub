@@ -154,6 +154,14 @@ export const api = {
 
   deleteTheme: (id: string) => request(`/themes/${id}`, { method: "DELETE" }),
 
+  overlayTheme: () => request<OverlayThemeConfig>("/overlay-theme"),
+
+  saveOverlayTheme: (theme: OverlayThemeConfig) =>
+    request<{ ok: boolean; theme: OverlayThemeConfig }>("/overlay-theme", {
+      method: "PUT",
+      body: JSON.stringify(theme),
+    }),
+
   alertRules: () => request<import("@btv/shared").AlertRule[]>("/alert-rules"),
 
   saveAlertRule: (rule: import("@btv/shared").AlertRule) =>
@@ -820,7 +828,46 @@ export interface OverlayPackSummary {
     themes: number;
     widgets: number;
     browserSourceLayouts: number;
+    overlayTheme: boolean;
   };
+}
+
+export interface OverlayThemeConfig {
+  name: string;
+  fontFamily: string;
+  textColor: string;
+  mutedColor: string;
+  accentColor: string;
+  panelBackground: string;
+  itemBackground: string;
+  borderColor: string;
+  borderRadius: number;
+  shadow: number;
+  glow: number;
+  pulse: boolean;
+  backgroundImage: string;
+  backgroundOpacity: number;
+  backgroundBlur: number;
+  widgets: Record<OverlayThemeTarget, OverlayThemeWidgetConfig>;
+}
+
+export type OverlayThemeTarget = "alerts" | "chat" | "goals" | "ticker" | "eventList" | "nowPlaying";
+
+export interface OverlayThemeWidgetConfig {
+  enabled: boolean;
+  textColor?: string;
+  mutedColor?: string;
+  accentColor?: string;
+  panelBackground?: string;
+  itemBackground?: string;
+  borderColor?: string;
+  borderRadius?: number;
+  shadow?: number;
+  glow?: number;
+  pulse?: boolean;
+  backgroundImage?: string;
+  backgroundOpacity?: number;
+  backgroundBlur?: number;
 }
 
 export type ObsBrowserSourceShape = "rectangle" | "rounded" | "circle";

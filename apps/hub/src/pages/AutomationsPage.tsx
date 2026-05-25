@@ -189,7 +189,7 @@ function describeAction(action: AutomationActionConfig): string {
     case "wait":
       return `wait ${action.durationMs}ms`;
     default:
-      return action.type;
+      return "action";
   }
 }
 
@@ -555,7 +555,7 @@ export default function AutomationsPage() {
                       <label>Role</label>
                       <select
                         value={condition.role}
-                        onChange={(e) => updateCondition(index, { type: "user_role", role: e.target.value as AutomationCondition["role"] })}
+                        onChange={(e) => updateCondition(index, { type: "user_role", role: e.target.value as Extract<AutomationCondition, { type: "user_role" }>["role"] })}
                       >
                         <option value="moderator">Moderator</option>
                         <option value="broadcaster">Broadcaster</option>
