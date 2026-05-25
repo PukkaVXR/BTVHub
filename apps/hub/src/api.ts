@@ -89,6 +89,23 @@ export const api = {
     }),
 
   overlays: () => request<{ overlays: OverlayInfo[] }>("/overlays"),
+
+  overlayPacks: () => request<{ packs: OverlayPackSummary[] }>("/overlay-packs"),
+
+  createOverlayPack: (data: { name: string; description?: string }) =>
+    request<{ ok: boolean; pack: OverlayPackSummary }>("/overlay-packs", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  applyOverlayPack: (id: string) =>
+    request<{ ok: boolean; pack: OverlayPackSummary }>(`/overlay-packs/${encodeURIComponent(id)}/apply`, {
+      method: "POST",
+    }),
+
+  deleteOverlayPack: (id: string) =>
+    request<{ ok: boolean }>(`/overlay-packs/${encodeURIComponent(id)}`, { method: "DELETE" }),
+
   ensureObsBrowserSources: (sceneName?: string) =>
     request<{ ok: boolean; sceneName: string; sources: ObsBrowserSourceStatus[] }>("/obs/browser-sources/ensure", {
       method: "POST",
@@ -788,6 +805,22 @@ export interface ObsBrowserSourceStatus {
   sourceName?: string;
   currentUrl?: string;
   action?: "created" | "updated" | "linked" | "unchanged" | "failed";
+}
+
+export interface OverlayPackSummary {
+  id: string;
+  name: string;
+  description?: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  counts: {
+    alertProjects: number;
+    alertRules: number;
+    themes: number;
+    widgets: number;
+    browserSourceLayouts: number;
+  };
 }
 
 export type ObsBrowserSourceShape = "rectangle" | "rounded" | "circle";

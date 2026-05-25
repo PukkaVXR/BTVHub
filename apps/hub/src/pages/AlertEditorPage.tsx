@@ -256,6 +256,7 @@ function createProject(): AlertProject {
         strokeWidth: 0,
       },
     ],
+    variations: [],
     tags: ["visual-editor"],
     createdAt: now,
     updatedAt: now,
@@ -274,6 +275,9 @@ function withProjectMeta(project: AlertProjectDraft): AlertProject {
     },
     chaos: project.chaos ?? DEFAULT_CHAOS,
     safeMode: project.safeMode ?? false,
+    layers: project.layers ?? [],
+    variations: project.variations ?? [],
+    tags: project.tags ?? [],
     id: newId("alert"),
     createdAt: now,
     updatedAt: now,
@@ -956,11 +960,12 @@ function persistLocalTemplates(templates: LocalTemplate[]): void {
 
 function cloneProjectAsNew(project: AlertProject, name = project.name): AlertProject {
   const now = nowIso();
+  const normalized = withTimeline(project);
   return {
-    ...project,
+    ...normalized,
     id: newId("alert"),
     name,
-    layers: project.layers.map((layer) => ({ ...layer, id: newId(layer.type) }) as AlertLayer),
+    layers: normalized.layers.map((layer) => ({ ...layer, id: newId(layer.type) }) as AlertLayer),
     createdAt: now,
     updatedAt: now,
   };
@@ -989,6 +994,15 @@ function withTimeline(project: AlertProject): AlertProject {
     },
     chaos: project.chaos ?? DEFAULT_CHAOS,
     safeMode: project.safeMode ?? false,
+    canvas: project.canvas ?? {
+      width: 1920,
+      height: 1080,
+      background: "transparent",
+      backgroundColor: "transparent",
+    },
+    layers: project.layers ?? [],
+    variations: project.variations ?? [],
+    tags: project.tags ?? [],
   };
 }
 
@@ -1111,7 +1125,7 @@ export default function AlertEditorPage() {
   const toast = useToast();
 
   const selectedLayer = useMemo(
-    () => project?.layers.find((layer) => layer.id === selectedLayerId) ?? project?.layers[0] ?? null,
+    () => project?.layers?.find((layer) => layer.id === selectedLayerId) ?? project?.layers?.[0] ?? null,
     [project, selectedLayerId],
   );
 
@@ -1131,7 +1145,7 @@ export default function AlertEditorPage() {
     [localTemplates, selectedLocalTemplateId],
   );
   const selectedVariation = useMemo(
-    () => project?.variations.find((variation) => variation.id === selectedVariationId) ?? null,
+    () => project?.variations?.find((variation) => variation.id === selectedVariationId) ?? null,
     [project?.variations, selectedVariationId],
   );
   const previewTestPayload = useMemo<TestPayload>(() => {
@@ -1164,13 +1178,14 @@ export default function AlertEditorPage() {
   }, [assetKind, assetSearch, soundAssets]);
 
   const selectProject = (next: AlertProject | null) => {
-    setProject(next ? withTimeline(next) : null);
-    setSelectedLayerId(next?.layers[0]?.id ?? "");
-    setSelectedVariationId(next?.variations[0]?.id ?? "");
+    const normalized = next ? withTimeline(next) : null;
+    setProject(normalized);
+    setSelectedLayerId(normalized?.layers[0]?.id ?? "");
+    setSelectedVariationId(normalized?.variations[0]?.id ?? "");
     setPlayheadMs(0);
     setPlaying(false);
     setHistory({ past: [], future: [] });
-    setSavedSignature(projectSignature(next));
+    setSavedSignature(projectSignature(normalized));
   };
 
   const commitProject = (next: AlertProject, options: { recordHistory?: boolean } = {}) => {
@@ -1189,12 +1204,13 @@ export default function AlertEditorPage() {
       setProject((prev) => {
         const requested = routeProjectId ?? searchParams.get("id");
         const next = (requested ? items.find((item) => item.id === requested) : null) ?? prev ?? items[0] ?? null;
+        const normalized = next ? withTimeline(next) : null;
         if (!prev) {
-          setSelectedLayerId(next?.layers[0]?.id ?? "");
-          setSelectedVariationId(next?.variations[0]?.id ?? "");
-          setSavedSignature(projectSignature(next));
+          setSelectedLayerId(normalized?.layers[0]?.id ?? "");
+          setSelectedVariationId(normalized?.variations[0]?.id ?? "");
+          setSavedSignature(projectSignature(normalized));
         }
-        return next ? withTimeline(next) : null;
+        return normalized;
       });
     });
   };

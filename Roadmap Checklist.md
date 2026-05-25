@@ -111,11 +111,11 @@ Visual alert editor polish is tracked in detail in `Visual Alert Editor Plan.md`
 - [x] Now-playing widget.
 - [x] Visual alert editor polish.
 - [x] Alert variations per event type.
-- [ ] Alert sound manager polish.
-- [ ] Alert media manager polish.
+- [x] Alert sound manager polish.
+- [x] Alert media manager polish.
 - [x] Event list widget.
 - [x] Stream ticker configuration polish.
-- [ ] Overlay pack system.
+- [x] Overlay pack system.
 - [ ] Theme system for packs.
 - [x] OBS URL copy/install helper.
 - [x] Alert replay from recent events.

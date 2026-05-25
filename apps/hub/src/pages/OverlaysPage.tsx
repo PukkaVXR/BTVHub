@@ -7,6 +7,7 @@ import {
   type ObsBrowserSourceStatus,
   type ObsSceneInfo,
   type OverlayInfo,
+  type OverlayPackSummary,
   type PreflightInfo,
 } from "../api";
 import { useToast } from "../hooks/useToast";
@@ -45,6 +46,7 @@ function makeQuickPresets(canvas: ObsBrowserSourceCanvas) {
 
 export default function OverlaysPage() {
   const [overlays, setOverlays] = useState<OverlayInfo[]>([]);
+  const [packs, setPacks] = useState<OverlayPackSummary[]>([]);
   const [canvas, setCanvas] = useState<ObsBrowserSourceCanvas>({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT });
   const [layouts, setLayouts] = useState<ObsBrowserSourceLayout[]>([]);
   const [preflight, setPreflight] = useState<PreflightInfo | null>(null);
@@ -52,6 +54,8 @@ export default function OverlaysPage() {
   const [selectedScene, setSelectedScene] = useState("");
   const [selectedLayoutId, setSelectedLayoutId] = useState("alerts");
   const [installing, setInstalling] = useState(false);
+  const [savingPack, setSavingPack] = useState(false);
+  const [applyingPackId, setApplyingPackId] = useState("");
   const [savingLayout, setSavingLayout] = useState(false);
   const [applyingLayout, setApplyingLayout] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(true);
@@ -67,6 +71,7 @@ export default function OverlaysPage() {
 
   const load = () => {
     void api.overlays().then((r) => setOverlays(r.overlays));
+    void api.overlayPacks().then((r) => setPacks(r.packs));
     void api.browserSourceLayouts().then((r) => {
       setCanvas(r.canvas);
       setLayouts(r.layouts);
@@ -127,6 +132,49 @@ export default function OverlaysPage() {
     });
     await navigator.clipboard.writeText(lines.join("\n"));
     toast("OBS setup checklist copied");
+  };
+
+  const createPack = async () => {
+    const name = window.prompt("Name this overlay pack", `Overlay pack ${new Date().toLocaleDateString()}`);
+    if (!name?.trim()) return;
+    setSavingPack(true);
+    try {
+      const res = await api.createOverlayPack({
+        name: name.trim(),
+        description: `Snapshot created from the Overlays page on ${new Date().toLocaleString()}`,
+      });
+      setPacks((current) => [res.pack, ...current.filter((pack) => pack.id !== res.pack.id)]);
+      toast(`Overlay pack saved: ${res.pack.name}`);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Could not save overlay pack");
+    } finally {
+      setSavingPack(false);
+    }
+  };
+
+  const applyPack = async (pack: OverlayPackSummary) => {
+    if (!window.confirm(`Apply "${pack.name}"? This will update widgets, alerts, themes, and browser source layouts.`)) return;
+    setApplyingPackId(pack.id);
+    try {
+      await api.applyOverlayPack(pack.id);
+      toast(`Applied overlay pack: ${pack.name}`);
+      load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Could not apply overlay pack");
+    } finally {
+      setApplyingPackId("");
+    }
+  };
+
+  const deletePack = async (pack: OverlayPackSummary) => {
+    if (!window.confirm(`Delete overlay pack "${pack.name}"?`)) return;
+    try {
+      await api.deleteOverlayPack(pack.id);
+      setPacks((current) => current.filter((item) => item.id !== pack.id));
+      toast(`Deleted overlay pack: ${pack.name}`);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Could not delete overlay pack");
+    }
   };
 
   const installBrowserSources = async () => {
@@ -292,6 +340,53 @@ export default function OverlaysPage() {
             <div className="url-box">Use the workspace below for source position, dimensions, shape, opacity, visibility, and lock state.</div>
           </div>
         </div>
+      </div>
+
+      <div className="card overlay-pack-card">
+        <div className="overlay-pack-header">
+          <div>
+            <h2>Overlay Packs</h2>
+            <p>
+              Snapshot the current alerts, widgets, legacy themes, and browser source layout as a reusable pack.
+            </p>
+          </div>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => void createPack()} disabled={savingPack}>
+            {savingPack ? "Saving..." : "Save current as pack"}
+          </button>
+        </div>
+        {packs.length ? (
+          <div className="overlay-pack-grid">
+            {packs.map((pack) => (
+              <div key={pack.id} className="overlay-pack-item">
+                <div>
+                  <strong>{pack.name}</strong>
+                  <span>{pack.description || `Updated ${formatDateTime(pack.updatedAt)}`}</span>
+                </div>
+                <p>
+                  {pack.counts.alertProjects} alert projects, {pack.counts.alertRules} rules,{" "}
+                  {pack.counts.widgets} widgets, {pack.counts.browserSourceLayouts} source layouts
+                </p>
+                <div className="actions" style={{ marginTop: 0 }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => void applyPack(pack)}
+                    disabled={applyingPackId === pack.id}
+                  >
+                    {applyingPackId === pack.id ? "Applying..." : "Apply pack"}
+                  </button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => void deletePack(pack)}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="subtitle" style={{ marginBottom: 0 }}>
+            No overlay packs saved yet. Save one once you have a layout and alert/widget setup worth reusing.
+          </p>
+        )}
       </div>
 
       <div className="card overlay-layout-editor">
@@ -605,4 +700,10 @@ function scaleLayouts(layouts: ObsBrowserSourceLayout[], from: ObsBrowserSourceC
     cropBottom: layout.cropBottom * sy,
     cropLeft: layout.cropLeft * sx,
   }, to));
+}
+
+function formatDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
 }

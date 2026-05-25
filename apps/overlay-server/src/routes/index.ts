@@ -12,6 +12,7 @@ import { registerIntegrationsRoutes } from "./integrations.routes.js";
 import { registerLogsRoutes } from "./logs.routes.js";
 import { registerMacrosRoutes } from "./macros.routes.js";
 import { registerObsRoutes } from "./obs.routes.js";
+import { registerOverlayPacksRoutes } from "./overlay-packs.routes.js";
 import { registerOverlaysRoutes } from "./overlays.routes.js";
 import { registerSessionsRoutes } from "./sessions.routes.js";
 import { registerSourceGroupsRoutes } from "./source-groups.routes.js";
@@ -28,6 +29,7 @@ export function registerRoutes(app: FastifyInstance, oauthApp: FastifyInstance, 
   registerSessionsRoutes(app, ctx);
   registerStreamDeckRoutes(app, ctx);
   registerOverlaysRoutes(app, ctx);
+  registerOverlayPacksRoutes(app, ctx);
   registerThemesRoutes(app, ctx);
   registerAlertProjectsRoutes(app, ctx);
   registerAssetsRoutes(app, ctx);
