@@ -13,6 +13,7 @@ export const EXPECTED_OVERLAYS: ExpectedOverlayDefinition[] = [
   { id: "chat", label: "Chat", name: "Chat", route: "/o/chat.html", channels: ["chat"] },
   { id: "goals", label: "Goal Bar", name: "Goal Bar", route: "/o/goals.html", channels: ["goal"] },
   { id: "ticker", label: "Event Ticker", name: "Event Ticker", route: "/o/ticker.html", channels: ["ticker"] },
+  { id: "event-list", label: "Event List", name: "Event List", route: "/o/event-list.html", channels: ["eventList"] },
   { id: "now-playing", label: "Now Playing", name: "Now Playing", route: "/o/now-playing.html", channels: ["nowPlaying"] },
 ];
 

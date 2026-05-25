@@ -436,7 +436,7 @@ export type AlertProject = z.infer<typeof AlertProjectSchema>;
 
 export const WidgetConfigSchema = z.object({
   id: z.string(),
-  type: z.enum(["chat", "goal", "ticker", "nowPlaying"]),
+  type: z.enum(["chat", "goal", "ticker", "eventList", "nowPlaying"]),
   enabled: z.boolean().default(true),
   config: z.record(z.unknown()).default({}),
 });

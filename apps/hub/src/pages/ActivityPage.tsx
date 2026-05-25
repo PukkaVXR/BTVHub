@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { BtvEvent, StreamEvent } from "@btv/shared";
 import { api, type StreamSession, type StreamSessionDetail, type SystemLogEntry } from "../api";
+import { useToast } from "../hooks/useToast";
 
 function formatDuration(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -13,6 +14,7 @@ function formatDuration(ms: number) {
 }
 
 export default function ActivityPage() {
+  const toast = useToast();
   const [items, setItems] = useState<Array<{ id: string; event: StreamEvent; at: string }>>([]);
   const [coreEvents, setCoreEvents] = useState<BtvEvent[]>([]);
   const [logs, setLogs] = useState<SystemLogEntry[]>([]);
@@ -40,6 +42,12 @@ export default function ActivityPage() {
 
   const selectSession = async (id: string) => {
     setSelected(await api.sessionDetail(id));
+  };
+
+  const replayActivityAlert = async (id: string) => {
+    const res = await api.replayActivityAlert(id);
+    toast(res.message);
+    load();
   };
 
   return (
@@ -215,6 +223,7 @@ export default function ActivityPage() {
               <th>Type</th>
               <th>User</th>
               <th>Details</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -225,6 +234,11 @@ export default function ActivityPage() {
                 <td>{r.event.type}</td>
                 <td>{r.event.user?.displayName ?? "-"}</td>
                 <td>{r.event.message ?? (r.event.amount != null ? String(r.event.amount) : "")}</td>
+                <td>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => void replayActivityAlert(r.id)}>
+                    Replay alert
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

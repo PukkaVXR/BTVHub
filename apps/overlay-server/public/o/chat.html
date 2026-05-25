@@ -12,6 +12,7 @@
 
     let maxMessages = 20;
     let fadeMs = 8000;
+    const bttvEmotes = new Map();
     const fadeStartMs = () => Math.max(0, fadeMs - 1000);
 
     try {
@@ -22,6 +23,8 @@
       /* defaults */
     }
 
+    void loadBttvEmotes();
+
     const box = document.getElementById("chat-messages");
     const client = new OverlayClient({
       channels: ["chat"],
@@ -30,9 +33,8 @@
         const el = document.createElement("div");
         el.className = "chat-line";
         const m = msg.message;
-        const text = m.text.replace(/</g, "&lt;");
-        const userStyle = m.color ? ` style="color:${m.color}"` : "";
-        el.innerHTML = `<span class="chat-user"${userStyle}>${m.user.displayName}:</span> ${text}`;
+        const userStyle = m.color ? ` style="color:${escapeAttr(m.color)}"` : "";
+        el.innerHTML = `<span class="chat-user"${userStyle}>${escapeHtml(m.user.displayName)}:</span> ${renderChatText(m.text)}`;
         if (m.user.id === "btv-effect") el.classList.add("chat-system");
         box.appendChild(el);
         while (box.children.length > maxMessages) box.firstChild?.remove();
@@ -41,6 +43,64 @@
       },
     });
     client.connect();
+
+    async function loadBttvEmotes() {
+      try {
+        const health = await fetch("/api/health", { cache: "no-store" }).then((r) => r.json());
+        const twitchUserId = health?.twitch?.userId;
+        const refreshedAt = Date.now();
+        const urls = [withCacheBust("https://api.betterttv.net/3/cached/emotes/global", refreshedAt)];
+        if (twitchUserId) urls.push(withCacheBust(`https://api.betterttv.net/3/cached/users/twitch/${encodeURIComponent(twitchUserId)}`, refreshedAt));
+        const results = await Promise.allSettled(urls.map((url) => fetch(url, { cache: "no-store" }).then((r) => r.ok ? r.json() : null)));
+        for (const result of results) {
+          if (result.status !== "fulfilled" || !result.value) continue;
+          const payload = result.value;
+          const emotes = Array.isArray(payload)
+            ? payload
+            : [...(payload.channelEmotes ?? []), ...(payload.sharedEmotes ?? [])];
+          for (const emote of emotes) {
+            if (!emote?.id || !emote?.code) continue;
+            bttvEmotes.set(String(emote.code), {
+              code: String(emote.code),
+              url: `https://cdn.betterttv.net/emote/${encodeURIComponent(String(emote.id))}/2x`,
+            });
+          }
+        }
+      } catch {
+        /* BTTV is optional; text chat should keep working. */
+      }
+    }
+
+    function withCacheBust(url, refreshedAt) {
+      const next = new URL(url);
+      next.searchParams.set("_btvRefresh", String(refreshedAt));
+      return next.toString();
+    }
+
+    function renderChatText(text) {
+      return String(text ?? "")
+        .split(/(\s+)/)
+        .map((part) => {
+          if (!part || /^\s+$/.test(part)) return escapeHtml(part);
+          const emote = bttvEmotes.get(part);
+          if (!emote) return escapeHtml(part);
+          return `<img class="chat-emote chat-emote-bttv" src="${escapeAttr(emote.url)}" alt="${escapeAttr(emote.code)}" title="${escapeAttr(emote.code)}" />`;
+        })
+        .join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value).replace(/`/g, "&#96;");
+    }
   </script>
 </body>
 </html>

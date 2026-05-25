@@ -89,9 +89,24 @@ export const api = {
     }),
 
   overlays: () => request<{ overlays: OverlayInfo[] }>("/overlays"),
-  ensureObsBrowserSources: () =>
+  ensureObsBrowserSources: (sceneName?: string) =>
     request<{ ok: boolean; sceneName: string; sources: ObsBrowserSourceStatus[] }>("/obs/browser-sources/ensure", {
       method: "POST",
+      body: JSON.stringify({ sceneName }),
+    }),
+  browserSourceLayouts: () =>
+    request<ObsBrowserSourceLayoutsResponse>("/obs/browser-source-layouts"),
+
+  saveBrowserSourceLayouts: (layouts: ObsBrowserSourceLayout[], canvas?: ObsBrowserSourceCanvas) =>
+    request<ObsBrowserSourceLayoutsResponse>("/obs/browser-source-layouts", {
+      method: "PUT",
+      body: JSON.stringify({ layouts, canvas }),
+    }),
+
+  applyBrowserSourceLayouts: (sceneName: string | undefined, layouts: ObsBrowserSourceLayout[], canvas?: ObsBrowserSourceCanvas) =>
+    request<ObsBrowserSourceLayoutsApplyResponse>("/obs/browser-source-layouts/apply", {
+      method: "POST",
+      body: JSON.stringify({ sceneName, layouts, canvas }),
     }),
 
   themes: () => request<import("@btv/shared").Theme[]>("/themes"),
@@ -208,6 +223,12 @@ export const api = {
   replayLastAlert: () =>
     request<{ ok: boolean; queue: AlertQueueInfo }>("/alerts/replay-last", { method: "POST" }),
 
+  setQueuedAlertPriority: (id: string, priority: number) =>
+    request<{ ok: boolean; queue: AlertQueueInfo }>(`/alerts/queue/${encodeURIComponent(id)}/priority`, {
+      method: "POST",
+      body: JSON.stringify({ priority }),
+    }),
+
   emergencyAction: (action: string) =>
     request<ActionResponse>("/emergency/" + encodeURIComponent(action), {
       method: "POST",
@@ -302,6 +323,11 @@ export const api = {
       "/activity",
 
     ),
+
+  replayActivityAlert: (id: string) =>
+    request<{ ok: boolean; message: string; queue: AlertQueueInfo }>(`/activity/${encodeURIComponent(id)}/replay-alert`, {
+      method: "POST",
+    }),
 
   logs: () => request<SystemLogEntry[]>("/logs"),
 
@@ -762,6 +788,45 @@ export interface ObsBrowserSourceStatus {
   sourceName?: string;
   currentUrl?: string;
   action?: "created" | "updated" | "linked" | "unchanged" | "failed";
+}
+
+export type ObsBrowserSourceShape = "rectangle" | "rounded" | "circle";
+
+export interface ObsBrowserSourceLayout {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  shape: ObsBrowserSourceShape;
+  borderRadius: number;
+  cropTop: number;
+  cropRight: number;
+  cropBottom: number;
+  cropLeft: number;
+  opacity: number;
+  visible: boolean;
+  locked: boolean;
+}
+
+export interface ObsBrowserSourceCanvas {
+  width: number;
+  height: number;
+}
+
+export interface ObsBrowserSourceLayoutsResponse {
+  ok: boolean;
+  canvas: ObsBrowserSourceCanvas;
+  layouts: ObsBrowserSourceLayout[];
+}
+
+export interface ObsBrowserSourceLayoutsApplyResponse extends ObsBrowserSourceLayoutsResponse {
+  sceneName: string;
+  sources: Array<ObsBrowserSourceStatus & {
+    layout?: ObsBrowserSourceLayout;
+    layoutApplied?: boolean;
+  }>;
 }
 
 export interface StreamSession {

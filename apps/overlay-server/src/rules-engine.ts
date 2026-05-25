@@ -34,6 +34,7 @@ export class RulesEngine {
     this.coreEvents.publishStreamEvent(event);
 
     this.bus.broadcast({ kind: "ticker:event", event }, "ticker");
+    this.bus.broadcast({ kind: "ticker:event", event }, "eventList");
 
     if (event.type === "chat" && event.user) {
       const chatWidget = getWidgets().find((w) => w.type === "chat");

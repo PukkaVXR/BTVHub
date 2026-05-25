@@ -12,20 +12,36 @@
   </div>
   <script type="module">
     import { OverlayClient } from "/js/overlay-client.js";
+    const widget = document.querySelector(".ticker-widget");
+    const title = document.querySelector(".ticker-widget h3");
     const list = document.getElementById("ticker-list");
     let maxEvents = 15;
+    let showUser = true;
+    let showAmount = false;
+    let eventTypes = [];
     try {
       const cfg = await fetch("/api/widgets/ticker-config").then((r) => r.json());
       maxEvents = Number(cfg.maxEvents) || 15;
+      showUser = cfg.showUser !== false;
+      showAmount = cfg.showAmount === true;
+      eventTypes = Array.isArray(cfg.eventTypes) ? cfg.eventTypes : [];
+      title.textContent = cfg.title || "Recent Events";
+      widget.dataset.position = cfg.position || "top-left";
+      widget.dataset.compact = cfg.compact ? "true" : "false";
+      widget.style.width = `${Math.max(220, Math.min(900, Number(cfg.width) || 360))}px`;
     } catch { /* default */ }
-    const labels = { follow: "Follow", sub: "Sub", cheer: "Cheer", raid: "Raid", gift_sub: "Gift Sub" };
+    const labels = { follow: "Follow", sub: "Sub", resub: "Resub", cheer: "Cheer", raid: "Raid", gift_sub: "Gift Sub", channel_points: "Channel Point", goal_milestone: "Goal" };
     const client = new OverlayClient({
       channels: ["ticker"],
       onMessage: (msg) => {
         if (msg.kind !== "ticker:event") return;
+        if (eventTypes.length && !eventTypes.includes(msg.event.type)) return;
         const li = document.createElement("li");
         const ev = msg.event;
-        li.textContent = `${labels[ev.type] || ev.type}: ${ev.user?.displayName || "Someone"}`;
+        const label = labels[ev.type] || ev.type;
+        const user = showUser ? `: ${ev.user?.displayName || "Someone"}` : "";
+        const amount = showAmount && ev.amount != null ? ` (${ev.amount})` : "";
+        li.textContent = `${label}${user}${amount}`;
         list.prepend(li);
         while (list.children.length > maxEvents) list.lastChild?.remove();
       },

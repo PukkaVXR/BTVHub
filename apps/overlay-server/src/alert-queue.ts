@@ -97,6 +97,14 @@ export class AlertQueue {
     return true;
   }
 
+  setQueuedPriority(id: string, priority: number): boolean {
+    const item = this.queue.find((queued) => queued.id === id);
+    if (!item) return false;
+    item.priority = priority;
+    this.queue.sort((a, b) => b.priority - a.priority);
+    return true;
+  }
+
   getStatus() {
     return {
       playing: this.playing,

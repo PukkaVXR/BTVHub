@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BTV Event List</title>
+  <link rel="stylesheet" href="/styles/overlay.css" />
+</head>
+<body>
+  <div class="event-list-widget">
+    <h3>Latest Activity</h3>
+    <ul id="event-list"></ul>
+  </div>
+  <script type="module">
+    import { OverlayClient } from "/js/overlay-client.js";
+
+    const list = document.getElementById("event-list");
+    let maxEvents = 8;
+    let showAmount = true;
+    let showMessage = true;
+    try {
+      const cfg = await fetch("/api/widgets/event-list-config").then((r) => r.json());
+      maxEvents = Number(cfg.maxEvents) || 8;
+      showAmount = cfg.showAmount !== false;
+      showMessage = cfg.showMessage !== false;
+    } catch { /* default */ }
+
+    const labels = {
+      follow: "Follow",
+      sub: "Sub",
+      resub: "Resub",
+      cheer: "Cheer",
+      raid: "Raid",
+      gift_sub: "Gift Sub",
+      channel_points: "Channel Point",
+      goal_milestone: "Goal",
+    };
+
+    function describe(ev) {
+      const label = labels[ev.type] || ev.type;
+      const user = ev.user?.displayName || "Someone";
+      const amount = showAmount && ev.amount != null ? ` · ${ev.amount}` : "";
+      const message = showMessage && ev.message ? ev.message : "";
+      return { label, user, amount, message };
+    }
+
+    const client = new OverlayClient({
+      channels: ["eventList"],
+      onMessage: (msg) => {
+        if (msg.kind !== "ticker:event") return;
+        const ev = msg.event;
+        const details = describe(ev);
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <span class="event-list-type">${escapeHtml(details.label)}</span>
+          <strong>${escapeHtml(details.user)}${escapeHtml(details.amount)}</strong>
+          ${details.message ? `<em>${escapeHtml(details.message)}</em>` : ""}
+        `;
+        list.prepend(li);
+        while (list.children.length > maxEvents) list.lastChild?.remove();
+      },
+    });
+    client.connect();
+
+    function escapeHtml(value) {
+      return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+  </script>
+</body>
+</html>

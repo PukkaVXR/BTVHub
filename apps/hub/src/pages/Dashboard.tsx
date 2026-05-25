@@ -227,6 +227,18 @@ export default function Dashboard() {
     load();
   };
 
+  const adjustQueuedAlertPriority = async (id: string, nextPriority: number) => {
+    const res = await api.setQueuedAlertPriority(id, nextPriority);
+    toast(res.ok ? `Alert priority set to ${nextPriority}` : "That queued alert is no longer available");
+    load();
+  };
+
+  const replayActivityAlert = async (id: string) => {
+    const res = await api.replayActivityAlert(id);
+    toast(res.message);
+    load();
+  };
+
   const emergencyAction = async (action: string) => {
     const res = await api.emergencyAction(action);
     toast(res.ok ? res.title : res.message);
@@ -1053,6 +1065,7 @@ export default function Dashboard() {
                 <th>Event</th>
                 <th>User</th>
                 <th>Priority</th>
+                <th>Controls</th>
               </tr>
             </thead>
             <tbody>
@@ -1061,6 +1074,26 @@ export default function Dashboard() {
                   <td>{item.eventType}</td>
                   <td>{item.user ?? "-"}</td>
                   <td>{item.priority}</td>
+                  <td>
+                    <div className="actions" style={{ marginTop: 0 }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => void adjustQueuedAlertPriority(item.id, item.priority + 1)}
+                        title="Increase this queued alert's priority."
+                      >
+                        Priority +
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => void adjustQueuedAlertPriority(item.id, item.priority - 1)}
+                        title="Decrease this queued alert's priority."
+                      >
+                        Priority -
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1211,6 +1244,7 @@ export default function Dashboard() {
                 <th>Source</th>
                 <th>Type</th>
                 <th>User</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -1220,6 +1254,11 @@ export default function Dashboard() {
                   <td>{row.event.source}</td>
                   <td>{row.event.type}</td>
                   <td>{row.event.user?.displayName ?? "-"}</td>
+                  <td>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => void replayActivityAlert(row.id)}>
+                      Replay alert
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

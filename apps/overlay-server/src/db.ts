@@ -309,6 +309,7 @@ function seedDefaults(): void {
       ["chat", "chat", JSON.stringify({ maxMessages: 20, fadeMs: 8000 })],
       ["goal-follow", "goal", JSON.stringify({ goalId: "follow-goal", label: "Follower Goal" })],
       ["ticker", "ticker", JSON.stringify({ maxEvents: 15 })],
+      ["event-list", "eventList", JSON.stringify({ maxEvents: 8, showAmount: true, showMessage: true })],
       ["now-playing", "nowPlaying", JSON.stringify({})],
     ];
     for (const [id, type, config] of widgets) {
@@ -317,6 +318,9 @@ function seedDefaults(): void {
       ).run(id, type, config);
     }
   }
+  db.prepare(
+    `INSERT OR IGNORE INTO widgets (id, type, enabled, config) VALUES (?, ?, 1, ?)`,
+  ).run("event-list", "eventList", JSON.stringify({ maxEvents: 8, showAmount: true, showMessage: true }));
 
   const goalsCount = db.prepare("SELECT COUNT(*) as c FROM goals").get() as { c: number };
   if (goalsCount.c === 0) {
@@ -1243,6 +1247,12 @@ export function getActivity(limit = 50) {
   return db
     .prepare(`SELECT * FROM activity_log ORDER BY created_at DESC LIMIT ?`)
     .all(limit) as Array<{ id: string; event_json: string; created_at: string }>;
+}
+
+export function getActivityById(id: string) {
+  return db
+    .prepare(`SELECT * FROM activity_log WHERE id = ?`)
+    .get(id) as { id: string; event_json: string; created_at: string } | undefined;
 }
 
 export type SystemLogLevel = "info" | "warn" | "error";
