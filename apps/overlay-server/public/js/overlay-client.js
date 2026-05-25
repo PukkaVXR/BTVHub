@@ -146,9 +146,12 @@ export function playMediaEffect(container, config) {
     Object.assign(slot.style, {
       position: "fixed",
       inset: "0",
+      width: "100vw",
+      height: "100vh",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      overflow: "hidden",
       pointerEvents: "none",
       zIndex: "500",
     });
