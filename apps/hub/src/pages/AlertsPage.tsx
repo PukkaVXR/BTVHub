@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { AlertProject, AlertRule, StreamEventType } from "@btv/shared";
 import SoundPicker from "../components/SoundPicker";
+import { AlertsSectionTabs } from "../components/alerts/AlertsSectionTabs";
 import { api } from "../api";
 import { SaveIndicator } from "../hooks/SaveIndicator";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useToast } from "../hooks/useToast";
-import { PageHeader } from "../ui";
+import { Button, ButtonLink, Callout, Card, CardHeader, PageHeader, StatusPill } from "../ui";
 
 const EVENT_TYPES: StreamEventType[] = [
   "follow",
@@ -60,146 +61,166 @@ export default function AlertsPage() {
 
   return (
     <>
-      <PageHeader title="Alerts" description="Advanced routing: map Twitch events to visual alert projects and sounds." />
+      <PageHeader
+        title="Alert Routing"
+        description="Map Twitch events to visual alert projects, sound effects, cooldowns, and priorities."
+        action={<ButtonLink variant="primary" size="sm" to="/alerts">Open projects</ButtonLink>}
+      />
+      <AlertsSectionTabs />
       <SaveIndicator status={saveStatus} label="Alert routing" />
 
-      <div className="card">
-        <h2>Test alerts</h2>
-        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
-          Use <strong>Test chat</strong> to verify OBS chat overlay (
-          <code>http://127.0.0.1:4782/o/chat.html</code>).
-        </p>
-        <div className="actions">
-          {EVENT_TYPES.map((t) => (
-            <button
-              key={t}
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => void test(t)}
-            >
-              {t === "chat" ? "Test chat" : `Test ${t}`}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="card">
-        <h2>Alert rules</h2>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Event</th>
-              <th>Visual alert</th>
-              <th>Cooldown</th>
-              <th>Min bits</th>
-              <th>Sound</th>
-              <th>Priority</th>
-              <th>On</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rules.map((rule) => (
-              <tr key={rule.id}>
-                <td>{rule.eventType}</td>
-                <td>
-                  <select
-                    value={selectedProjectId(rule.themeId)}
-                    onChange={(e) =>
-                      setRules((rs) =>
-                        rs.map((r) => (r.id === rule.id ? { ...r, themeId: e.target.value } : r)),
-                      )
-                    }
-                  >
-                    {projects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))}
-                  </select>
-                  <Link
-                    to={`/alerts/${encodeURIComponent(selectedProjectId(rule.themeId))}`}
-                    style={{ fontSize: 12, marginLeft: 8 }}
-                  >
-                    Edit alert
-                  </Link>
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    style={{ width: 80, margin: 0 }}
-                    value={rule.cooldownMs}
-                    onChange={(e) =>
-                      setRules((rs) =>
-                        rs.map((r) =>
-                          r.id === rule.id ? { ...r, cooldownMs: Number(e.target.value) } : r,
-                        ),
-                      )
-                    }
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    style={{ width: 70, margin: 0 }}
-                    placeholder="—"
-                    value={rule.minAmount ?? ""}
-                    onChange={(e) =>
-                      setRules((rs) =>
-                        rs.map((r) =>
-                          r.id === rule.id
-                            ? {
-                                ...r,
-                                minAmount: e.target.value ? Number(e.target.value) : undefined,
-                              }
-                            : r,
-                        ),
-                      )
-                    }
-                  />
-                </td>
-                <td style={{ minWidth: 220 }}>
-                  <SoundPicker
-                    value={rule.soundAsset ?? ""}
-                    onChange={(path) =>
-                      setRules((rs) =>
-                        rs.map((r) =>
-                          r.id === rule.id ? { ...r, soundAsset: path || undefined } : r,
-                        ),
-                      )
-                    }
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    style={{ width: 60, margin: 0 }}
-                    value={rule.priority}
-                    onChange={(e) =>
-                      setRules((rs) =>
-                        rs.map((r) =>
-                          r.id === rule.id ? { ...r, priority: Number(e.target.value) } : r,
-                        ),
-                      )
-                    }
-                  />
-                </td>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={rule.enabled}
-                    onChange={(e) =>
-                      setRules((rs) =>
-                        rs.map((r) =>
-                          r.id === rule.id ? { ...r, enabled: e.target.checked } : r,
-                        ),
-                      )
-                    }
-                  />
-                </td>
-              </tr>
+      <div className="alert-routing-layout">
+        <Card className="alert-routing-test-card">
+          <CardHeader
+            title="Test Alerts"
+            description="Fire sample events into OBS without changing your routing rules."
+            action={<StatusPill tone="info" label={`${EVENT_TYPES.length} events`} detail="Manual tests" />}
+          />
+          <Callout tone="info">
+            Use <strong>Test chat</strong> to verify the OBS chat overlay at{" "}
+            <code>http://127.0.0.1:4782/o/chat.html</code>.
+          </Callout>
+          <div className="alert-routing-test-grid">
+            {EVENT_TYPES.map((type) => (
+              <Button
+                key={type}
+                type="button"
+                variant={type === "follow" ? "primary" : "secondary"}
+                size="sm"
+                onClick={() => void test(type)}
+              >
+                {type === "chat" ? "Test chat" : `Test ${type}`}
+              </Button>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </Card>
+
+        <Card className="alert-routing-table-card">
+          <CardHeader
+            title="Routing Rules"
+            description="Each row controls which visual project and sound should respond to a stream event."
+            action={<StatusPill tone="neutral" label={`${rules.length} rules`} detail={`${projects.length} projects`} />}
+          />
+          <div className="alert-routing-table-wrap">
+            <table className="table alert-routing-table">
+              <thead>
+                <tr>
+                  <th>Event</th>
+                  <th>Visual alert</th>
+                  <th>Cooldown</th>
+                  <th>Min bits</th>
+                  <th>Sound</th>
+                  <th>Priority</th>
+                  <th>On</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rules.map((rule) => (
+                  <tr key={rule.id}>
+                    <td>
+                      <strong>{rule.eventType}</strong>
+                    </td>
+                    <td>
+                      <div className="alert-routing-project-cell">
+                        <select
+                          value={selectedProjectId(rule.themeId)}
+                          onChange={(e) =>
+                            setRules((rs) =>
+                              rs.map((r) => (r.id === rule.id ? { ...r, themeId: e.target.value } : r)),
+                            )
+                          }
+                        >
+                          {projects.map((project) => (
+                            <option key={project.id} value={project.id}>
+                              {project.name}
+                            </option>
+                          ))}
+                        </select>
+                        <Link to={`/alerts/${encodeURIComponent(selectedProjectId(rule.themeId))}`}>
+                          Edit alert
+                        </Link>
+                      </div>
+                    </td>
+                    <td>
+                      <input
+                        className="alert-routing-number-input"
+                        type="number"
+                        value={rule.cooldownMs}
+                        onChange={(e) =>
+                          setRules((rs) =>
+                            rs.map((r) =>
+                              r.id === rule.id ? { ...r, cooldownMs: Number(e.target.value) } : r,
+                            ),
+                          )
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="alert-routing-number-input"
+                        type="number"
+                        placeholder="-"
+                        value={rule.minAmount ?? ""}
+                        onChange={(e) =>
+                          setRules((rs) =>
+                            rs.map((r) =>
+                              r.id === rule.id
+                                ? {
+                                    ...r,
+                                    minAmount: e.target.value ? Number(e.target.value) : undefined,
+                                  }
+                                : r,
+                            ),
+                          )
+                        }
+                      />
+                    </td>
+                    <td className="alert-routing-sound-cell">
+                      <SoundPicker
+                        value={rule.soundAsset ?? ""}
+                        onChange={(path) =>
+                          setRules((rs) =>
+                            rs.map((r) =>
+                              r.id === rule.id ? { ...r, soundAsset: path || undefined } : r,
+                            ),
+                          )
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="alert-routing-priority-input"
+                        type="number"
+                        value={rule.priority}
+                        onChange={(e) =>
+                          setRules((rs) =>
+                            rs.map((r) =>
+                              r.id === rule.id ? { ...r, priority: Number(e.target.value) } : r,
+                            ),
+                          )
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={rule.enabled}
+                        aria-label={`Enable ${rule.eventType} alert rule`}
+                        onChange={(e) =>
+                          setRules((rs) =>
+                            rs.map((r) =>
+                              r.id === rule.id ? { ...r, enabled: e.target.checked } : r,
+                            ),
+                          )
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       </div>
     </>
   );

@@ -4,6 +4,7 @@ import Editor from "@monaco-editor/react";
 import { renderAlert } from "@btv/overlay-sdk";
 import type { StreamEventType, Theme, ThemeAnchor } from "@btv/shared";
 import { api } from "../api";
+import { AlertsSectionTabs } from "../components/alerts/AlertsSectionTabs";
 import { useToast } from "../hooks/useToast";
 import { buildTheme, mockEvent } from "../theme-builder/buildTheme";
 import { parseThemeLayout } from "../theme-builder/parseLayout";
@@ -12,7 +13,7 @@ import {
   type ThemeLayoutId,
   type ThemeVisualModel,
 } from "../theme-builder/types";
-import { PageHeader } from "../ui";
+import { ButtonLink, Callout, PageHeader } from "../ui";
 
 const PREVIEW_TYPES: StreamEventType[] = ["follow", "sub", "cheer", "raid"];
 
@@ -201,11 +202,22 @@ export default function ThemesPage() {
   return (
     <>
       <PageHeader
-        title="Theme Editor"
-        description="Position and size alerts on the 1920x1080 canvas. Use Design for visuals, Advanced for code."
+        title="Legacy Theme Editor"
+        action={<span className="badge badge-off">Legacy</span>}
+        description="Maintain older alert themes and rules. New alert work should use Visual Alert Projects."
       />
+      <AlertsSectionTabs />
+      <Callout title="Use Visual Alert Projects for new alerts">
+        Legacy themes still work for existing alert rules, interactive actions, and old setups. For cinematic alerts,
+        layers, timelines, GIPHY media, variations, and OBS testing, create or migrate to a Visual Alert Project.
+        <div className="actions themes-legacy-actions">
+          <ButtonLink to="/alerts" size="sm" variant="primary">Open Visual Alert Projects</ButtonLink>
+          <ButtonLink to="/alerts/routing" size="sm" variant="secondary">Manage routing</ButtonLink>
+        </div>
+      </Callout>
       <p className="subtitle">
-        Position and size alerts on the 1920×1080 canvas. Use Design for visuals, Advanced for code.
+        Migration path: recreate the theme as a Visual Alert Project, test it in OBS, then switch matching routing rules
+        from the legacy theme ID to the new project.
       </p>
 
       <div className="actions" style={{ marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>

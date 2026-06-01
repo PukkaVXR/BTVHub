@@ -1,22 +1,14 @@
-import { Link } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { api, type IntegrationsInfo, type PreflightInfo } from "../api";
 import { useToast } from "../hooks/useToast";
-import { PageHeader } from "../ui";
-
-interface SetupStep {
-  id: string;
-  title: string;
-  detail: string;
-  complete: boolean;
-  actionLabel: string;
-  actionTo?: string;
-  onAction?: () => void;
-}
+import { setupReadinessSteps, type SetupReadinessStep } from "../lib/readiness";
+import { readSetupCompleted, writeSetupCompleted } from "../lib/setupCompletion";
+import { Button, ButtonAnchor, ButtonLink, Callout, Card, PageHeader } from "../ui";
 
 export default function SetupPage() {
   const [preflight, setPreflight] = useState<PreflightInfo | null>(null);
   const [integrations, setIntegrations] = useState<IntegrationsInfo | null>(null);
+  const [setupCompleted, setSetupCompleted] = useState(() => readSetupCompleted());
   const toast = useToast();
 
   const load = () => {
@@ -36,122 +28,120 @@ export default function SetupPage() {
     load();
   };
 
-  const steps = useMemo<SetupStep[]>(() => {
-    const overlayReachable = preflight?.expectedOverlays.some((overlay) => overlay.reachable) ?? false;
-    return [
-      {
-        id: "server",
-        title: "Start BTV services",
-        detail: preflight ? `Overlay server is running at ${preflight.checks.find((c) => c.id === "overlay-server")?.detail}` : "Waiting for server health.",
-        complete: Boolean(preflight),
-        actionLabel: "Open Dashboard",
-        actionTo: "/",
-      },
-      {
-        id: "twitch",
-        title: "Connect Twitch",
-        detail: integrations?.twitch.connected
-          ? `Connected as ${integrations.twitch.displayName ?? integrations.twitch.login ?? "Twitch"}`
-          : "Add Twitch credentials and complete OAuth.",
-        complete: Boolean(integrations?.twitch.connected),
-        actionLabel: "Configure Twitch",
-        actionTo: "/integrations",
-      },
-      {
-        id: "obs",
-        title: "Connect OBS WebSocket",
-        detail: integrations?.obs.connected ? "OBS WebSocket is connected." : "Save OBS host, port, and password.",
-        complete: Boolean(integrations?.obs.connected),
-        actionLabel: "Configure OBS",
-        actionTo: "/integrations",
-      },
-      {
-        id: "overlays",
-        title: "Add OBS browser sources",
-        detail: overlayReachable
-          ? `${preflight?.expectedOverlays.filter((overlay) => overlay.reachable).length ?? 0} overlay source(s) are connected.`
-          : "Add at least the Alerts browser source to OBS.",
-        complete: overlayReachable,
-        actionLabel: "Copy Overlay URLs",
-        actionTo: "/overlays",
-      },
-      {
-        id: "test-alert",
-        title: "Send a test alert",
-        detail: "Confirm that OBS can see alerts before going live.",
-        complete: Boolean(preflight?.activity.some((row) => row.event.source === "manual")),
-        actionLabel: "Test Follow Alert",
-        onAction: () => void testFollow(),
-      },
-      {
-        id: "doctor",
-        title: "Review BTV Doctor",
-        detail: preflight?.ok ? "All required checks are currently healthy." : "Review any failed checks before streaming.",
-        complete: Boolean(preflight?.ok),
-        actionLabel: "Open Dashboard",
-        actionTo: "/",
-      },
-      {
-        id: "backup",
-        title: "Config backup available",
-        detail: "Download a redacted snapshot of settings, widgets, alerts, effects, macros, automations, and layouts.",
-        complete: true,
-        actionLabel: "Download Backup",
-        actionTo: "/api/config/export",
-      },
-    ];
-  }, [integrations, preflight]);
-
+  const steps = useMemo<SetupReadinessStep[]>(() => setupReadinessSteps(preflight, integrations), [integrations, preflight]);
   const completeCount = steps.filter((step) => step.complete).length;
+  const allComplete = steps.length > 0 && steps.every((step) => step.complete);
+  const progress = steps.length ? Math.round((completeCount / steps.length) * 100) : 0;
+  const nextStep = steps.find((step) => !step.complete);
+
+  const markSetupComplete = () => {
+    writeSetupCompleted(true);
+    setSetupCompleted(true);
+    toast("Setup marked complete");
+  };
+
+  const jumpToStep = (id: string) => {
+    document.getElementById(`setup-step-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const runStepAction = (step: SetupReadinessStep) => {
+    if (step.actionId === "test-follow") void testFollow();
+  };
+
+  useEffect(() => {
+    if (allComplete && !setupCompleted) {
+      writeSetupCompleted(true);
+      setSetupCompleted(true);
+    }
+  }, [allComplete, setupCompleted]);
 
   return (
     <>
       <PageHeader
         title="Setup Wizard"
         description="A quick readiness path for Twitch, OBS, browser sources, and test alerts."
+        action={
+          <Button type="button" variant={setupCompleted ? "secondary" : "primary"} size="sm" onClick={markSetupComplete}>
+            {setupCompleted ? "Setup complete" : "Mark complete"}
+          </Button>
+        }
       />
 
-      <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+      {setupCompleted ? (
+        <Callout tone="success" title="Setup is marked complete">
+          This keeps Setup tucked away as a Settings page while Dashboard takes over day-to-day readiness.
+        </Callout>
+      ) : null}
+
+      <div className="setup-wizard">
+        <Card className="setup-progress-card">
+          <div
+            className="setup-progress-ring"
+            style={{ "--setup-progress": `${progress}%` } as CSSProperties}
+            aria-label={`${progress}% complete`}
+          >
+            <span>{progress}%</span>
+          </div>
           <div>
-            <h2 style={{ margin: 0 }}>Setup Progress</h2>
-            <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 6 }}>
+            <h2>Setup Progress</h2>
+            <p>
               {completeCount}/{steps.length} checks complete.
+              {nextStep ? ` Next up: ${nextStep.title}.` : " Everything needed for first run is ready."}
             </p>
           </div>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={load}>
+          <Button type="button" variant="secondary" size="sm" onClick={load}>
             Refresh
-          </button>
-        </div>
-      </div>
-
-      <div className="grid">
-        {steps.map((step) => (
-          <div key={step.id} className="card" style={{ borderColor: step.complete ? "var(--success)" : "var(--border)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "start" }}>
-              <div>
-                <h2 style={{ margin: 0 }}>{step.title}</h2>
-                <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 8 }}>{step.detail}</p>
-              </div>
-              <span className={step.complete ? "badge badge-ok" : "badge badge-off"}>
-                {step.complete ? "Done" : "Todo"}
-              </span>
-            </div>
-            {step.actionTo?.startsWith("/api/") ? (
-              <a className="btn btn-secondary btn-sm" href={step.actionTo}>
-                {step.actionLabel}
-              </a>
-            ) : step.actionTo ? (
-              <Link className="btn btn-secondary btn-sm" to={step.actionTo}>
-                {step.actionLabel}
-              </Link>
-            ) : (
-              <button type="button" className="btn btn-primary btn-sm" onClick={step.onAction}>
-                {step.actionLabel}
+          </Button>
+          <div className="setup-stepper" aria-label="Setup steps">
+            {steps.map((step, index) => (
+              <button
+                type="button"
+                className={`setup-stepper__item${step.complete ? " setup-stepper__item--complete" : ""}`}
+                key={step.id}
+                onClick={() => jumpToStep(step.id)}
+              >
+                <span>{index + 1}</span>
+                <strong>{step.title}</strong>
               </button>
-            )}
+            ))}
           </div>
-        ))}
+        </Card>
+
+        <div className="setup-step-list">
+          {steps.map((step, index) => (
+            <Card
+              key={step.id}
+              id={`setup-step-${step.id}`}
+              className={`setup-step-card${step.complete ? " setup-step-card--complete" : ""}`}
+            >
+              <div className="setup-step-card__header">
+                <span className="setup-step-card__number">{index + 1}</span>
+                <div>
+                  <h2>{step.title}</h2>
+                  <p>{step.detail}</p>
+                </div>
+                <span className={step.complete ? "badge badge-ok" : "badge badge-off"}>
+                  {step.complete ? "Done" : "Todo"}
+                </span>
+              </div>
+              <div className="setup-step-card__action">
+                {step.actionTo?.startsWith("/api/") ? (
+                  <ButtonAnchor variant="secondary" size="sm" href={step.actionTo}>
+                    {step.actionLabel}
+                  </ButtonAnchor>
+                ) : step.actionTo ? (
+                  <ButtonLink variant="secondary" size="sm" to={step.actionTo}>
+                    {step.actionLabel}
+                  </ButtonLink>
+                ) : (
+                  <Button type="button" variant="primary" size="sm" onClick={() => runStepAction(step)}>
+                    {step.actionLabel}
+                  </Button>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
     </>
   );

@@ -4,9 +4,10 @@ import { CommandPalette } from "./components/CommandPalette";
 import { EmergencyMenu } from "./components/EmergencyMenu";
 import { useAppHealth } from "./context/AppHealthContext";
 import { useSaveStatusSummary } from "./context/SaveStatusContext";
+import { readSetupCompleted, SETUP_COMPLETED_EVENT } from "./lib/setupCompletion";
 import { ErrorBoundary, PageLoading, StatusPill } from "./ui";
 
-const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Dashboard = lazy(() => import("./pages/live/Dashboard"));
 const SetupPage = lazy(() => import("./pages/SetupPage"));
 const OverlaysPage = lazy(() => import("./pages/OverlaysPage"));
 const AlertEditorPage = lazy(() => import("./pages/AlertEditorPage"));
@@ -77,6 +78,7 @@ export default function App() {
   const location = useLocation();
   const reachableOverlays = preflight?.expectedOverlays.filter((overlay) => overlay.reachable).length ?? 0;
   const expectedOverlays = preflight?.expectedOverlays.length ?? 0;
+  const [setupCompleted, setSetupCompleted] = useState(() => readSetupCompleted());
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
     try {
       return JSON.parse(localStorage.getItem(NAV_COLLAPSE_STORAGE_KEY) ?? "{}") as Record<string, boolean>;
@@ -88,6 +90,18 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(NAV_COLLAPSE_STORAGE_KEY, JSON.stringify(collapsedSections));
   }, [collapsedSections]);
+
+  useEffect(() => {
+    const onSetupCompleted = () => setSetupCompleted(readSetupCompleted());
+    window.addEventListener(SETUP_COMPLETED_EVENT, onSetupCompleted);
+    window.addEventListener("storage", onSetupCompleted);
+    return () => {
+      window.removeEventListener(SETUP_COMPLETED_EVENT, onSetupCompleted);
+      window.removeEventListener("storage", onSetupCompleted);
+    };
+  }, []);
+
+  const setupNeedsAttention = !setupCompleted && preflight ? !preflight.ok : !setupCompleted;
 
   const activeSections = useMemo(() => {
     const currentPath = location.pathname;
@@ -133,7 +147,7 @@ export default function App() {
                     className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
                   >
                     <span>{item.label}</span>
-                    {"badge" in item ? <small>{item.badge}</small> : null}
+                    {"badge" in item ? <small>{item.badge}</small> : item.path === "/setup" && setupNeedsAttention ? <small>Start</small> : null}
                   </NavLink>
                 ))}
               </div>

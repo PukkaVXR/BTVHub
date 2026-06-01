@@ -228,31 +228,31 @@ Document these before changing UI so you can verify improvements:
 
 ### 2.1 Token migration
 
-- [ ] Introduce semantic tokens alongside legacy vars (alias old → new during transition)
-- [ ] Replace hardcoded hex in inline styles with tokens (grep `style={{` in `pages/`)
-- [ ] Add reduced-motion media query block
+- [x] Introduce semantic tokens alongside legacy vars (alias old → new during transition)
+- [ ] Replace hardcoded hex in inline styles with tokens (grep `style={{` in `pages/`) - in progress
+- [x] Add reduced-motion media query block
 
 ### 2.2 Build core components
 
-- [ ] `Button` + variants
-- [ ] `Card` / `CardSection`
-- [ ] `PageHeader`
-- [ ] `StatusPill`
-- [ ] `Callout`
-- [ ] `FormField`
-- [ ] `CopyField`
-- [ ] `EmptyState`
-- [ ] `Skeleton`
-- [ ] Upgrade `ToastProvider` → queue + variants + a11y roles
+- [x] `Button` + variants
+- [x] `Card` / `CardSection`
+- [x] `PageHeader`
+- [x] `StatusPill`
+- [x] `Callout`
+- [x] `FormField`
+- [x] `CopyField`
+- [x] `EmptyState`
+- [x] `Skeleton`
+- [x] Upgrade `ToastProvider` → queue + variants + a11y roles
 
 ### 2.3 Migrate shell to components
 
-- [ ] Refactor `App.tsx` to use `StatusPill`, `Button`, etc.
-- [ ] Refactor `PageLoading` / `ErrorBoundary` presentation
+- [x] Refactor `App.tsx` to use `StatusPill`, `Button`, etc.
+- [x] Refactor `PageLoading` / `ErrorBoundary` presentation
 
 ### 2.4 CSS hygiene
 
-- [ ] Mark deprecated global classes in `styles.css` comment block
+- [x] Mark deprecated global classes in `styles.css` comment block
 - [ ] For each new component, move styles from global file to colocated `*.module.css` (if using modules)
 - [ ] Target: no growth in global CSS line count; shrink over time
 
@@ -262,49 +262,49 @@ Document these before changing UI so you can verify improvements:
 
 ### 3.1 Split Dashboard
 
-- [ ] Create `pages/live/Dashboard.tsx` (or `LiveControlPage.tsx`)
-- [ ] Create `components/live/ReadinessStrip.tsx`
-- [ ] Create `components/live/GoLiveChecklist.tsx`
-- [ ] Create `components/live/SessionPanel.tsx`
-- [ ] Create `components/live/QuickShortcuts.tsx` (favorite macros / source groups)
-- [ ] Create `components/live/HealthPanel.tsx` (doctor / preflight checks)
-- [ ] Move Stream Deck builder → `pages/stream-deck/StreamDeckPage.tsx`
+- [x] Create `pages/live/Dashboard.tsx` (or `LiveControlPage.tsx`)
+- [x] Create `components/live/ReadinessStrip.tsx`
+- [x] Create `components/live/GoLiveChecklist.tsx`
+- [x] Create `components/live/SessionPanel.tsx`
+- [x] Create `components/live/QuickShortcuts.tsx` (favorite macros / source groups)
+- [x] Create `components/live/HealthPanel.tsx` (doctor / preflight checks)
+- [x] Move Stream Deck builder → `pages/stream-deck/StreamDeckPage.tsx`
 
 ### 3.2 Readiness strip
 
-- [ ] Aggregate preflight + integrations + overlay snapshot into 4–5 pills
-- [ ] Overall score: “4/5 ready” with link to first failing check
-- [ ] Use `Callout` for blocking issues (red/yellow)
+- [x] Aggregate preflight + integrations + overlay snapshot into 4–5 pills
+- [x] Overall score: “4/5 ready” with link to first failing check
+- [x] Use `Callout` for blocking issues (red/yellow)
 
 ### 3.3 Go live checklist
 
-- [ ] Short list: Test alert, Repair browser sources, Copy alerts URL, Open Integrations
-- [ ] Each item: done / todo with one-click action
-- [ ] Reuse logic from `SetupPage` where overlap exists
+- [x] Short list: Test alert, Repair browser sources, Copy alerts URL, Open Integrations
+- [x] Each item: done / todo with one-click action
+- [x] Reuse logic from `SetupPage` where overlap exists
 
 ### 3.4 Session panel
 
-- [ ] Start/stop session prominent
-- [ ] Duration + key totals (from session API)
-- [ ] Link to Activity for detail
+- [x] Start/stop session prominent
+- [x] Duration + key totals (from session API)
+- [x] Link to Activity for detail
 
 ### 3.5 Quick shortcuts
 
-- [ ] Configurable favorites (localStorage): macros, source groups
-- [ ] Run macro / apply source group without opening full Macros page
+- [x] Configurable favorites (localStorage): macros, source groups
+- [x] Run macro / apply source group without opening full Macros page
 
 ### 3.6 Stream Deck page
 
-- [ ] Move builder UI from Dashboard
-- [ ] Add link to `tutorials/stream-deck-setup.md`
-- [ ] PageHeader + CopyField for generated URLs
+- [x] Move builder UI from Dashboard
+- [x] Add link to `tutorials/stream-deck-setup.md`
+- [x] PageHeader + CopyField for generated URLs
 
 ### 3.7 Dashboard verification
 
-- [ ] Dashboard load time acceptable (parallel API calls, consider context)
-- [ ] No duplicate health polling vs. App shell
-- [ ] Stream Deck still generates valid requests
-- [ ] OBS repair browser sources still works from checklist
+- [x] Dashboard load time acceptable (parallel API calls, consider context)
+- [x] No duplicate health polling vs. App shell
+- [x] Stream Deck still generates valid requests
+- [x] OBS repair browser sources still works from checklist
 
 ---
 
@@ -312,22 +312,22 @@ Document these before changing UI so you can verify improvements:
 
 ### 4.1 Setup wizard
 
-- [ ] First-run detection (localStorage `btv.setup.completed` or preflight state)
+- [x] First-run detection (localStorage `btv.setup.completed` or preflight state)
 - [ ] Optional full-screen wizard layout on first visit
-- [ ] Stepper UI with progress ring (enhance existing `SetupPage`)
-- [ ] Click step → jump to action (Integrations, Overlays, test alert)
-- [ ] On completion → mark complete; show Setup as link under Settings only
+- [x] Stepper UI with progress ring (enhance existing `SetupPage`)
+- [x] Click step → jump to action (Integrations, Overlays, test alert)
+- [x] On completion → mark complete; show Setup as link under Settings only
 - [ ] Merge completed checklist into Dashboard `HealthPanel`
 
 ### 4.2 Integrations page
 
-- [ ] One card per service: Twitch, OBS, Spotify, Giphy
-- [ ] Large status + single primary CTA per card
-- [ ] `CopyField` for OAuth redirect URIs
-- [ ] External link buttons (“Open Twitch Developer Console”)
-- [ ] Replace inline error cards with `Callout` (redirect mismatch, chat EventSub)
-- [ ] Secret fields: show “Configured” vs. empty; avoid confusing `••••` in editable inputs
-- [ ] Use `FormField` for all inputs
+- [x] One card per service: Twitch, OBS, Spotify, Giphy
+- [x] Large status + single primary CTA per card
+- [x] `CopyField` for OAuth redirect URIs
+- [x] External link buttons (“Open Twitch Developer Console”)
+- [x] Replace inline error cards with `Callout` (redirect mismatch, chat EventSub)
+- [x] Secret fields: show “Configured” vs. empty; avoid confusing `••••` in editable inputs
+- [x] Use `FormField` for all inputs
 
 ### 4.3 Verification
 
@@ -341,10 +341,10 @@ Document these before changing UI so you can verify improvements:
 
 ### 5.1 Alert project list (`/alerts`)
 
-- [ ] New list page: cards or table with name, event type, updated_at, tags
-- [ ] Actions: New project, Duplicate, Delete, Open editor
-- [ ] `EmptyState` when no projects
-- [ ] Link to routing tab and legacy themes (de-emphasized)
+- [x] New list page: cards or table with name, event type, updated_at, tags
+- [x] Actions: New project, Duplicate, Delete, Open editor
+- [x] `EmptyState` when no projects
+- [x] Link to routing tab and legacy themes (de-emphasized)
 
 ### 5.2 Editor shell (extract from `AlertEditorPage.tsx`)
 
@@ -353,51 +353,51 @@ Document these before changing UI so you can verify improvements:
 - [ ] Create `components/alerts/ProjectListPanel.tsx`
 - [ ] Create `components/alerts/CanvasPanel.tsx`
 - [ ] Create `components/alerts/InspectorPanel.tsx`
-- [ ] Create `components/alerts/EditorToolbar.tsx`
+- [x] Create `components/alerts/EditorToolbar.tsx`
 - [ ] Create `components/alerts/TimelineDock.tsx` (optional bottom)
-- [ ] `Breadcrumbs`: Alerts / {project name} / Layers
+- [x] `Breadcrumbs`: Alerts / {project name} / Layers
 
 ### 5.3 Toolbar regroup
 
-- [ ] **File:** Save, Export JSON, Import
-- [ ] **Edit:** Undo, Redo, Duplicate, Delete
-- [ ] **Test:** Primary “Test in OBS” (+ variation selector)
-- [ ] **OBS:** Copy browser source URL
-- [ ] Overflow menu (⋯): Sample pack, Save as template, Legacy links
-- [ ] Save status indicator adjacent to Save (saved / saving / unsaved)
+- [x] **File:** Save, Export JSON, Import
+- [x] **Edit:** Undo, Redo, Duplicate, Delete
+- [x] **Test:** Primary “Test in OBS” (+ variation selector)
+- [x] **OBS:** Copy browser source URL
+- [x] Overflow menu (⋯): Sample pack, Save as template, Legacy links
+- [x] Save status indicator adjacent to Save (saved / saving / unsaved)
 
 ### 5.4 Inspector UX
 
-- [ ] Inspector shows only selected layer properties
-- [ ] Empty selection → project/canvas settings
-- [ ] Collapsible sections: Transform, Text, Media, Audio, Reactive, Timing
+- [x] Inspector shows only selected layer properties
+- [x] Empty selection → project/canvas settings
+- [x] Collapsible sections: Transform, Text, Media, Audio, Reactive, Timing
 
 ### 5.5 Test payload & preview
 
-- [ ] Move test payload JSON to **Drawer** or right-panel tab “Test”
-- [ ] Validate JSON with inline error (keep existing validation logic)
-- [ ] Template gallery as **Dialog** with larger previews
-- [ ] Keep `AlertPreviewErrorBoundary` around canvas
+- [x] Move test payload JSON to **Drawer** or right-panel tab “Test”
+- [x] Validate JSON with inline error (keep existing validation logic)
+- [x] Template gallery as **Dialog** with larger previews
+- [x] Keep `AlertPreviewErrorBoundary` around canvas
 
 ### 5.6 Keyboard shortcuts
 
-- [ ] `Ctrl+S` — save
-- [ ] `Ctrl+Z` / `Ctrl+Y` — undo / redo
-- [ ] Document shortcuts in help tooltip or `?` popover
+- [x] `Ctrl+S` — save
+- [x] `Ctrl+Z` / `Ctrl+Y` — undo / redo
+- [x] Document shortcuts in help tooltip or `?` popover
 
 ### 5.7 Alert routing page
 
-- [ ] Migrate `AlertsPage` → `/alerts/routing`
-- [ ] Tabs on Alerts section: Projects | Routing | Legacy themes
-- [ ] Clear copy: visual projects vs. legacy theme rules
+- [x] Migrate `AlertsPage` → `/alerts/routing`
+- [x] Tabs on Alerts section: Projects | Routing | Legacy themes
+- [x] Clear copy: visual projects vs. legacy theme rules
 
 ### 5.8 Alert editor verification
 
-- [ ] Create, save, reload project
-- [ ] Test alert fires to OBS
-- [ ] Undo/redo still works after extract
-- [ ] Responsive breakpoints at 1500px / 1120px / 860px still usable
-- [ ] No regression in variation / chaos / audio test flows
+- [x] Create, save, reload project
+- [x] Test alert fires to OBS browser-source bus (live OBS window smoke pending)
+- [x] Undo/redo still works after extract
+- [x] Responsive breakpoints at 1500px / 1120px / 860px still usable
+- [x] No regression in variation / chaos / audio test flows
 
 ---
 
@@ -405,24 +405,24 @@ Document these before changing UI so you can verify improvements:
 
 ### 6.1 Overlays page
 
-- [ ] `PageHeader` with primary “Repair browser sources”
-- [ ] `CopyField` per overlay URL
-- [ ] Status per overlay (reachable / not) from preflight
-- [ ] Overlay packs in card grid with `EmptyState`
+- [x] `PageHeader` with primary “Repair browser sources”
+- [x] `CopyField` per overlay URL
+- [x] Status per overlay (reachable / not) from preflight
+- [x] Overlay packs in card grid with `EmptyState`
 - [ ] Preview thumbnails if available (optional)
 
 ### 6.2 Widgets page
 
-- [ ] Master–detail layout: widget list left, config right
-- [ ] Reduce vertical scroll; group settings by widget type
-- [ ] Widget theme cards use `Card` component
-- [ ] Test/preview buttons visible per widget type
+- [x] Master–detail layout: widget list left, config right
+- [x] Reduce vertical scroll; group settings by widget type
+- [x] Widget theme cards use `Card` component
+- [x] Test/preview buttons visible per widget type
 
 ### 6.3 Themes (legacy)
 
-- [ ] Move under Overlays or Alerts with “Legacy” badge
-- [ ] Callout: prefer Visual Alert Projects for new work
-- [ ] Link migration path in copy
+- [x] Move under Overlays or Alerts with “Legacy” badge
+- [x] Callout: prefer Visual Alert Projects for new work
+- [x] Link migration path in copy
 
 ---
 
@@ -430,24 +430,24 @@ Document these before changing UI so you can verify improvements:
 
 ### 7.1 Automations (event rules)
 
-- [ ] Master–detail: rule list + editor
-- [ ] Visual rule builder: Trigger → Conditions → Actions blocks
-- [ ] Move raw JSON test payload to **Advanced** collapsible
-- [ ] Test rule button prominent with result `Callout`
-- [ ] Run history link or inline recent runs
+- [x] Master–detail: rule list + editor
+- [x] Visual rule builder: Trigger → Conditions → Actions blocks
+- [x] Move raw JSON test payload to **Advanced** collapsible
+- [x] Test rule button prominent with result `Callout`
+- [x] Run history link or inline recent runs
 
 ### 7.2 Scheduled automations
 
-- [ ] Separate sub-route or tab under Automation
-- [ ] List view with enabled toggle, interval, last run status
+- [x] Separate sub-route or tab under Automation
+- [x] List view with enabled toggle, interval, last run status
 
 ### 7.3 Macros
 
-- [ ] Master–detail layout
-- [ ] Step list as ordered cards (drag reorder if feasible)
-- [ ] Step type picker instead of JSON-only editing
-- [ ] Validate steps client-side (keep existing validation); show `FormField` errors
-- [ ] Link to Stream Deck page for HTTP trigger URLs
+- [x] Master–detail layout
+- [x] Step list as ordered cards (drag reorder if feasible)
+- [x] Step type picker instead of JSON-only editing
+- [x] Validate steps client-side (keep existing validation); show `FormField` errors
+- [x] Link to Stream Deck page for HTTP trigger URLs
 
 ### 7.4 Webhooks
 
@@ -510,20 +510,20 @@ Mark when each page uses `src/ui` components and `PageHeader`:
 | Page | PageHeader | Core components | Master–detail / notes |
 |------|------------|-----------------|------------------------|
 | `App.tsx` | n/a | StatusBar, nav | Shell |
-| `Dashboard` → Live Control | [ ] | [ ] | Split panels |
-| `SetupPage` | [ ] | [ ] | Stepper |
-| `IntegrationsPage` | [ ] | [ ] | Service cards |
-| `OverlaysPage` | [ ] | [ ] | CopyField |
-| `WidgetsPage` | [ ] | [ ] | Master–detail |
-| `ThemesPage` | [ ] | [ ] | Legacy badge |
-| `AlertsPage` → routing | [ ] | [ ] | Tabs under Alerts |
+| `Dashboard` → Live Control | [x] | [x] | Split panels |
+| `SetupPage` | [x] | [x] | Stepper |
+| `IntegrationsPage` | [x] | [x] | Service cards |
+| `OverlaysPage` | [x] | [x] | CopyField |
+| `WidgetsPage` | [x] | [x] | Master–detail |
+| `ThemesPage` | [x] | [x] | Legacy badge |
+| `AlertsPage` → routing | [x] | [x] | Tabs under Alerts |
 | `AlertEditorPage` | [ ] | [ ] | Editor shell |
 | `InteractivePage` | [ ] | [ ] | |
-| `MacrosPage` | [ ] | [ ] | Master–detail |
-| `AutomationsPage` | [ ] | [ ] | Rule builder |
+| `MacrosPage` | [x] | [x] | Master–detail |
+| `AutomationsPage` | [x] | [x] | Rule builder |
 | `WebhooksPage` | [ ] | [ ] | |
 | `ActivityPage` | [ ] | [ ] | Feed |
-| `StreamDeckPage` (new) | [ ] | [ ] | Moved from Dashboard |
+| `StreamDeckPage` (new) | [x] | [x] | Moved from Dashboard |
 
 ---
 

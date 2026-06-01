@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, type MacroConfig, type MacroStep } from "../api";
 import { useToast } from "../hooks/useToast";
-import { PageHeader } from "../ui";
+import { Button, ButtonLink, Callout, EmptyState, FormField, PageHeader, StatusPill } from "../ui";
 
 const emptyMacro = (): MacroConfig => ({
   id: `macro-${Date.now()}`,
@@ -72,10 +72,41 @@ function validateSteps(value: string): { ok: true; steps: MacroStep[] } | { ok: 
   }
 }
 
+const STEP_TEMPLATES: Array<{ type: MacroStep["type"]; label: string; template: MacroStep }> = [
+  { type: "wait", label: "Wait", template: { type: "wait", durationMs: 1000 } },
+  { type: "clear_alerts", label: "Clear alerts", template: { type: "clear_alerts" } },
+  { type: "session_start", label: "Start session", template: { type: "session_start" } },
+  { type: "session_stop", label: "Stop session", template: { type: "session_stop" } },
+  { type: "obs_scene", label: "Switch OBS scene", template: { type: "obs_scene", sceneName: "Starting" } },
+  { type: "obs_stream_start", label: "Start OBS stream", template: { type: "obs_stream_start" } },
+  { type: "obs_stream_stop", label: "Stop OBS stream", template: { type: "obs_stream_stop" } },
+  { type: "obs_record_start", label: "Start recording", template: { type: "obs_record_start" } },
+  { type: "obs_record_stop", label: "Stop recording", template: { type: "obs_record_stop" } },
+  { type: "obs_replay_buffer_save", label: "Save replay buffer", template: { type: "obs_replay_buffer_save" } },
+  { type: "twitch_chat", label: "Send Twitch chat", template: { type: "twitch_chat", message: "Going live now!" } },
+  { type: "obs_filter", label: "Toggle OBS filter", template: { type: "obs_filter", sourceName: "Camera", filterName: "Blur", enabled: true } },
+  {
+    type: "run_command",
+    label: "Run local command",
+    template: {
+      type: "run_command",
+      command: "powershell.exe",
+      args: ["-NoProfile", "-File", "scripts/example.ps1"],
+      timeoutMs: 10000,
+      successChatMessage: "Command finished successfully!",
+    },
+  },
+];
+
+function cloneStep(step: MacroStep): MacroStep {
+  return JSON.parse(JSON.stringify(step)) as MacroStep;
+}
+
 export default function MacrosPage() {
   const [macros, setMacros] = useState<MacroConfig[]>([]);
   const [editing, setEditing] = useState<MacroConfig | null>(null);
   const [stepsJson, setStepsJson] = useState("[]");
+  const [stepTemplateType, setStepTemplateType] = useState<MacroStep["type"]>("wait");
   const [lastRun, setLastRun] = useState<Array<{ index: number; type: string; ok: boolean; message: string }>>([]);
   const toast = useToast();
 
@@ -89,6 +120,8 @@ export default function MacrosPage() {
     if (!editing) return [];
     return editing.steps.slice(0, 4).map(stepLabel);
   }, [editing]);
+
+  const parsedSteps = useMemo(() => validateSteps(stepsJson), [stepsJson]);
 
   const edit = (macro: MacroConfig) => {
     setEditing(macro);
@@ -132,10 +165,29 @@ export default function MacrosPage() {
     await run({ ...editing, steps: parsed.ok ? parsed.steps : editing.steps });
   };
 
+  const setSteps = (steps: MacroStep[]) => {
+    setStepsJson(JSON.stringify(steps, null, 2));
+    if (editing) setEditing({ ...editing, steps });
+  };
+
   const addTemplate = (step: MacroStep) => {
-    const parsed = validateSteps(stepsJson);
-    const steps = parsed.ok ? parsed.steps : [];
-    setStepsJson(JSON.stringify([...steps, step], null, 2));
+    const steps = parsedSteps.ok ? parsedSteps.steps : [];
+    setSteps([...steps, cloneStep(step)]);
+  };
+
+  const removeStep = (index: number) => {
+    if (!parsedSteps.ok) return;
+    setSteps(parsedSteps.steps.filter((_, itemIndex) => itemIndex !== index));
+  };
+
+  const moveStep = (index: number, direction: -1 | 1) => {
+    if (!parsedSteps.ok) return;
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= parsedSteps.steps.length) return;
+    const steps = [...parsedSteps.steps];
+    const [step] = steps.splice(index, 1);
+    steps.splice(nextIndex, 0, step);
+    setSteps(steps);
   };
 
   return (
@@ -143,14 +195,43 @@ export default function MacrosPage() {
       <PageHeader title="Macros" description="Create ordered stream actions for Stream Deck keys and dashboard controls." />
 
       <div className="actions" style={{ marginBottom: 16 }}>
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => edit(emptyMacro())}>
+        <Button type="button" variant="primary" size="sm" onClick={() => edit(emptyMacro())}>
           New macro
-        </button>
+        </Button>
+        <ButtonLink to="/stream-deck" variant="secondary" size="sm">
+          Stream Deck trigger URLs
+        </ButtonLink>
       </div>
 
-      {editing && (
-        <div className="card">
+      <div className="macro-workspace">
+        <aside className="macro-list" aria-label="Configured macros">
+          {macros.map((macro) => (
+            <button
+              key={macro.id}
+              type="button"
+              className={editing?.id === macro.id ? "active" : ""}
+              onClick={() => edit(macro)}
+            >
+              <span>{macro.name}</span>
+              <small>
+                {macro.steps.slice(0, 3).map(stepLabel).join(" -> ")}
+                {macro.steps.length > 3 ? " -> ..." : ""}
+              </small>
+              <StatusPill tone={macro.enabled ? "success" : "neutral"} label={macro.enabled ? "Enabled" : "Disabled"} />
+            </button>
+          ))}
+          {!macros.length && (
+            <EmptyState title="No macros yet" description="Create one to chain OBS, Twitch, alert, and session actions." />
+          )}
+        </aside>
+
+        <main className="macro-detail">
+      {editing ? (
+        <div className="card macro-editor-card">
           <h2>Edit macro</h2>
+          <Callout title="Stream Deck ready">
+            Save this macro, then use the Stream Deck page to copy its HTTP trigger URL.
+          </Callout>
           <div className="form-row">
             <label>Name</label>
             <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
@@ -163,64 +244,59 @@ export default function MacrosPage() {
             />{" "}
             Enabled
           </label>
-          <div className="form-row">
-            <label>Steps JSON</label>
-            <textarea
-              rows={12}
-              value={stepsJson}
-              onChange={(e) => setStepsJson(e.target.value)}
-              style={{ fontFamily: "monospace", lineHeight: 1.5 }}
-            />
-          </div>
-          <div className="actions">
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addTemplate({ type: "wait", durationMs: 1000 })}>
-              Add wait
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addTemplate({ type: "clear_alerts" })}>
-              Add clear
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addTemplate({ type: "session_start" })}>
-              Add session start
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addTemplate({ type: "obs_scene", sceneName: "Starting" })}>
-              Add scene
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addTemplate({ type: "obs_stream_start" })}>
-              Add stream start
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addTemplate({ type: "obs_stream_stop" })}>
-              Add stream stop
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addTemplate({ type: "obs_record_start" })}>
-              Add record start
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addTemplate({ type: "obs_replay_buffer_save" })}>
-              Add save replay
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addTemplate({ type: "twitch_chat", message: "Going live now!" })}>
-              Add Twitch chat
-            </button>
-            <button
+          <div className="macro-step-picker">
+            <div>
+              <label>Add step</label>
+              <select value={stepTemplateType} onChange={(e) => setStepTemplateType(e.target.value as MacroStep["type"])}>
+                {STEP_TEMPLATES.map((item) => (
+                  <option key={item.type} value={item.type}>{item.label}</option>
+                ))}
+              </select>
+            </div>
+            <Button
               type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => addTemplate({ type: "obs_filter", sourceName: "Camera", filterName: "Blur", enabled: true })}
+              variant="secondary"
+              size="sm"
+              onClick={() => addTemplate(STEP_TEMPLATES.find((item) => item.type === stepTemplateType)?.template ?? STEP_TEMPLATES[0].template)}
             >
-              Add filter
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => addTemplate({
-                type: "run_command",
-                command: "powershell.exe",
-                args: ["-NoProfile", "-File", "scripts/example.ps1"],
-                timeoutMs: 10000,
-                successChatMessage: "Command finished successfully!",
-              })}
-            >
-              Add command
-            </button>
+              Add step
+            </Button>
           </div>
+
+          <div className="macro-step-list">
+            {parsedSteps.ok && parsedSteps.steps.length ? parsedSteps.steps.map((step, index) => (
+              <div key={`${step.type}-${index}`} className="macro-step-card">
+                <div>
+                  <span>{index + 1}</span>
+                  <strong>{stepLabel(step)}</strong>
+                  <small>{step.type}</small>
+                </div>
+                <div className="actions">
+                  <Button type="button" variant="secondary" size="sm" onClick={() => moveStep(index, -1)} disabled={index === 0}>Up</Button>
+                  <Button type="button" variant="secondary" size="sm" onClick={() => moveStep(index, 1)} disabled={index === parsedSteps.steps.length - 1}>Down</Button>
+                  <Button type="button" variant="danger" size="sm" onClick={() => removeStep(index)}>Remove</Button>
+                </div>
+              </div>
+            )) : (
+              <EmptyState
+                title={parsedSteps.ok ? "No steps yet" : "Step JSON needs attention"}
+                description={parsedSteps.ok ? "Add a step to build this macro." : parsedSteps.error}
+              />
+            )}
+          </div>
+
+          <details className="alert-compact-section macro-json-editor">
+            <summary>Advanced steps JSON</summary>
+            <FormField label="Steps JSON" error={parsedSteps.ok ? undefined : parsedSteps.error}>
+              <textarea
+                rows={12}
+                value={stepsJson}
+                onChange={(e) => setStepsJson(e.target.value)}
+                style={{ fontFamily: "monospace", lineHeight: 1.5 }}
+              />
+            </FormField>
+          </details>
+
           {selectedSummary.length ? (
             <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 12 }}>
               {selectedSummary.join(" -> ")}
@@ -228,54 +304,24 @@ export default function MacrosPage() {
             </p>
           ) : null}
           <div className="actions" style={{ marginTop: 16 }}>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => void save()}>
+            <Button type="button" variant="primary" size="sm" onClick={() => void save()}>
               Save
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditing(null)}>
+            </Button>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(null)}>
               Cancel
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void runEditing()}>
+            </Button>
+            <Button type="button" variant="secondary" size="sm" onClick={() => void runEditing()}>
               Run saved
-            </button>
+            </Button>
+            <Button type="button" variant="danger" size="sm" onClick={() => void remove(editing.id)}>
+              Delete
+            </Button>
           </div>
         </div>
+      ) : (
+        <EmptyState title="Select a macro" description="Choose a macro from the list or create a new one to edit its ordered steps." />
       )}
-
-      <div className="card">
-        <h2>Configured macros</h2>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Steps</th>
-              <th>On</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {macros.map((macro) => (
-              <tr key={macro.id}>
-                <td>{macro.name}</td>
-                <td style={{ fontSize: 13 }}>
-                  {macro.steps.slice(0, 3).map(stepLabel).join(" -> ")}
-                  {macro.steps.length > 3 ? " -> ..." : ""}
-                </td>
-                <td>{macro.enabled ? "Yes" : "No"}</td>
-                <td>
-                  <button type="button" className="btn btn-primary btn-sm" onClick={() => void run(macro)}>
-                    Run
-                  </button>{" "}
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => edit(macro)}>
-                    Edit
-                  </button>{" "}
-                  <button type="button" className="btn btn-danger btn-sm" onClick={() => void remove(macro.id)}>
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        </main>
       </div>
 
       {lastRun.length ? (

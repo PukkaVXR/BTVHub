@@ -12,7 +12,7 @@ import {
 } from "../api";
 import type { StreamEventType } from "@btv/shared";
 import { useToast } from "../hooks/useToast";
-import { PageHeader } from "../ui";
+import { Button, Callout, EmptyState, PageHeader, StatusPill } from "../ui";
 
 const emptyAutomation = (): AutomationConfig => ({
   id: `automation-${Date.now()}`,
@@ -202,6 +202,14 @@ function formatInterval(ms: number): string {
   return `${Math.round(minutes / 60)}h`;
 }
 
+function automationStatusTone(status: AutomationConfig["lastStatus"] | undefined, enabled: boolean): "success" | "warning" | "danger" | "neutral" {
+  if (!enabled) return "neutral";
+  if (status === "ok") return "success";
+  if (status === "failed") return "danger";
+  if (status === "running") return "warning";
+  return "neutral";
+}
+
 export default function AutomationsPage() {
   const [automations, setAutomations] = useState<AutomationConfig[]>([]);
   const [rules, setRules] = useState<AutomationRule[]>([]);
@@ -219,6 +227,8 @@ export default function AutomationsPage() {
     amount: 1,
     payload: { roles: ["moderator"] },
   }, null, 2));
+  const [ruleTestResult, setRuleTestResult] = useState<{ tone: "success" | "danger"; message: string } | null>(null);
+  const [automationTab, setAutomationTab] = useState<"rules" | "scheduled">("rules");
   const toast = useToast();
 
   const load = () => {
@@ -289,6 +299,20 @@ export default function AutomationsPage() {
     }
   };
 
+  const toggleAutomationEnabled = async (automation: AutomationConfig, enabled: boolean) => {
+    const next = { ...automation, enabled };
+    setAutomations((current) => current.map((item) => item.id === automation.id ? next : item));
+    if (editing?.id === automation.id) setEditing(next);
+    try {
+      await api.saveAutomation(next);
+      toast(enabled ? "Automation enabled" : "Automation paused");
+      load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Could not update automation");
+      load();
+    }
+  };
+
   const setAction = (action: AutomationAction) => {
     if (!editing) return;
     const next = actionTemplate(action);
@@ -314,10 +338,13 @@ export default function AutomationsPage() {
   const runRule = async (rule: AutomationRule) => {
     try {
       const res = await api.runAutomationRule(rule.id);
+      setRuleTestResult({ tone: "success", message: res.message });
       toast(res.message);
       load();
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Rule failed");
+      const message = err instanceof Error ? err.message : "Rule failed";
+      setRuleTestResult({ tone: "danger", message });
+      toast(message);
     }
   };
 
@@ -325,10 +352,13 @@ export default function AutomationsPage() {
     try {
       const parsed = JSON.parse(testEventJson) as import("../api").TestStreamEvent;
       const res = await api.testAutomationRule(rule.id, parsed);
+      setRuleTestResult({ tone: "success", message: res.message });
       toast(res.message);
       load();
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Rule test failed");
+      const message = err instanceof Error ? err.message : "Rule test failed";
+      setRuleTestResult({ tone: "danger", message });
+      toast(message);
     }
   };
 
@@ -391,27 +421,68 @@ export default function AutomationsPage() {
     <>
       <PageHeader title="Automations" description="Phase 1 event rules plus the older repeating timer jobs." />
 
-      <div className="card">
+      <div className="section-tabs" aria-label="Automation sections">
+        <button
+          type="button"
+          className={`section-tabs__item${automationTab === "rules" ? " section-tabs__item--active" : ""}`}
+          onClick={() => setAutomationTab("rules")}
+        >
+          <span>Event rules</span>
+          <small>{rules.length}</small>
+        </button>
+        <button
+          type="button"
+          className={`section-tabs__item${automationTab === "scheduled" ? " section-tabs__item--active" : ""}`}
+          onClick={() => setAutomationTab("scheduled")}
+        >
+          <span>Scheduled jobs</span>
+          <small>{automations.length}</small>
+        </button>
+      </div>
+
+      {automationTab === "rules" && (
+      <>
+      <div className="card automation-rule-card">
         <h2>Event automation rules</h2>
         <p className="subtitle">Trigger actions from Twitch/chat/manual events with cooldowns. This is the Phase 1 foundation.</p>
         <div className="actions" style={{ marginBottom: 16 }}>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => setEditingRule(emptyRule())}>
+          <Button type="button" variant="primary" size="sm" onClick={() => { setRuleTestResult(null); setEditingRule(emptyRule()); }}>
             New event rule
-          </button>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void fireTestEvent("follow")}>
+          </Button>
+          <Button type="button" variant="secondary" size="sm" onClick={() => void fireTestEvent("follow")}>
             Test follow
-          </button>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void fireTestEvent("chat")}>
+          </Button>
+          <Button type="button" variant="secondary" size="sm" onClick={() => void fireTestEvent("chat")}>
             Test chat
-          </button>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void dispatchDashboardEvent()}>
+          </Button>
+          <Button type="button" variant="secondary" size="sm" onClick={() => void dispatchDashboardEvent()}>
             Test dashboard event
-          </button>
+          </Button>
         </div>
 
-        {editingRule && (
-          <div className="card" style={{ marginBottom: 16 }}>
-            <h2>Edit event rule</h2>
+        <div className="automation-rule-workspace">
+          <aside className="automation-rule-list" aria-label="Event automation rules">
+            {rules.map((rule) => (
+              <button
+                key={rule.id}
+                type="button"
+                className={editingRule?.id === rule.id ? "active" : ""}
+                onClick={() => { setRuleTestResult(null); setEditingRule(rule); }}
+              >
+                <span>{rule.name}</span>
+                <small>{describeRuleTrigger(rule)} · {rule.actions.length ? rule.actions.map(describeAction).join(", ") : "no actions"}</small>
+                <StatusPill tone={rule.enabled ? "info" : "neutral"} label={rule.enabled ? rule.lastStatus ?? "waiting" : "paused"} />
+              </button>
+            ))}
+            {!rules.length && (
+              <EmptyState title="No event rules yet" description="Create one to react to Twitch events, chat commands, webhooks, or manual triggers." />
+            )}
+          </aside>
+
+          <section className="automation-rule-detail">
+        {editingRule ? (
+          <div className="card automation-builder-card" style={{ marginBottom: 16 }}>
+            <h2>{editingRule.id.startsWith("rule-") ? "Edit event rule" : editingRule.name}</h2>
             <div className="grid">
               <div>
                 <label>Name</label>
@@ -442,6 +513,10 @@ export default function AutomationsPage() {
               Enabled
             </label>
 
+            <div className="automation-builder-step">
+              <strong>1. Trigger</strong>
+              <span>Choose what wakes this rule up.</span>
+            </div>
             <div className="grid">
               <div>
                 <label>Trigger</label>
@@ -515,7 +590,10 @@ export default function AutomationsPage() {
               )}
             </div>
 
-            <h2>Conditions</h2>
+            <div className="automation-builder-step">
+              <strong>2. Conditions</strong>
+              <span>Optional gates that must pass before actions run.</span>
+            </div>
             {editingRule.conditions.map((condition, index) => (
               <div className="card" key={`${condition.type}-${index}`} style={{ marginBottom: 12 }}>
                 <div className="grid">
@@ -607,7 +685,10 @@ export default function AutomationsPage() {
               Add condition
             </button>
 
-            <h2>Actions</h2>
+            <div className="automation-builder-step">
+              <strong>3. Actions</strong>
+              <span>What BTV should do when the trigger and conditions match.</span>
+            </div>
             {editingRule.actions.map((action, index) => (
               <div className="card" key={`${action.type}-${index}`} style={{ marginBottom: 12 }}>
                 <div className="form-row">
@@ -967,8 +1048,20 @@ export default function AutomationsPage() {
               Add action
             </button>
 
+            <div className="automation-builder-step">
+              <strong>4. Test & save</strong>
+              <span>Run this rule with the current payload, then save when it behaves correctly.</span>
+            </div>
+            {ruleTestResult && (
+              <Callout tone={ruleTestResult.tone} title={ruleTestResult.tone === "success" ? "Rule test passed" : "Rule test failed"}>
+                {ruleTestResult.message}
+              </Callout>
+            )}
             <div className="actions">
-              <button type="button" className="btn btn-primary btn-sm" onClick={() => void saveRule()}>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => void runRuleTest(editingRule)}>
+                Test rule
+              </button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => void saveRule()}>
                 Save rule
               </button>
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditingRule(null)}>
@@ -977,58 +1070,29 @@ export default function AutomationsPage() {
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => void runRule(editingRule)}>
                 Run now
               </button>
+              <button type="button" className="btn btn-danger btn-sm" onClick={() => void removeRule(editingRule.id)}>
+                Delete rule
+              </button>
             </div>
-            <div className="form-row" style={{ marginTop: 16 }}>
-              <label>Test event payload</label>
-              <textarea
-                rows={8}
-                value={testEventJson}
-                onChange={(e) => setTestEventJson(e.target.value)}
-                style={{ fontFamily: "monospace", lineHeight: 1.45 }}
-              />
-            </div>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void runRuleTest(editingRule)}>
-              Test with payload
-            </button>
-          </div>
-        )}
 
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Trigger</th>
-              <th>Action</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rules.map((rule) => (
-              <tr key={rule.id}>
-                <td>{rule.name}</td>
-                <td>{describeRuleTrigger(rule)}</td>
-                <td>{rule.actions.length ? rule.actions.map(describeAction).join(", ") : "none"}</td>
-                <td>
-                  {rule.enabled ? rule.lastStatus ?? "waiting" : "paused"}
-                  {rule.lastMessage ? ` - ${rule.lastMessage}` : ""}
-                </td>
-                <td>
-                  <button type="button" className="btn btn-primary btn-sm" onClick={() => void runRule(rule)}>
-                    Run
-                  </button>{" "}
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditingRule(rule)}>
-                    Edit
-                  </button>{" "}
-                  <button type="button" className="btn btn-danger btn-sm" onClick={() => void removeRule(rule.id)}>
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!rules.length && <p style={{ color: "var(--muted)", padding: 12 }}>No event automation rules configured.</p>}
+            <details className="alert-compact-section automation-advanced-payload">
+              <summary>Advanced test payload JSON</summary>
+              <div className="form-row" style={{ marginTop: 12 }}>
+                <label>Test event payload</label>
+                <textarea
+                  rows={8}
+                  value={testEventJson}
+                  onChange={(e) => setTestEventJson(e.target.value)}
+                  style={{ fontFamily: "monospace", lineHeight: 1.45 }}
+                />
+              </div>
+            </details>
+          </div>
+        ) : (
+          <EmptyState title="Select a rule" description="Pick a rule from the list or create a new one to edit trigger, conditions, actions, and tests." />
+        )}
+          </section>
+        </div>
       </div>
 
       <div className="card">
@@ -1060,13 +1124,17 @@ export default function AutomationsPage() {
         </table>
         {!runs.length && <p style={{ color: "var(--muted)", padding: 12 }}>No automation runs yet.</p>}
       </div>
+      </>
+      )}
 
+      {automationTab === "scheduled" && (
+      <>
       <p className="subtitle">Timer jobs run macros, commands, chat messages, effects, or activity layouts on a repeating schedule.</p>
 
       <div className="actions" style={{ marginBottom: 16 }}>
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => edit(emptyAutomation())}>
+        <Button type="button" variant="primary" size="sm" onClick={() => edit(emptyAutomation())}>
           New automation
-        </button>
+        </Button>
       </div>
 
       {editing && (
@@ -1196,9 +1264,10 @@ export default function AutomationsPage() {
           <thead>
             <tr>
               <th>Name</th>
+              <th>Enabled</th>
               <th>Action</th>
               <th>Interval</th>
-              <th>Status</th>
+              <th>Last run status</th>
               <th>Next run</th>
               <th></th>
             </tr>
@@ -1207,13 +1276,26 @@ export default function AutomationsPage() {
             {automations.map((automation) => (
               <tr key={automation.id}>
                 <td>{automation.name}</td>
+                <td>
+                  <label className="automation-enabled-toggle">
+                    <input
+                      type="checkbox"
+                      checked={automation.enabled}
+                      onChange={(e) => void toggleAutomationEnabled(automation, e.target.checked)}
+                    />
+                    <span>{automation.enabled ? "On" : "Off"}</span>
+                  </label>
+                </td>
                 <td>{automation.action}</td>
                 <td>{formatInterval(automation.intervalMs)}</td>
                 <td>
-                  {automation.enabled ? automation.lastStatus ?? "waiting" : "paused"}
-                  {automation.lastMessage ? ` - ${automation.lastMessage}` : ""}
+                  <StatusPill
+                    tone={automationStatusTone(automation.lastStatus, automation.enabled)}
+                    label={automation.enabled ? automation.lastStatus ?? "waiting" : "paused"}
+                    detail={automation.lastMessage}
+                  />
                 </td>
-                <td>{automation.nextRunAt ? new Date(automation.nextRunAt).toLocaleTimeString() : "-"}</td>
+                <td>{automation.nextRunAt && automation.enabled ? new Date(automation.nextRunAt).toLocaleTimeString() : "-"}</td>
                 <td>
                   <button type="button" className="btn btn-primary btn-sm" onClick={() => void runNow(automation)}>
                     Run
@@ -1229,8 +1311,10 @@ export default function AutomationsPage() {
             ))}
           </tbody>
         </table>
-        {!automations.length && <p style={{ color: "var(--muted)", padding: 12 }}>No automations configured.</p>}
+        {!automations.length && <EmptyState title="No scheduled jobs yet" description="Create one to run macros, chat reminders, effects, or layouts on a timer." />}
       </div>
+      </>
+      )}
     </>
   );
 }

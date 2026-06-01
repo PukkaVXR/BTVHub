@@ -6,7 +6,7 @@ import MediaPicker from "../components/MediaPicker";
 import { SaveIndicator } from "../hooks/SaveIndicator";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useToast } from "../hooks/useToast";
-import { PageHeader } from "../ui";
+import { Button, ButtonAnchor, Callout, Card, CardHeader, PageHeader, StatusPill } from "../ui";
 
 const TICKER_EVENT_TYPES = ["follow", "sub", "resub", "gift_sub", "cheer", "raid", "channel_points", "goal_milestone"];
 const DEFAULT_OVERLAY_THEME: OverlayThemeConfig = {
@@ -111,12 +111,15 @@ const THEME_PRESETS: Array<{ name: string; description: string; theme: OverlayTh
   },
 ];
 
+type WidgetPanel = "theme" | "overrides" | "goals" | `widget:${string}`;
+
 export default function WidgetsPage() {
   const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
   const [overlayTheme, setOverlayTheme] = useState<OverlayThemeConfig>(DEFAULT_OVERLAY_THEME);
   const [goals, setGoals] = useState<
     Array<{ id: string; label: string; current_count: number; target_count: number }>
   >([]);
+  const [selectedPanel, setSelectedPanel] = useState<WidgetPanel>("theme");
   const [hydrated, setHydrated] = useState(false);
   const toast = useToast();
 
@@ -174,19 +177,52 @@ export default function WidgetsPage() {
     }
   };
 
+  const overlayOrigin = window.location.origin.replace("4781", "4782");
+
   return (
     <>
       <PageHeader title="Widgets" description="Configure chat, goals, ticker, and now playing widgets." />
       <SaveIndicator status={widgetSaveStatus} label="Widgets" />
       <SaveIndicator status={themeSaveStatus} label="Widget theme" />
 
-      <div className="card overlay-theme-editor">
-        <div>
-          <h2>Overlay Theme Pack</h2>
-          <p className="subtitle" style={{ marginBottom: 0 }}>
-            Customise the shared look of chat, goals, ticker, event list, and now-playing overlays.
-          </p>
-        </div>
+      <div className="widgets-workspace">
+        <aside className="widgets-sidebar" aria-label="Widget sections">
+          <button type="button" className={selectedPanel === "theme" ? "active" : ""} onClick={() => setSelectedPanel("theme")}>
+            <span>Theme pack</span>
+            <small>Global style</small>
+          </button>
+          <button type="button" className={selectedPanel === "overrides" ? "active" : ""} onClick={() => setSelectedPanel("overrides")}>
+            <span>Overrides</span>
+            <small>Per widget style</small>
+          </button>
+          {widgets.map((widget) => (
+            <button
+              key={widget.id}
+              type="button"
+              className={selectedPanel === `widget:${widget.id}` ? "active" : ""}
+              onClick={() => setSelectedPanel(`widget:${widget.id}`)}
+            >
+              <span>{formatWidgetLabel(widget)}</span>
+              <small>{widget.enabled ? "Enabled" : "Disabled"}</small>
+            </button>
+          ))}
+          <button type="button" className={selectedPanel === "goals" ? "active" : ""} onClick={() => setSelectedPanel("goals")}>
+            <span>Follower goal</span>
+            <small>{goals.length} goal{goals.length === 1 ? "" : "s"}</small>
+          </button>
+        </aside>
+
+        <main className="widgets-detail">
+      {(selectedPanel === "theme" || selectedPanel === "overrides") && (
+      <Card className="overlay-theme-editor">
+        <CardHeader
+          title={selectedPanel === "theme" ? "Overlay Theme Pack" : "Individual Overlay Theme Overrides"}
+          description={selectedPanel === "theme"
+            ? "Customise the shared look of chat, goals, ticker, event list, and now-playing overlays."
+            : "Tune individual widget styles without changing the OBS source position or size."}
+        />
+        {selectedPanel === "theme" && (
+          <>
         <div className="theme-preset-grid">
           {THEME_PRESETS.map((preset) => (
             <button
@@ -273,6 +309,23 @@ export default function WidgetsPage() {
           )}
         </div>
 
+        <div className="overlay-theme-preview" style={themePreviewStyle(overlayTheme)}>
+          <div>
+            <strong>Preview: {overlayTheme.name || "Overlay theme"}</strong>
+            <span>Chat, goals, ticker, event list, and now-playing will inherit this style.</span>
+          </div>
+          <div className="overlay-theme-preview-pill">Accent</div>
+        </div>
+
+        <div className="actions">
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setOverlayTheme(DEFAULT_OVERLAY_THEME)}>
+            Reset theme
+          </button>
+        </div>
+          </>
+        )}
+
+        {selectedPanel === "overrides" && (
         <details className="alert-compact-section" open>
           <summary>Individual Overlay Theme Overrides</summary>
           <div className="overlay-widget-theme-grid">
@@ -280,7 +333,7 @@ export default function WidgetsPage() {
               const item = overlayTheme.widgets[target.id] ?? { enabled: true };
               const canCustomizeText = target.id !== "chat";
               return (
-                <div key={target.id} className="overlay-widget-theme-card">
+                <Card key={target.id} className="overlay-widget-theme-card">
                   <label>
                     <input
                       type="checkbox"
@@ -437,30 +490,29 @@ export default function WidgetsPage() {
                       </button>
                     )}
                   </div>
-                </div>
+                </Card>
               );
             })}
           </div>
         </details>
+        )}
+      </Card>
+      )}
 
-        <div className="overlay-theme-preview" style={themePreviewStyle(overlayTheme)}>
-          <div>
-            <strong>Preview: {overlayTheme.name || "Overlay theme"}</strong>
-            <span>Chat, goals, ticker, event list, and now-playing will inherit this style.</span>
-          </div>
-          <div className="overlay-theme-preview-pill">Accent</div>
-        </div>
-
-        <div className="actions">
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setOverlayTheme(DEFAULT_OVERLAY_THEME)}>
-            Reset theme
-          </button>
-        </div>
-      </div>
-
-      {widgets.map((w) => (
-        <div key={w.id} className="card">
-          <h2>{w.id} ({w.type})</h2>
+      {widgets.filter((w) => selectedPanel === `widget:${w.id}`).map((w) => (
+        <Card key={w.id} className="widget-config-card">
+          <CardHeader
+            title={`${formatWidgetLabel(w)} (${w.type})`}
+            description="Widget behaviour lives here. Visual styling is handled in Theme Pack and Overrides."
+            action={
+              <div className="widget-config-actions">
+                <StatusPill tone={w.enabled ? "success" : "neutral"} label={w.enabled ? "Enabled" : "Disabled"} />
+                <ButtonAnchor href={`${overlayOrigin}${widgetPreviewRoute(w)}`} target="_blank" rel="noreferrer" size="sm">
+                  Preview
+                </ButtonAnchor>
+              </div>
+            }
+          />
           <label>
             <input
               type="checkbox"
@@ -475,9 +527,9 @@ export default function WidgetsPage() {
           </label>
           {w.type === "chat" && (
             <>
-              <div className="notice">
+              <Callout title="BTTV refresh note">
                 BTTV emotes are checked when the OBS Chat browser source loads. If you add or remove BTTV emotes, refresh the Chat source in OBS to update the emote list.
-              </div>
+              </Callout>
               <div className="form-row">
                 <label>Max messages</label>
                 <input
@@ -630,11 +682,12 @@ export default function WidgetsPage() {
               </label>
             </>
           )}
-        </div>
+        </Card>
       ))}
 
-      <div className="card">
-        <h2>Follower goal</h2>
+      {selectedPanel === "goals" && (
+      <Card className="widget-config-card">
+        <CardHeader title="Follower goal" description="Configure goal values shown by the goals browser source." />
         {goals.map((g) => (
           <div key={g.id} style={{ display: "flex", gap: 12, alignItems: "end", marginBottom: 12, flexWrap: "wrap" }}>
             <div>
@@ -676,15 +729,19 @@ export default function WidgetsPage() {
                 }
               />
             </div>
-            <button
+            <Button
               type="button"
-              className="btn btn-primary btn-sm"
+              variant="primary"
+              size="sm"
               onClick={() => void saveGoal(g.id, g.target_count, g.current_count, g.label)}
             >
               Save goal
-            </button>
+            </Button>
           </div>
         ))}
+      </Card>
+      )}
+        </main>
       </div>
     </>
   );
@@ -702,6 +759,31 @@ function themePreviewStyle(theme: OverlayThemeConfig): CSSProperties {
     backgroundSize: "cover",
     backgroundPosition: "center",
   };
+}
+
+function formatWidgetLabel(widget: WidgetConfig): string {
+  const raw = widget.id || widget.type;
+  return raw
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function widgetPreviewRoute(widget: WidgetConfig): string {
+  switch (widget.type) {
+    case "chat":
+      return "/o/chat.html";
+    case "ticker":
+      return "/o/ticker.html";
+    case "eventList":
+      return "/o/event-list.html";
+    case "nowPlaying":
+      return "/o/now-playing.html";
+    case "goal":
+      return "/o/goals.html";
+    default:
+      return `/o/${widget.id}.html`;
+  }
 }
 
 function ColorAlphaControl({

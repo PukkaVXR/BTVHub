@@ -1,8 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, type IntegrationsInfo } from "../api";
 import { useToast } from "../hooks/useToast";
-import { PageHeader } from "../ui";
+import {
+  Button,
+  ButtonAnchor,
+  Callout,
+  Card,
+  CardHeader,
+  CopyField,
+  FormField,
+  PageHeader,
+  StatusPill,
+} from "../ui";
+
+function secretHint(configured?: boolean) {
+  return configured ? "Configured. Leave blank to keep the existing secret." : "Not configured yet.";
+}
 
 export default function IntegrationsPage() {
   const [info, setInfo] = useState<IntegrationsInfo | null>(null);
@@ -23,13 +37,13 @@ export default function IntegrationsPage() {
       setInfo(data);
       setOauthHost(data.oauthHost ?? "127.0.0.1");
       setTwitchId(data.twitch.clientId ?? "");
-      if (data.twitch.hasClientSecret) setTwitchSecret("••••••••");
+      setTwitchSecret("");
       setSpotifyId(data.spotify.clientId ?? "");
-      if (data.spotify.hasClientSecret) setSpotifySecret("••••••••");
-      if (data.giphy?.configured) setGiphyKey("••••••••");
+      setSpotifySecret("");
+      setGiphyKey("");
       setObsHost(data.obs.host);
       setObsPort(data.obs.port);
-      if (data.obs.hasPassword) setObsPassword("••••••••");
+      setObsPassword("");
     });
 
   useEffect(() => {
@@ -40,14 +54,13 @@ export default function IntegrationsPage() {
     const twitchError = searchParams.get("twitch_error");
     const desc = searchParams.get("desc");
     if (twitchError === "redirect_mismatch") {
-      toast(
-        "Twitch redirect URI mismatch — register the exact HTTPS URL shown below.",
-      );
+      toast("Twitch redirect URI mismatch. Register the exact HTTPS URL shown below.");
     } else if (twitchError) {
       toast(`Twitch error: ${desc ?? twitchError}`);
     } else if (searchParams.get("twitch") === "connected") {
       toast("Twitch connected");
     }
+
     const spotifyError = searchParams.get("spotify_error");
     if (spotifyError) {
       toast(decodeURIComponent(spotifyError));
@@ -56,388 +69,361 @@ export default function IntegrationsPage() {
     }
   }, [searchParams, toast]);
 
-  const copyRedirect = (uri: string) => {
-    void navigator.clipboard.writeText(uri);
-    toast("Redirect URI copied");
-  };
-
   const twitchAuthUrl = info?.twitch.authStartUrl ?? "https://127.0.0.1:4783/auth/twitch";
   const oauthOrigin =
     info?.twitch.redirectUri?.replace(/\/auth\/twitch\/callback$/, "") ?? "https://127.0.0.1:4783";
-
   const chatSubError = info?.twitch.eventsubStatus?.includes("sub_error:channel.chat");
+  const twitchRedirectMismatch = searchParams.get("twitch_error") === "redirect_mismatch";
+
+  const serviceSummary = useMemo(
+    () => [
+      {
+        label: "Twitch",
+        connected: Boolean(info?.twitch.connected),
+        detail: info?.twitch.connected
+          ? info?.twitch.displayName ?? info?.twitch.login ?? "Connected"
+          : info?.twitch.configured
+            ? "Credentials saved"
+            : "Needs credentials",
+      },
+      {
+        label: "OBS",
+        connected: Boolean(info?.obs.connected),
+        detail: info?.obs.connected ? `${info?.obs.host}:${info?.obs.port}` : info?.obs.hasPassword ? "Saved" : "Needs password",
+      },
+      {
+        label: "Spotify",
+        connected: Boolean(info?.spotify.connected),
+        detail: info?.spotify.connected ? "Connected" : info?.spotify.configured ? "Credentials saved" : "Optional",
+      },
+      {
+        label: "GIPHY",
+        connected: Boolean(info?.giphy?.configured),
+        detail: info?.giphy?.configured ? "Key saved" : "Optional",
+      },
+    ],
+    [info],
+  );
 
   return (
     <>
-      <PageHeader title="Integrations" description="Connect Twitch, Spotify, and OBS WebSocket." />
+      <PageHeader title="Integrations" description="Connect Twitch, OBS WebSocket, Spotify, and GIPHY from one calm control room." />
 
-      {info?.twitch.connected && chatSubError && (
-        <div
-          className="card"
-          style={{
-            borderColor: "var(--danger)",
-            marginBottom: 16,
-            fontSize: 14,
-            lineHeight: 1.6,
-          }}
-        >
-          <strong>Chat EventSub failed</strong>
-          <p style={{ marginTop: 8, color: "var(--muted)" }}>
-            Status: <code>{info.twitch.eventsubStatus}</code>
-          </p>
-          <p style={{ color: "var(--muted)" }}>
-            Disconnect Twitch, then Connect again so OAuth includes{" "}
-            <code>user:read:chat</code> (required for live chat in OBS).
-          </p>
-        </div>
-      )}
+      <div className="integrations-summary">
+        {serviceSummary.map((service) => (
+          <StatusPill
+            key={service.label}
+            tone={service.connected ? "success" : service.label === "Spotify" || service.label === "GIPHY" ? "neutral" : "warning"}
+            label={service.label}
+            detail={service.detail}
+          />
+        ))}
+      </div>
 
-      {info?.twitch.connected && !info.twitch.chatSubscribed && !chatSubError && (
-        <div
-          className="card"
-          style={{ borderColor: "var(--warning, #e6a700)", marginBottom: 16, fontSize: 14 }}
-        >
-          <strong>Chat subscription pending</strong>
-          <p style={{ marginTop: 8, color: "var(--muted)" }}>
-            EventSub status: {info.twitch.eventsubStatus ?? "starting…"}
-          </p>
-        </div>
-      )}
-
-      {searchParams.get("twitch_error") === "redirect_mismatch" && (
-        <div
-          className="card"
-          style={{
-            borderColor: "var(--danger)",
-            marginBottom: 16,
-            fontSize: 14,
-            lineHeight: 1.6,
-          }}
-        >
-          <strong>Twitch redirect URI mismatch</strong>
-          <p style={{ marginTop: 8, color: "var(--muted)" }}>
-            Twitch requires <strong>HTTPS</strong>. In the{" "}
-            <a href="https://dev.twitch.tv/console" target="_blank" rel="noreferrer">
-              Twitch Developer Console
-            </a>
-            , open your application → <em>OAuth Redirect URLs</em> and add this exact line:
-          </p>
-          <div className="url-box">{info?.twitch.redirectUri}</div>
-          <p style={{ color: "var(--muted)", marginTop: 8 }}>
-            <code>127.0.0.1</code> and <code>localhost</code> are different — match the OAuth host
-            selected below.
-          </p>
-        </div>
-      )}
-
-      <div className="card">
-        <h2>Local HTTPS (required for Twitch)</h2>
-        <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.6, marginBottom: 12 }}>
-          OAuth uses HTTPS on port <strong>4783</strong> (self-signed cert). Before Connect Twitch,
-          open{" "}
+      <div className="integrations-callouts">
+        <Callout tone="info" title="Local HTTPS is required for Twitch">
+          OAuth uses HTTPS on port <strong>4783</strong>. Before connecting Twitch, open{" "}
           <a href={oauthOrigin} target="_blank" rel="noreferrer">
             {oauthOrigin}
           </a>{" "}
-          and accept the security warning. OBS overlays stay on HTTP port{" "}
-          <strong>4782</strong> (see Overlays page).
-        </p>
+          and accept the local certificate warning. Overlay browser sources still use HTTP on port 4782.
+        </Callout>
+
+        {info?.twitch.connected && chatSubError ? (
+          <Callout tone="danger" title="Chat EventSub failed">
+            Status: <code>{info.twitch.eventsubStatus}</code>. Disconnect Twitch, then connect again so OAuth includes{" "}
+            <code>user:read:chat</code>, which is required for live chat in OBS.
+          </Callout>
+        ) : null}
+
+        {info?.twitch.connected && !info.twitch.chatSubscribed && !chatSubError ? (
+          <Callout tone="warning" title="Chat subscription pending">
+            EventSub status: {info.twitch.eventsubStatus ?? "starting..."}
+          </Callout>
+        ) : null}
+
+        {twitchRedirectMismatch ? (
+          <Callout tone="danger" title="Twitch redirect URI mismatch">
+            Twitch requires the exact HTTPS redirect URL shown in the Twitch card. <code>127.0.0.1</code> and{" "}
+            <code>localhost</code> are different hosts, so they must match the OAuth host below.
+          </Callout>
+        ) : null}
       </div>
 
-      <div className="card">
-        <h2>Twitch</h2>
-        {info?.twitch.connected ? (
-          <p>
-            Connected as <strong>{info.twitch.displayName ?? info.twitch.login}</strong>
-            {info.twitch.eventsubStatus && (
-              <span style={{ fontSize: 13, color: "var(--muted)", marginLeft: 8 }}>
-                · EventSub: {info.twitch.eventsubStatus}
-              </span>
-            )}
-          </p>
-        ) : (
-          <p className="subtitle">Not connected</p>
-        )}
-
-        <div className="form-row">
-          <label>OAuth host (must match Twitch redirect URL)</label>
-          <select
-            value={oauthHost}
-            onChange={(e) => setOauthHost(e.target.value)}
-            style={{ marginBottom: 8 }}
-          >
-            <option value="127.0.0.1">127.0.0.1</option>
-            <option value="localhost">localhost</option>
-          </select>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={async () => {
-              await api.saveOAuthHost(oauthHost);
-              toast("OAuth host saved — update Twitch console if the URI changed");
-              void load();
-            }}
-          >
-            Apply host
-          </button>
-        </div>
-
-        <p
-          style={{
-            fontSize: 13,
-            marginBottom: 8,
-            padding: "10px 12px",
-            background: "rgba(145, 71, 255, 0.15)",
-            borderRadius: 8,
-            border: "1px solid var(--accent)",
-          }}
-        >
-          <strong>Important:</strong> Twitch must use port <strong>4783</strong>, not 4782.
-          Overlays use 4782 (HTTP); OAuth uses 4783 (HTTPS). After scope updates, disconnect and
-          reconnect Twitch.
-        </p>
-        <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>
-          Register this exact redirect URI in Twitch Developer Console:
-        </p>
-        <div className="url-box">{info?.twitch.redirectUri}</div>
-        <button
-          type="button"
-          className="btn btn-secondary btn-sm"
-          style={{ marginBottom: 12 }}
-          onClick={() => info?.twitch.redirectUri && copyRedirect(info.twitch.redirectUri)}
-        >
-          Copy redirect URI
-        </button>
-
-        <div className="form-row">
-          <label>Client ID</label>
-          <input
-            value={twitchId}
-            onChange={(e) => setTwitchId(e.target.value)}
-            placeholder="From Twitch Developer Console"
+      <div className="integrations-grid">
+        <Card className="integration-card integration-card--twitch">
+          <CardHeader
+            title="Twitch"
+            description="OAuth, EventSub, chat identity, channel events, and live chat support."
+            action={
+              <StatusPill
+                tone={info?.twitch.connected ? "success" : info?.twitch.configured ? "warning" : "danger"}
+                label={info?.twitch.connected ? "Connected" : info?.twitch.configured ? "Ready" : "Not configured"}
+                detail={info?.twitch.connected ? info?.twitch.displayName ?? info?.twitch.login : undefined}
+              />
+            }
           />
-        </div>
-        <div className="form-row">
-          <label>Client Secret {info?.twitch.hasClientSecret && "(saved)"}</label>
-          <input
-            type="password"
-            value={twitchSecret}
-            onChange={(e) => setTwitchSecret(e.target.value)}
-            placeholder={info?.twitch.hasClientSecret ? "Leave •••• to keep existing" : ""}
-          />
-        </div>
-        <div className="actions">
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={async () => {
-              const secret =
-                twitchSecret === "••••••••" ? undefined : twitchSecret;
-              if (!twitchId) {
-                toast("Enter client ID");
-                return;
-              }
-              if (!secret && !info?.twitch.hasClientSecret) {
-                toast("Enter client secret");
-                return;
-              }
-              await api.saveTwitchConfig(twitchId, secret);
-              toast("Twitch credentials saved");
-              void load();
-            }}
-          >
-            Save credentials
-          </button>
-          <a
-            href={twitchAuthUrl}
-            className="btn btn-primary btn-sm"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Connect Twitch
-          </a>
-          {info?.twitch.connected && (
-            <button
+
+          <div className="integration-card__body">
+            <FormField label="OAuth host" hint="Must match the host registered in Twitch Developer Console.">
+              <select value={oauthHost} onChange={(e) => setOauthHost(e.target.value)}>
+                <option value="127.0.0.1">127.0.0.1</option>
+                <option value="localhost">localhost</option>
+              </select>
+            </FormField>
+            <Button
               type="button"
-              className="btn btn-danger btn-sm"
+              size="sm"
+              variant="secondary"
               onClick={async () => {
-                await api.disconnectTwitch();
-                toast("Disconnected");
-                setTwitchSecret("");
+                await api.saveOAuthHost(oauthHost);
+                toast("OAuth host saved. Update Twitch console if the URI changed.");
                 void load();
               }}
             >
-              Disconnect
-            </button>
-          )}
-        </div>
-      </div>
+              Apply host
+            </Button>
 
-      <div className="card">
-        <h2>Spotify</h2>
-        {info?.spotify.connected ? (
-          <span className="badge badge-ok">Connected</span>
-        ) : (
-          <span className="badge badge-off">Not connected</span>
-        )}
-        <p style={{ fontSize: 13, marginBottom: 8, color: "var(--muted)" }}>
-          Spotify uses <strong>HTTP</strong> on port <strong>4782</strong> (loopback). Use{" "}
-          <code>127.0.0.1</code>, not <code>localhost</code>, in the Spotify Dashboard.
-        </p>
-        <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>
-          Redirect URI (register in Spotify Dashboard):
-        </p>
-        <div className="url-box">{info?.spotify.redirectUri}</div>
-        <button
-          type="button"
-          className="btn btn-secondary btn-sm"
-          style={{ marginBottom: 12 }}
-          onClick={() => info?.spotify.redirectUri && copyRedirect(info.spotify.redirectUri)}
-        >
-          Copy redirect URI
-        </button>
-        <div className="form-row">
-          <label>Client ID</label>
-          <input value={spotifyId} onChange={(e) => setSpotifyId(e.target.value)} />
-        </div>
-        <div className="form-row">
-          <label>Client Secret {info?.spotify.hasClientSecret && "(saved)"}</label>
-          <input
-            type="password"
-            value={spotifySecret}
-            onChange={(e) => setSpotifySecret(e.target.value)}
-            placeholder={info?.spotify.hasClientSecret ? "Leave •••• to keep existing" : ""}
-          />
-        </div>
-        <div className="actions">
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={async () => {
-              const secret =
-                spotifySecret === "••••••••" ? undefined : spotifySecret;
-              if (!spotifyId) {
-                toast("Enter client ID");
-                return;
-              }
-              if (!secret && !info?.spotify.hasClientSecret) {
-                toast("Enter client secret");
-                return;
-              }
-              await api.saveSpotifyConfig(spotifyId, secret);
-              toast("Spotify credentials saved");
-              void load();
-            }}
-          >
-            Save credentials
-          </button>
-          <a
-            href={info?.spotify.authStartUrl ?? "http://127.0.0.1:4782/auth/spotify"}
-            className="btn btn-primary btn-sm"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Connect Spotify
-          </a>
-          {info?.spotify.connected && (
-            <button
+            <CopyField label="Twitch OAuth redirect URI" value={info?.twitch.redirectUri ?? ""} />
+
+            <div className="integration-card__actions">
+              <ButtonAnchor variant="secondary" size="sm" href="https://dev.twitch.tv/console" target="_blank" rel="noreferrer">
+                Open Twitch Developer Console
+              </ButtonAnchor>
+            </div>
+
+            <FormField label="Client ID">
+              <input value={twitchId} onChange={(e) => setTwitchId(e.target.value)} placeholder="From Twitch Developer Console" />
+            </FormField>
+
+            <FormField label="Client Secret" hint={secretHint(info?.twitch.hasClientSecret)}>
+              <input
+                type="password"
+                value={twitchSecret}
+                onChange={(e) => setTwitchSecret(e.target.value)}
+                placeholder={info?.twitch.hasClientSecret ? "Leave blank to keep existing" : "Paste client secret"}
+              />
+            </FormField>
+          </div>
+
+          <div className="integration-card__footer">
+            <Button
               type="button"
-              className="btn btn-danger btn-sm"
+              size="sm"
+              variant="secondary"
               onClick={async () => {
-                await api.disconnectSpotify();
-                toast("Disconnected");
-                setSpotifySecret("");
+                const secret = twitchSecret.trim() || undefined;
+                if (!twitchId) {
+                  toast("Enter client ID");
+                  return;
+                }
+                if (!secret && !info?.twitch.hasClientSecret) {
+                  toast("Enter client secret");
+                  return;
+                }
+                await api.saveTwitchConfig(twitchId, secret);
+                toast("Twitch credentials saved");
                 void load();
               }}
             >
-              Disconnect
-            </button>
-          )}
-        </div>
-      </div>
+              Save credentials
+            </Button>
+            <ButtonAnchor href={twitchAuthUrl} variant="primary" size="sm" target="_blank" rel="noreferrer">
+              Connect Twitch
+            </ButtonAnchor>
+            {info?.twitch.connected ? (
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={async () => {
+                  await api.disconnectTwitch();
+                  toast("Disconnected");
+                  setTwitchSecret("");
+                  void load();
+                }}
+              >
+                Disconnect
+              </Button>
+            ) : null}
+          </div>
+        </Card>
 
-      <div className="card">
-        <h2>GIPHY</h2>
-        {info?.giphy?.configured ? (
-          <span className="badge badge-ok">Configured</span>
-        ) : (
-          <span className="badge badge-off">Not configured</span>
-        )}
-        <p style={{ fontSize: 13, color: "var(--muted)", margin: "10px 0 12px" }}>
-          Used by the Visual Alert Editor for GIF search/import. The key is encrypted locally and never sent to overlay browser sources.
-        </p>
-        <div className="form-row">
-          <label>GIPHY SDK API key</label>
-          <input
-            type="password"
-            value={giphyKey}
-            onChange={(e) => setGiphyKey(e.target.value)}
-            placeholder={info?.giphy?.configured ? "Leave •••• to keep existing" : "Paste your GIPHY key"}
-          />
-        </div>
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          onClick={async () => {
-            const apiKey = giphyKey === "••••••••" ? undefined : giphyKey;
-            if (!apiKey && !info?.giphy?.configured) {
-              toast("Enter GIPHY API key");
-              return;
+        <Card className="integration-card">
+          <CardHeader
+            title="OBS WebSocket"
+            description="Connects BTV controls to scenes, sources, browser source repair, and test alerts."
+            action={
+              <StatusPill
+                tone={info?.obs.connected ? "success" : info?.obs.hasPassword ? "warning" : "danger"}
+                label={info?.obs.connected ? "Connected" : info?.obs.hasPassword ? "Saved" : "Not configured"}
+                detail={info?.obs.connected ? `${info?.obs.host}:${info?.obs.port}` : undefined}
+              />
             }
-            await api.saveGiphyConfig(apiKey);
-            toast("GIPHY key saved");
-            void load();
-          }}
-        >
-          Save GIPHY key
-        </button>
-      </div>
+          />
 
-      <div className="card">
-        <h2>OBS WebSocket</h2>
-        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
-          Status: {info?.obs.connected ? "Connected" : "Disconnected"}
-          {info?.obs.hasPassword && !info.obs.connected && " — reconnects on server start"}
-        </p>
-        <div className="form-row">
-          <label>Host</label>
-          <input value={obsHost} onChange={(e) => setObsHost(e.target.value)} />
-        </div>
-        <div className="form-row">
-          <label>Port</label>
-          <input
-            type="number"
-            value={obsPort}
-            onChange={(e) => setObsPort(Number(e.target.value))}
-          />
-        </div>
-        <div className="form-row">
-          <label>Password</label>
-          <input
-            type="password"
-            value={obsPassword}
-            onChange={(e) => setObsPassword(e.target.value)}
-            placeholder={info?.obs.hasPassword ? "Leave •••• to keep existing" : ""}
-          />
-        </div>
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          onClick={async () => {
-            const password =
-              obsPassword === "••••••••" ? undefined : obsPassword;
-            if (!password && !info?.obs.hasPassword) {
-              toast("Enter OBS WebSocket password");
-              return;
+          <div className="integration-card__body">
+            <FormField label="Host">
+              <input value={obsHost} onChange={(e) => setObsHost(e.target.value)} />
+            </FormField>
+            <FormField label="Port">
+              <input type="number" value={obsPort} onChange={(e) => setObsPort(Number(e.target.value))} />
+            </FormField>
+            <FormField label="Password" hint={secretHint(info?.obs.hasPassword)}>
+              <input
+                type="password"
+                value={obsPassword}
+                onChange={(e) => setObsPassword(e.target.value)}
+                placeholder={info?.obs.hasPassword ? "Leave blank to keep existing" : "OBS WebSocket password"}
+              />
+            </FormField>
+          </div>
+
+          <div className="integration-card__footer">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={async () => {
+                const password = obsPassword.trim() || undefined;
+                if (!password && !info?.obs.hasPassword) {
+                  toast("Enter OBS WebSocket password");
+                  return;
+                }
+                const res = (await api.saveObsConfig(obsHost, obsPort, password)) as { ok: boolean };
+                toast(res.ok ? "OBS connected" : "OBS connection failed");
+                void load();
+              }}
+            >
+              Save & connect
+            </Button>
+          </div>
+        </Card>
+
+        <Card className="integration-card">
+          <CardHeader
+            title="Spotify"
+            description="Feeds the Now Playing overlay and music-aware stream widgets."
+            action={
+              <StatusPill
+                tone={info?.spotify.connected ? "success" : info?.spotify.configured ? "warning" : "neutral"}
+                label={info?.spotify.connected ? "Connected" : info?.spotify.configured ? "Ready" : "Optional"}
+              />
             }
-            const res = (await api.saveObsConfig(obsHost, obsPort, password)) as {
-              ok: boolean;
-            };
-            toast(res.ok ? "OBS connected" : "OBS connection failed");
-            void load();
-          }}
-        >
-          Save & connect
-        </button>
+          />
+
+          <div className="integration-card__body">
+            <Callout tone="info">
+              Spotify uses HTTP on port <strong>4782</strong>. Use <code>127.0.0.1</code>, not <code>localhost</code>, in the Spotify Dashboard.
+            </Callout>
+            <CopyField label="Spotify redirect URI" value={info?.spotify.redirectUri ?? ""} />
+            <div className="integration-card__actions">
+              <ButtonAnchor variant="secondary" size="sm" href="https://developer.spotify.com/dashboard" target="_blank" rel="noreferrer">
+                Open Spotify Dashboard
+              </ButtonAnchor>
+            </div>
+            <FormField label="Client ID">
+              <input value={spotifyId} onChange={(e) => setSpotifyId(e.target.value)} />
+            </FormField>
+            <FormField label="Client Secret" hint={secretHint(info?.spotify.hasClientSecret)}>
+              <input
+                type="password"
+                value={spotifySecret}
+                onChange={(e) => setSpotifySecret(e.target.value)}
+                placeholder={info?.spotify.hasClientSecret ? "Leave blank to keep existing" : "Paste client secret"}
+              />
+            </FormField>
+          </div>
+
+          <div className="integration-card__footer">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={async () => {
+                const secret = spotifySecret.trim() || undefined;
+                if (!spotifyId) {
+                  toast("Enter client ID");
+                  return;
+                }
+                if (!secret && !info?.spotify.hasClientSecret) {
+                  toast("Enter client secret");
+                  return;
+                }
+                await api.saveSpotifyConfig(spotifyId, secret);
+                toast("Spotify credentials saved");
+                void load();
+              }}
+            >
+              Save credentials
+            </Button>
+            <ButtonAnchor href={info?.spotify.authStartUrl ?? "http://127.0.0.1:4782/auth/spotify"} variant="primary" size="sm" target="_blank" rel="noreferrer">
+              Connect Spotify
+            </ButtonAnchor>
+            {info?.spotify.connected ? (
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={async () => {
+                  await api.disconnectSpotify();
+                  toast("Disconnected");
+                  setSpotifySecret("");
+                  void load();
+                }}
+              >
+                Disconnect
+              </Button>
+            ) : null}
+          </div>
+        </Card>
+
+        <Card className="integration-card">
+          <CardHeader
+            title="GIPHY"
+            description="Powers GIF and sticker search inside the Visual Alert Editor."
+            action={<StatusPill tone={info?.giphy?.configured ? "success" : "neutral"} label={info?.giphy?.configured ? "Configured" : "Optional"} />}
+          />
+
+          <div className="integration-card__body">
+            <FormField
+              label="GIPHY SDK API key"
+              hint={info?.giphy?.configured ? "Configured. Leave blank to keep the existing key." : "Paste your GIPHY SDK API key."}
+            >
+              <input
+                type="password"
+                value={giphyKey}
+                onChange={(e) => setGiphyKey(e.target.value)}
+                placeholder={info?.giphy?.configured ? "Leave blank to keep existing" : "Paste your GIPHY key"}
+              />
+            </FormField>
+            <div className="integration-card__actions">
+              <ButtonAnchor variant="secondary" size="sm" href="https://developers.giphy.com/dashboard/" target="_blank" rel="noreferrer">
+                Open GIPHY Dashboard
+              </ButtonAnchor>
+            </div>
+          </div>
+
+          <div className="integration-card__footer">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={async () => {
+                const apiKey = giphyKey.trim() || undefined;
+                if (!apiKey && !info?.giphy?.configured) {
+                  toast("Enter GIPHY API key");
+                  return;
+                }
+                await api.saveGiphyConfig(apiKey);
+                toast("GIPHY key saved");
+                void load();
+              }}
+            >
+              Save GIPHY key
+            </Button>
+          </div>
+        </Card>
       </div>
     </>
   );

@@ -4,6 +4,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { AlertProjectSchema } from "@btv/shared";
 import type { AlertChaosModifier, AlertKeyframe, AlertLayer, AlertLayerAnimation, AlertProject, AlertVariation, StreamEventType } from "@btv/shared";
 import { api, type GiphyAssetType, type GiphyResult, type MediaAssetInfo, type SoundAssetInfo } from "../api";
+import { AlertEditorBreadcrumbs, AlertEditorToolbar } from "../components/alerts/AlertEditorToolbar";
 import { useRegisterSaveStatus } from "../context/SaveStatusContext";
 import { useToast } from "../hooks/useToast";
 import { PageHeader } from "../ui";
@@ -95,6 +96,11 @@ type TemplateId =
   | "ocean-sci-fi"
   | "meme-pop";
 type ProjectHistory = { past: AlertProject[]; future: AlertProject[] };
+type ProjectHistoryStep = {
+  project: AlertProject;
+  history: ProjectHistory;
+  selectedLayerId: string;
+};
 type PreviewZoom = "fit" | 0.25 | 0.5 | 1;
 type AlertProjectWarning = { level: "warning" | "error"; message: string };
 type TemplateInfo = { id: TemplateId; name: string; description: string };
@@ -106,6 +112,33 @@ type LocalTemplate = {
   project: AlertProject;
   savedAt: string;
 };
+
+function stepAlertProjectHistory(
+  direction: "undo" | "redo",
+  currentProject: AlertProject | null,
+  currentSelectedLayerId: string,
+  history: ProjectHistory,
+): ProjectHistoryStep | null {
+  if (!currentProject) return null;
+  if (direction === "undo") {
+    const previous = history.past.at(-1);
+    if (!previous) return null;
+    return {
+      project: previous,
+      selectedLayerId: previous.layers.some((layer) => layer.id === currentSelectedLayerId) ? currentSelectedLayerId : previous.layers[0]?.id ?? "",
+      history: { past: history.past.slice(0, -1), future: [currentProject, ...history.future] },
+    };
+  }
+
+  const next = history.future[0];
+  if (!next) return null;
+  return {
+    project: next,
+    selectedLayerId: next.layers.some((layer) => layer.id === currentSelectedLayerId) ? currentSelectedLayerId : next.layers[0]?.id ?? "",
+    history: { past: [...history.past, currentProject], future: history.future.slice(1) },
+  };
+}
+
 type TestPayload = {
   user?: string;
   login?: string;
@@ -831,21 +864,23 @@ function TemplatePreview({
   overlayOrigin,
   testPayload,
   onApply,
+  large = false,
 }: {
   templateId: TemplateId;
   overlayOrigin: string;
   testPayload: TestPayload;
   onApply: () => void;
+  large?: boolean;
 }) {
   const previewProject = useMemo(() => createTemplateProject(templateId), [templateId]);
   const info = templateInfo(templateId);
-  const scale = 0.12;
+  const scale = large ? 0.24 : 0.12;
   const noopPointer = () => undefined;
   const noopResize = () => undefined;
   const noopRotate = () => undefined;
 
   return (
-    <div className="alert-template-preview">
+    <div className={`alert-template-preview${large ? " large" : ""}`}>
       <div>
         <h3>{info.name}</h3>
         <p>{info.description}</p>
@@ -1106,6 +1141,8 @@ export default function AlertEditorPage() {
   const [previewBackground, setPreviewBackground] = useState<"checkerboard" | "dark" | "transparent">("checkerboard");
   const [previewZoom, setPreviewZoom] = useState<PreviewZoom>("fit");
   const [previewFitScale, setPreviewFitScale] = useState(0.34);
+  const [inspectorTab, setInspectorTab] = useState<"properties" | "test">("properties");
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [templatePreviewId, setTemplatePreviewId] = useState<TemplateId>("clean-follow");
   const [localTemplates, setLocalTemplates] = useState<LocalTemplate[]>([]);
   const [selectedLocalTemplateId, setSelectedLocalTemplateId] = useState("");
@@ -1131,7 +1168,7 @@ export default function AlertEditorPage() {
   const toast = useToast();
 
   const selectedLayer = useMemo(
-    () => project?.layers?.find((layer) => layer.id === selectedLayerId) ?? project?.layers?.[0] ?? null,
+    () => project?.layers?.find((layer) => layer.id === selectedLayerId) ?? null,
     [project, selectedLayerId],
   );
 
@@ -1154,6 +1191,13 @@ export default function AlertEditorPage() {
   const selectedVariation = useMemo(
     () => project?.variations?.find((variation) => variation.id === selectedVariationId) ?? null,
     [project?.variations, selectedVariationId],
+  );
+  const testAudioLayer = useMemo(
+    () => {
+      const selectedAudio = selectedLayer?.type === "audio" ? selectedLayer : null;
+      return selectedAudio ?? project?.layers.find((layer) => layer.type === "audio") ?? null;
+    },
+    [project?.layers, selectedLayer],
   );
   const previewTestPayload = useMemo<TestPayload>(() => {
     try {
@@ -1619,26 +1663,26 @@ export default function AlertEditorPage() {
     setSelectedLayerId(layer.id);
   };
 
-  const testSelectedAudio = () => {
-    if (!selectedLayer || selectedLayer.type !== "audio" || !selectedLayer.assetUrl) {
+  const testAudioLayerPlayback = (layer = testAudioLayer) => {
+    if (!layer || layer.type !== "audio" || !layer.assetUrl) {
       toast("Select an audio layer with an asset URL first");
       return;
     }
     stopTestAudio();
-    if (selectedLayer.muted) {
+    if (layer.muted) {
       toast("Audio layer is muted");
       return;
     }
-    const audio = new Audio(resolvePreviewAssetUrl(selectedLayer.assetUrl, overlayOrigin));
-    audio.loop = Boolean(selectedLayer.loop);
-    const offsetMs = Math.max(0, Number(selectedLayer.startOffsetMs ?? 0));
+    const audio = new Audio(resolvePreviewAssetUrl(layer.assetUrl, overlayOrigin));
+    audio.loop = Boolean(layer.loop);
+    const offsetMs = Math.max(0, Number(layer.startOffsetMs ?? 0));
     audio.currentTime = offsetMs / 1000;
     testAudioTimersRef.current = applyAudioFade(
       audio,
-      Number(selectedLayer.volume ?? 1),
-      Number(selectedLayer.fadeInMs ?? 0),
-      Number(selectedLayer.fadeOutMs ?? 0),
-      Math.max(0, Number(selectedLayer.endMs ?? 0) - Number(selectedLayer.startMs ?? 0)),
+      Number(layer.volume ?? 1),
+      Number(layer.fadeInMs ?? 0),
+      Number(layer.fadeOutMs ?? 0),
+      Math.max(0, Number(layer.endMs ?? 0) - Number(layer.startMs ?? 0)),
     );
     testAudioRef.current = audio;
     audio.addEventListener("ended", () => {
@@ -1649,6 +1693,8 @@ export default function AlertEditorPage() {
       toast("Could not play test audio");
     });
   };
+
+  const testSelectedAudio = () => testAudioLayerPlayback(selectedLayer?.type === "audio" ? selectedLayer : null);
 
   const stopTestAudio = () => {
     testAudioRef.current?.pause();
@@ -2042,21 +2088,21 @@ export default function AlertEditorPage() {
 
   const undoProject = () => {
     setHistory((prev) => {
-      const previous = prev.past.at(-1);
-      if (!previous || !project) return prev;
-      setProject(previous);
-      setSelectedLayerId((current) => previous.layers.some((layer) => layer.id === current) ? current : previous.layers[0]?.id ?? "");
-      return { past: prev.past.slice(0, -1), future: [project, ...prev.future] };
+      const step = stepAlertProjectHistory("undo", project, selectedLayerId, prev);
+      if (!step) return prev;
+      setProject(step.project);
+      setSelectedLayerId(step.selectedLayerId);
+      return step.history;
     });
   };
 
   const redoProject = () => {
     setHistory((prev) => {
-      const next = prev.future[0];
-      if (!next || !project) return prev;
-      setProject(next);
-      setSelectedLayerId((current) => next.layers.some((layer) => layer.id === current) ? current : next.layers[0]?.id ?? "");
-      return { past: [...prev.past, project], future: prev.future.slice(1) };
+      const step = stepAlertProjectHistory("redo", project, selectedLayerId, prev);
+      if (!step) return prev;
+      setProject(step.project);
+      setSelectedLayerId(step.selectedLayerId);
+      return step.history;
     });
   };
 
@@ -2071,6 +2117,11 @@ export default function AlertEditorPage() {
       const key = event.key.toLowerCase();
       const mod = event.ctrlKey || event.metaKey;
 
+      if (mod && key === "s") {
+        event.preventDefault();
+        void save();
+        return;
+      }
       if (mod && key === "z" && !event.shiftKey) {
         event.preventDefault();
         undoProject();
@@ -2113,47 +2164,43 @@ export default function AlertEditorPage() {
 
   return (
     <>
+      <AlertEditorBreadcrumbs projectName={project?.name} />
       <PageHeader title="Visual Alert Editor" description="Create, test, and manage BTV's primary cinematic alert projects." />
 
-      <div className="actions" style={{ marginBottom: 16, alignItems: "center" }}>
-        <select
-          value={project?.id ?? ""}
-          onChange={(e) => selectProject(projects.find((item) => item.id === e.target.value) ?? null)}
-          style={{ width: 240 }}
-        >
-          {projects.map((item) => (
-            <option key={item.id} value={item.id}>{item.name}</option>
-          ))}
-        </select>
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => void save()} disabled={!project || saving}>
-          {saving ? "Saving..." : dirty ? "Save project *" : "Save project"}
-        </button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={undoProject} disabled={!history.past.length}>Undo</button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={redoProject} disabled={!history.future.length}>Redo</button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={createNew}>New project</button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => void createSamplePack()} disabled={saving}>Sample pack</button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={saveCurrentAsLocalTemplate} disabled={!project}>Save as template</button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={duplicateProject} disabled={!project}>Duplicate project</button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={exportProject} disabled={!project}>Export JSON</button>
-        <label className="btn btn-secondary btn-sm">
-          Import JSON
-          <input
-            type="file"
-            accept="application/json,.json,.btv-alert.json"
-            style={{ display: "none" }}
-            onChange={(e) => {
-              const file = e.currentTarget.files?.[0];
-              e.currentTarget.value = "";
-              if (file) void importProject(file);
-            }}
-          />
-        </label>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => void copyObsAlertUrl()}>Copy OBS URL</button>
-        <button type="button" className="btn btn-danger btn-sm" onClick={() => void removeProject()} disabled={!project}>Delete</button>
-        <Link className="btn btn-secondary btn-sm" to="/alerts/routing">Advanced routing</Link>
-        <Link className="btn btn-secondary btn-sm" to="/themes">Legacy themes</Link>
-        <span className={`alert-save-status${dirty ? " dirty" : ""}`}>{dirty ? "Unsaved changes" : "Saved"}</span>
-      </div>
+      <AlertEditorToolbar
+        projects={projects}
+        eventTypes={EVENT_TYPES}
+        selectedProjectId={project?.id ?? ""}
+        selectedTestEventType={selectedVariation?.condition.eventType ?? project?.eventType ?? "follow"}
+        selectedVariationId={selectedVariationId}
+        variationOptions={project?.variations.map((variation) => ({ id: variation.id, name: variation.name })) ?? []}
+        saving={saving}
+        dirty={dirty}
+        canUndo={Boolean(history.past.length)}
+        canRedo={Boolean(history.future.length)}
+        canUseProject={Boolean(project)}
+        onSelectProject={(projectId) => selectProject(projects.find((item) => item.id === projectId) ?? null)}
+        onSelectTestEventType={(eventType) => {
+          if (selectedVariation) {
+            updateVariation(selectedVariation.id, { condition: { ...selectedVariation.condition, eventType } });
+          } else if (project) {
+            commitProject({ ...project, eventType, updatedAt: nowIso() });
+          }
+        }}
+        onSelectVariation={setSelectedVariationId}
+        onTestInObs={() => void testProjectInObs(selectedVariation?.condition.eventType ?? project?.eventType ?? "follow", selectedVariationId || undefined)}
+        onSave={() => void save()}
+        onUndo={undoProject}
+        onRedo={redoProject}
+        onCreateProject={createNew}
+        onCreateSamplePack={() => void createSamplePack()}
+        onSaveTemplate={saveCurrentAsLocalTemplate}
+        onDuplicateProject={duplicateProject}
+        onExportProject={exportProject}
+        onImportProject={(file) => void importProject(file)}
+        onCopyObsUrl={() => void copyObsAlertUrl()}
+        onDeleteProject={() => void removeProject()}
+      />
 
       {!project && (
         <section className="card alert-empty-state">
@@ -2197,6 +2244,60 @@ export default function AlertEditorPage() {
         </section>
       )}
 
+      {templateDialogOpen && (
+        <div className="alert-template-dialog" role="dialog" aria-modal="true" aria-labelledby="alert-template-dialog-title">
+          <div className="alert-template-dialog__backdrop" onClick={() => setTemplateDialogOpen(false)} />
+          <section className="card alert-template-dialog__panel">
+            <div className="alert-template-dialog__header">
+              <div>
+                <h2 id="alert-template-dialog-title">Template Gallery</h2>
+                <p className="subtitle">Preview cinematic starting points at a larger size before applying them.</p>
+              </div>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateDialogOpen(false)}>Close</button>
+            </div>
+            <div className="alert-template-dialog__body">
+              <div className="alert-template-dialog__list">
+                {TEMPLATE_INFOS.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    className={`alert-template-card${templatePreviewId === template.id ? " active" : ""}`}
+                    onClick={() => setTemplatePreviewId(template.id)}
+                  >
+                    <strong>{template.name}</strong>
+                    <span>{template.description}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="alert-template-dialog__preview">
+                <TemplatePreview
+                  templateId={templatePreviewId}
+                  overlayOrigin={overlayOrigin}
+                  testPayload={previewTestPayload}
+                  large
+                  onApply={() => {
+                    createFromTemplate(templatePreviewId);
+                    setTemplateDialogOpen(false);
+                  }}
+                />
+                {project && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      resetCurrentToTemplate(templatePreviewId);
+                      setTemplateDialogOpen(false);
+                    }}
+                  >
+                    Reset current project to this template
+                  </button>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
       {project && (
         <div className="alert-editor-grid">
           <details className="card alert-shortcuts-card alert-collapsible-card">
@@ -2236,7 +2337,7 @@ export default function AlertEditorPage() {
             </div>
           </details>
 
-          <section className="card alert-editor-side-panel">
+          <section className="card alert-editor-side-panel alert-project-panel">
             <h2>Project</h2>
             <details className="alert-compact-section">
               <summary>Templates</summary>
@@ -2247,6 +2348,14 @@ export default function AlertEditorPage() {
                     <option key={template.id} value={template.id}>{template.name}</option>
                   ))}
                 </select>
+              </div>
+              <div className="actions" style={{ marginBottom: 10 }}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateDialogOpen(true)}>
+                  Browse template gallery
+                </button>
+                <button type="button" className="btn btn-primary btn-sm" onClick={() => createFromTemplate(templatePreviewId)}>
+                  Create from selected
+                </button>
               </div>
               <div className="alert-template-grid compact">
                 {TEMPLATE_INFOS.map((template) => (
@@ -2458,40 +2567,6 @@ export default function AlertEditorPage() {
                 </div>
               </div>
             </div>
-            <div className="actions" style={{ marginTop: 0, marginBottom: 16 }}>
-              {EVENT_TYPES.map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  className={`btn btn-sm ${project.eventType === type ? "btn-primary" : "btn-secondary"}`}
-                  onClick={() => void testProjectInObs(type)}
-                  disabled={saving || Boolean(testPayloadError)}
-                >
-                  Test {type}
-                </button>
-              ))}
-            </div>
-            <details className="alert-compact-section">
-              <summary>Test payload JSON</summary>
-              <div className="form-row">
-                <textarea
-                  rows={7}
-                  value={testPayloadJson}
-                  onChange={(e) => setTestPayloadJson(e.target.value)}
-                  spellCheck={false}
-                />
-                <p className={testPayloadError ? "form-error" : "subtitle"}>
-                  {testPayloadError
-                    ? `Invalid JSON: ${testPayloadError}`
-                    : (
-                      <>
-                        Template variables: <code>{"{user}"}</code>, <code>{"{login}"}</code>, <code>{"{event}"}</code>, <code>{"{amount}"}</code>, <code>{"{message}"}</code>, <code>{"{payload.rewardTitle}"}</code>.
-                      </>
-                    )}
-                </p>
-              </div>
-            </details>
-
             <h2 style={{ marginTop: 16 }}>Layers</h2>
             {projectWarnings.length > 0 && (
               <section className="alert-health-panel">
@@ -2708,6 +2783,9 @@ export default function AlertEditorPage() {
               <div
                 ref={canvasRef}
                 className={`alert-preview-canvas ${previewBackground === "checkerboard" ? "checkerboard" : ""} ${previewBackground === "dark" ? "dark" : ""}`}
+                onPointerDown={(event) => {
+                  if (event.target === event.currentTarget) setSelectedLayerId("");
+                }}
                 onPointerMove={dragLayer}
                 onPointerUp={stopDrag}
                 onPointerCancel={stopDrag}
@@ -2799,26 +2877,131 @@ export default function AlertEditorPage() {
             </div>
           </section>
 
-          <section className="card alert-editor-side-panel">
-            <h2>Properties</h2>
-            {selectedLayer ? (
+          <section className="card alert-editor-side-panel alert-inspector-panel">
+            <div className="alert-inspector-tabs">
+              <h2>{inspectorTab === "test" ? "Test" : "Properties"}</h2>
+              <div className="segmented" role="tablist" aria-label="Inspector panels">
+                <button type="button" className={inspectorTab === "properties" ? "active" : ""} onClick={() => setInspectorTab("properties")}>Properties</button>
+                <button type="button" className={inspectorTab === "test" ? "active" : ""} onClick={() => setInspectorTab("test")}>Test</button>
+              </div>
+            </div>
+            {inspectorTab === "test" ? (
+              <div className="alert-test-panel">
+                <details open className="alert-inspector-section">
+                  <summary>Test Event</summary>
+                  <p className="subtitle">Fire this project into OBS using the selected payload. Invalid JSON disables the test buttons.</p>
+                  <div className="alert-routing-test-grid">
+                    {EVENT_TYPES.map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        className={`btn btn-sm ${project.eventType === type ? "btn-primary" : "btn-secondary"}`}
+                        onClick={() => void testProjectInObs(type)}
+                        disabled={saving || Boolean(testPayloadError)}
+                      >
+                        Test {type}
+                      </button>
+                    ))}
+                  </div>
+                </details>
+                <details open className="alert-inspector-section">
+                  <summary>Variation, Chaos & Audio</summary>
+                  <div className="alert-test-flow-grid">
+                    <div>
+                      <label>Variation</label>
+                      <select value={selectedVariationId} onChange={(e) => setSelectedVariationId(e.target.value)}>
+                        <option value="">Base project</option>
+                        {project.variations.map((variation) => (
+                          <option key={variation.id} value={variation.id}>
+                            {variation.name}{variation.enabled ? "" : " (disabled)"}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => void testProjectInObs(selectedVariation?.condition.eventType ?? project.eventType, selectedVariation?.id)}
+                      disabled={saving || Boolean(testPayloadError) || !selectedVariation}
+                    >
+                      Test selected variation
+                    </button>
+                    <span className={`alert-test-state ${project.chaos.enabled ? "enabled" : ""}`}>
+                      Chaos {project.chaos.enabled ? `on (${Math.round(project.chaos.intensity * 100)}%)` : "off"}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        if (testAudioLayer) setSelectedLayerId(testAudioLayer.id);
+                        testAudioLayerPlayback(testAudioLayer);
+                      }}
+                      disabled={!testAudioLayer?.assetUrl || Boolean(testAudioLayer?.muted)}
+                    >
+                      Test audio layer
+                    </button>
+                  </div>
+                  <p className="subtitle">
+                    {testAudioLayer
+                      ? `Audio target: ${testAudioLayer.name}${testAudioLayer.muted ? " (muted)" : ""}`
+                      : "Add an audio layer to test sound playback from this panel."}
+                  </p>
+                </details>
+                <details open className="alert-inspector-section">
+                  <summary>Payload JSON</summary>
+                  <div className="form-row">
+                    <textarea
+                      rows={12}
+                      value={testPayloadJson}
+                      onChange={(e) => setTestPayloadJson(e.target.value)}
+                      spellCheck={false}
+                    />
+                    <p className={testPayloadError ? "form-error" : "subtitle"}>
+                      {testPayloadError
+                        ? `Invalid JSON: ${testPayloadError}`
+                        : (
+                          <>
+                            Template variables: <code>{"{user}"}</code>, <code>{"{login}"}</code>, <code>{"{event}"}</code>, <code>{"{amount}"}</code>, <code>{"{message}"}</code>, <code>{"{payload.rewardTitle}"}</code>.
+                          </>
+                        )}
+                    </p>
+                  </div>
+                </details>
+              </div>
+            ) : selectedLayer ? (
               <>
-                <div className="form-row">
-                  <label title="Name shown in the layer stack and timeline.">Layer name</label>
-                  <input value={selectedLayer.name} onChange={(e) => updateSelected({ name: e.target.value })} />
-                </div>
-                <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                  <label><input type="checkbox" checked={selectedLayer.visible} onChange={(e) => updateSelected({ visible: e.target.checked })} /> Visible</label>
-                  <label><input type="checkbox" checked={selectedLayer.locked} onChange={(e) => updateSelected({ locked: e.target.checked })} /> Locked</label>
-                </div>
-                <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                <details open className="alert-inspector-section">
+                  <summary>Layer</summary>
+                  <div className="form-row">
+                    <label title="Name shown in the layer stack and timeline.">Layer name</label>
+                    <input value={selectedLayer.name} onChange={(e) => updateSelected({ name: e.target.value })} />
+                  </div>
+                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                    <label><input type="checkbox" checked={selectedLayer.visible} onChange={(e) => updateSelected({ visible: e.target.checked })} /> Visible</label>
+                    <label><input type="checkbox" checked={selectedLayer.locked} onChange={(e) => updateSelected({ locked: e.target.checked })} /> Locked</label>
+                  </div>
+                </details>
+                <details open className="alert-inspector-section">
+                  <summary>Transform</summary>
+                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
                   <div><label>X</label><input type="number" value={selectedLayer.x} onChange={(e) => updateSelected({ x: Number(e.target.value) })} /></div>
                   <div><label>Y</label><input type="number" value={selectedLayer.y} onChange={(e) => updateSelected({ y: Number(e.target.value) })} /></div>
                   <div><label>Width</label><input type="number" value={selectedLayer.width} onChange={(e) => updateSelected({ width: Number(e.target.value) })} /></div>
                   <div><label>Height</label><input type="number" value={selectedLayer.height} onChange={(e) => updateSelected({ height: Number(e.target.value) })} /></div>
                   <div><label>Rotation</label><input type="number" value={selectedLayer.rotation} onChange={(e) => updateSelected({ rotation: Number(e.target.value) })} /></div>
                   <div><label>Scale</label><input type="number" step="0.05" value={selectedLayer.scale} onChange={(e) => updateSelected({ scale: Number(e.target.value) })} /></div>
-                </div>
+                  </div>
+                  <div className="actions" style={{ marginBottom: 0 }}>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("left")}>Left</button>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("center")}>Center</button>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("right")}>Right</button>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("top")}>Top</button>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("middle")}>Middle</button>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("bottom")}>Bottom</button>
+                  </div>
+                </details>
+                <details className="alert-inspector-section">
+                  <summary>Animation</summary>
                 <div className="form-row">
                   <label>Animation preset</label>
                   <select
@@ -2883,27 +3066,22 @@ export default function AlertEditorPage() {
                     </label>
                   </div>
                 )}
-                <div className="actions" style={{ marginBottom: 16 }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("left")}>Left</button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("center")}>Center</button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("right")}>Right</button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("top")}>Top</button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("middle")}>Middle</button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("bottom")}>Bottom</button>
-                </div>
-                <div className="form-row">
-                  <label>Opacity ({selectedLayer.opacity})</label>
-                  <input type="range" min={0} max={1} step={0.05} value={selectedLayer.opacity} onChange={(e) => updateSelected({ opacity: Number(e.target.value) })} />
-                </div>
-                <div className="form-row">
-                  <label>Blend mode</label>
-                  <select value={selectedLayer.blendMode} onChange={(e) => updateSelected({ blendMode: e.target.value })}>
-                    {BLEND_MODES.map((mode) => (
-                      <option key={mode} value={mode}>{mode}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                </details>
+                <details className="alert-inspector-section">
+                  <summary>Appearance</summary>
+                  <div className="form-row">
+                    <label>Opacity ({selectedLayer.opacity})</label>
+                    <input type="range" min={0} max={1} step={0.05} value={selectedLayer.opacity} onChange={(e) => updateSelected({ opacity: Number(e.target.value) })} />
+                  </div>
+                  <div className="form-row">
+                    <label>Blend mode</label>
+                    <select value={selectedLayer.blendMode} onChange={(e) => updateSelected({ blendMode: e.target.value })}>
+                      {BLEND_MODES.map((mode) => (
+                        <option key={mode} value={mode}>{mode}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
                   <div>
                     <label>Glow</label>
                     <input type="number" min={0} max={120} value={selectedLayer.filter?.glow ?? 0} onChange={(e) => updateSelectedFilter({ glow: Number(e.target.value) })} />
@@ -2932,13 +3110,16 @@ export default function AlertEditorPage() {
                     <label>Saturation</label>
                     <input type="number" min={0} max={3} step={0.05} value={selectedLayer.filter?.saturation ?? 1} onChange={(e) => updateSelectedFilter({ saturation: Number(e.target.value) })} />
                   </div>
-                </div>
-                <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                  <div><label title="When this layer appears during the alert.">Start (ms)</label><input type="number" value={selectedLayer.startMs} onChange={(e) => updateSelected({ startMs: Number(e.target.value) })} /></div>
-                  <div><label title="When this layer disappears during the alert.">End (ms)</label><input type="number" value={selectedLayer.endMs} onChange={(e) => updateSelected({ endMs: Number(e.target.value) })} /></div>
-                </div>
-                <div className="alert-keyframe-panel">
-                  <h3>Keyframes</h3>
+                  </div>
+                </details>
+                <details open className="alert-inspector-section">
+                  <summary>Timing</summary>
+                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                    <div><label title="When this layer appears during the alert.">Start (ms)</label><input type="number" value={selectedLayer.startMs} onChange={(e) => updateSelected({ startMs: Number(e.target.value) })} /></div>
+                    <div><label title="When this layer disappears during the alert.">End (ms)</label><input type="number" value={selectedLayer.endMs} onChange={(e) => updateSelected({ endMs: Number(e.target.value) })} /></div>
+                  </div>
+                  <div className="alert-keyframe-panel">
+                    <h3>Keyframes</h3>
                   <div className="actions" style={{ marginBottom: 10 }}>
                     {KEYFRAME_PROPERTIES.map((property) => (
                       <button key={property} type="button" className="btn btn-secondary btn-sm" onClick={() => addKeyframe(property)}>
@@ -2974,10 +3155,12 @@ export default function AlertEditorPage() {
                   ) : (
                     <p className="subtitle">Move the playhead, adjust the layer, then add a keyframe for the property you want to animate.</p>
                   )}
-                </div>
+                  </div>
+                </details>
 
                 {selectedLayer.type === "text" && (
-                  <>
+                  <details open className="alert-inspector-section">
+                    <summary>Text</summary>
                     <div className="form-row"><label>Text</label><textarea rows={3} value={selectedLayer.text} onChange={(e) => updateSelected({ text: e.target.value } as Partial<AlertLayer>)} /></div>
                     <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
                       <div><label>Font size</label><input type="number" value={selectedLayer.fontSize} onChange={(e) => updateSelected({ fontSize: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
@@ -2988,29 +3171,36 @@ export default function AlertEditorPage() {
                       <div><label>Stroke width</label><input type="number" min={0} max={24} value={selectedLayer.strokeWidth} onChange={(e) => updateSelected({ strokeWidth: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
                       <div><label>Stroke color</label><input value={selectedLayer.strokeColor ?? "#000000"} onChange={(e) => updateSelected({ strokeColor: e.target.value } as Partial<AlertLayer>)} /></div>
                     </div>
-                  </>
+                  </details>
                 )}
 
                 {selectedLayer.type === "shape" && (
-                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                    <div><label>Fill</label><input value={selectedLayer.fill} onChange={(e) => updateSelected({ fill: e.target.value } as Partial<AlertLayer>)} /></div>
-                    <div><label>Radius</label><input type="number" value={selectedLayer.radius} onChange={(e) => updateSelected({ radius: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                    <div><label>Shape</label><select value={selectedLayer.shape} onChange={(e) => updateSelected({ shape: e.target.value } as Partial<AlertLayer>)}><option value="rectangle">Rectangle</option><option value="ellipse">Ellipse</option></select></div>
-                  </div>
+                  <details open className="alert-inspector-section">
+                    <summary>Shape</summary>
+                    <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                      <div><label>Fill</label><input value={selectedLayer.fill} onChange={(e) => updateSelected({ fill: e.target.value } as Partial<AlertLayer>)} /></div>
+                      <div><label>Radius</label><input type="number" value={selectedLayer.radius} onChange={(e) => updateSelected({ radius: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
+                      <div><label>Shape</label><select value={selectedLayer.shape} onChange={(e) => updateSelected({ shape: e.target.value } as Partial<AlertLayer>)}><option value="rectangle">Rectangle</option><option value="ellipse">Ellipse</option></select></div>
+                    </div>
+                  </details>
                 )}
 
                 {selectedLayer.type === "particle" && (
-                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                    <div><label>Particle type</label><select value={selectedLayer.particle} onChange={(e) => updateSelected({ particle: e.target.value } as Partial<AlertLayer>)}><option value="confetti">Confetti</option><option value="spark">Spark</option><option value="burst">Burst</option><option value="embers">Embers</option><option value="snow">Snow</option></select></div>
-                    <div><label>Count</label><input type="number" min={1} max={1000} value={selectedLayer.count} onChange={(e) => updateSelected({ count: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                    <div><label>Color</label><input type="color" value={selectedLayer.color} onChange={(e) => updateSelected({ color: e.target.value } as Partial<AlertLayer>)} /></div>
-                    <div><label>Spread</label><input type="number" min={0} max={360} value={selectedLayer.spread} onChange={(e) => updateSelected({ spread: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                    <div><label>Speed</label><input type="number" min={0} max={10} step={0.1} value={selectedLayer.speed} onChange={(e) => updateSelected({ speed: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                  </div>
+                  <details open className="alert-inspector-section">
+                    <summary>Particle</summary>
+                    <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                      <div><label>Particle type</label><select value={selectedLayer.particle} onChange={(e) => updateSelected({ particle: e.target.value } as Partial<AlertLayer>)}><option value="confetti">Confetti</option><option value="spark">Spark</option><option value="burst">Burst</option><option value="embers">Embers</option><option value="snow">Snow</option></select></div>
+                      <div><label>Count</label><input type="number" min={1} max={1000} value={selectedLayer.count} onChange={(e) => updateSelected({ count: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
+                      <div><label>Color</label><input type="color" value={selectedLayer.color} onChange={(e) => updateSelected({ color: e.target.value } as Partial<AlertLayer>)} /></div>
+                      <div><label>Spread</label><input type="number" min={0} max={360} value={selectedLayer.spread} onChange={(e) => updateSelected({ spread: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
+                      <div><label>Speed</label><input type="number" min={0} max={10} step={0.1} value={selectedLayer.speed} onChange={(e) => updateSelected({ speed: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
+                    </div>
+                  </details>
                 )}
 
                 {selectedLayer.type === "browser" && (
-                  <div className="alert-advanced-panel">
+                  <details open className="alert-inspector-section alert-advanced-panel">
+                    <summary>Browser</summary>
                     <h3>Advanced Code</h3>
                     <p className="subtitle">Custom browser layers are sandboxed by default. JavaScript is disabled unless you turn off the sandbox, and Safe mode disables it during playback.</p>
                     <div className="form-row"><label>HTML</label><textarea rows={4} value={selectedLayer.html} onChange={(e) => updateSelected({ html: e.target.value } as Partial<AlertLayer>)} /></div>
@@ -3021,51 +3211,57 @@ export default function AlertEditorPage() {
                       <summary>Event payload and lifecycle notes</summary>
                       <p className="subtitle">Text layers support <code>{"{user}"}</code>, <code>{"{login}"}</code>, <code>{"{event}"}</code>, <code>{"{amount}"}</code>, <code>{"{message}"}</code>, <code>{"{var:hype}"}</code>, and <code>{"{payload.rewardTitle}"}</code>. Browser layer JavaScript runs inside the iframe when sandbox scripts are allowed; keep setup code self-contained.</p>
                     </details>
-                  </div>
+                  </details>
                 )}
 
                 {(selectedLayer.type === "image" || selectedLayer.type === "gif" || selectedLayer.type === "video" || selectedLayer.type === "audio") && (
                   <>
-                    <div className="form-row"><label>Asset URL</label><input value={selectedLayer.assetUrl} onChange={(e) => updateSelected({ assetUrl: e.target.value } as Partial<AlertLayer>)} /></div>
-                    {(selectedLayer.type === "audio" || selectedLayer.type === "video") && (
-                      <div className="form-row">
-                        <label>{selectedLayer.type === "audio" ? "Upload audio" : "Upload video"}</label>
-                        <input
-                          type="file"
-                          accept={selectedLayer.type === "audio" ? "audio/*,.mp3,.wav,.ogg,.m4a,.webm" : "video/*,.mp4,.webm,.mov"}
-                          disabled={assetUploading}
-                          onChange={(e) => {
-                            const file = e.currentTarget.files?.[0];
-                            e.currentTarget.value = "";
-                            if (file) void uploadSelectedAsset(file);
-                          }}
-                        />
-                        {assetUploading && <p className="subtitle">Uploading asset...</p>}
-                      </div>
-                    )}
-                    {selectedLayer.type !== "audio" && (
-                      <div className="form-row"><label>Fit</label><select value={selectedLayer.fit} onChange={(e) => updateSelected({ fit: e.target.value } as Partial<AlertLayer>)}><option value="contain">Contain</option><option value="cover">Cover</option><option value="fill">Fill</option></select></div>
-                    )}
+                    <details open className="alert-inspector-section">
+                      <summary>Media</summary>
+                      <div className="form-row"><label>Asset URL</label><input value={selectedLayer.assetUrl} onChange={(e) => updateSelected({ assetUrl: e.target.value } as Partial<AlertLayer>)} /></div>
+                      {(selectedLayer.type === "audio" || selectedLayer.type === "video") && (
+                        <div className="form-row">
+                          <label>{selectedLayer.type === "audio" ? "Upload audio" : "Upload video"}</label>
+                          <input
+                            type="file"
+                            accept={selectedLayer.type === "audio" ? "audio/*,.mp3,.wav,.ogg,.m4a,.webm" : "video/*,.mp4,.webm,.mov"}
+                            disabled={assetUploading}
+                            onChange={(e) => {
+                              const file = e.currentTarget.files?.[0];
+                              e.currentTarget.value = "";
+                              if (file) void uploadSelectedAsset(file);
+                            }}
+                          />
+                          {assetUploading && <p className="subtitle">Uploading asset...</p>}
+                        </div>
+                      )}
+                      {selectedLayer.type !== "audio" && (
+                        <div className="form-row"><label>Fit</label><select value={selectedLayer.fit} onChange={(e) => updateSelected({ fit: e.target.value } as Partial<AlertLayer>)}><option value="contain">Contain</option><option value="cover">Cover</option><option value="fill">Fill</option></select></div>
+                      )}
+                    </details>
                     {selectedLayer.type === "audio" && (
                       <>
-                        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                          <div><label>Volume</label><input type="number" min={0} max={1} step={0.05} value={selectedLayer.volume} onChange={(e) => updateSelected({ volume: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                          <div><label>Start offset (ms)</label><input type="number" min={0} value={selectedLayer.startOffsetMs ?? 0} onChange={(e) => updateSelected({ startOffsetMs: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                          <div><label>Fade in (ms)</label><input type="number" min={0} value={selectedLayer.fadeInMs ?? 0} onChange={(e) => updateSelected({ fadeInMs: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                          <div><label>Fade out (ms)</label><input type="number" min={0} value={selectedLayer.fadeOutMs ?? 0} onChange={(e) => updateSelected({ fadeOutMs: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                          <label style={{ alignSelf: "center", marginTop: 16 }}><input type="checkbox" checked={selectedLayer.loop} onChange={(e) => updateSelected({ loop: e.target.checked } as Partial<AlertLayer>)} /> Loop</label>
-                          <label style={{ alignSelf: "center", marginTop: 0 }}><input type="checkbox" checked={selectedLayer.muted} onChange={(e) => updateSelected({ muted: e.target.checked } as Partial<AlertLayer>)} /> Muted</label>
-                        </div>
-                        <div className="actions" style={{ marginTop: 0 }}>
-                          <button type="button" className="btn btn-secondary btn-sm" onClick={testSelectedAudio} disabled={!selectedLayer.assetUrl || selectedLayer.muted}>
-                            Test sound
-                          </button>
-                          <button type="button" className="btn btn-secondary btn-sm" onClick={stopTestAudio}>
-                            Stop sound
-                          </button>
-                        </div>
-                        <div className="form-row">
-                          <label>Future audio-reactive data</label>
+                        <details open className="alert-inspector-section">
+                          <summary>Audio</summary>
+                          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                            <div><label>Volume</label><input type="number" min={0} max={1} step={0.05} value={selectedLayer.volume} onChange={(e) => updateSelected({ volume: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
+                            <div><label>Start offset (ms)</label><input type="number" min={0} value={selectedLayer.startOffsetMs ?? 0} onChange={(e) => updateSelected({ startOffsetMs: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
+                            <div><label>Fade in (ms)</label><input type="number" min={0} value={selectedLayer.fadeInMs ?? 0} onChange={(e) => updateSelected({ fadeInMs: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
+                            <div><label>Fade out (ms)</label><input type="number" min={0} value={selectedLayer.fadeOutMs ?? 0} onChange={(e) => updateSelected({ fadeOutMs: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
+                            <label style={{ alignSelf: "center", marginTop: 16 }}><input type="checkbox" checked={selectedLayer.loop} onChange={(e) => updateSelected({ loop: e.target.checked } as Partial<AlertLayer>)} /> Loop</label>
+                            <label style={{ alignSelf: "center", marginTop: 0 }}><input type="checkbox" checked={selectedLayer.muted} onChange={(e) => updateSelected({ muted: e.target.checked } as Partial<AlertLayer>)} /> Muted</label>
+                          </div>
+                          <div className="actions" style={{ marginTop: 0, marginBottom: 0 }}>
+                            <button type="button" className="btn btn-secondary btn-sm" onClick={testSelectedAudio} disabled={!selectedLayer.assetUrl || selectedLayer.muted}>
+                              Test sound
+                            </button>
+                            <button type="button" className="btn btn-secondary btn-sm" onClick={stopTestAudio}>
+                              Stop sound
+                            </button>
+                          </div>
+                        </details>
+                        <details className="alert-inspector-section">
+                          <summary>Reactive</summary>
                           <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
                             <label style={{ alignSelf: "center", marginTop: 16 }}>
                               <input
@@ -3097,20 +3293,76 @@ export default function AlertEditorPage() {
                               />
                             </div>
                           </div>
-                        </div>
+                        </details>
                       </>
                     )}
                     {selectedLayer.type === "video" && (
-                      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                        <label><input type="checkbox" checked={selectedLayer.loop} onChange={(e) => updateSelected({ loop: e.target.checked } as Partial<AlertLayer>)} /> Loop</label>
-                        <label><input type="checkbox" checked={selectedLayer.muted} onChange={(e) => updateSelected({ muted: e.target.checked } as Partial<AlertLayer>)} /> Muted</label>
-                      </div>
+                      <details open className="alert-inspector-section">
+                        <summary>Playback</summary>
+                        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                          <label><input type="checkbox" checked={selectedLayer.loop} onChange={(e) => updateSelected({ loop: e.target.checked } as Partial<AlertLayer>)} /> Loop</label>
+                          <label><input type="checkbox" checked={selectedLayer.muted} onChange={(e) => updateSelected({ muted: e.target.checked } as Partial<AlertLayer>)} /> Muted</label>
+                        </div>
+                      </details>
                     )}
                   </>
                 )}
               </>
             ) : (
-              <p className="subtitle">Select a layer to edit its properties.</p>
+              <div className="alert-inspector-empty">
+                <p className="subtitle">No layer selected. Select a layer to edit it, or tune the project canvas here.</p>
+                <details open className="alert-inspector-section">
+                  <summary>Project</summary>
+                  <div className="form-row">
+                    <label>Name</label>
+                    <input value={project.name} onChange={(e) => commitProject({ ...project, name: e.target.value, updatedAt: nowIso() })} />
+                  </div>
+                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                    <div>
+                      <label>Event type</label>
+                      <select value={project.eventType} onChange={(e) => commitProject({ ...project, eventType: e.target.value as StreamEventType, updatedAt: nowIso() })}>
+                        {EVENT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label>Duration (ms)</label>
+                      <input type="number" min={500} max={60000} value={project.durationMs} onChange={(e) => commitProject({ ...project, durationMs: Number(e.target.value), updatedAt: nowIso() })} />
+                    </div>
+                  </div>
+                </details>
+                <details open className="alert-inspector-section">
+                  <summary>Canvas</summary>
+                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                    <div>
+                      <label>Width</label>
+                      <input
+                        type="number"
+                        min={320}
+                        value={project.canvas.width}
+                        onChange={(e) => commitProject({ ...project, canvas: { ...project.canvas, width: Number(e.target.value) }, updatedAt: nowIso() })}
+                      />
+                    </div>
+                    <div>
+                      <label>Height</label>
+                      <input
+                        type="number"
+                        min={180}
+                        value={project.canvas.height}
+                        onChange={(e) => commitProject({ ...project, canvas: { ...project.canvas, height: Number(e.target.value) }, updatedAt: nowIso() })}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <label>Canvas preset</label>
+                    <select value={activeCanvasPreset} onChange={(e) => applyCanvasPreset(e.target.value)}>
+                      {CANVAS_PRESETS.map((preset) => (
+                        <option key={preset.label} value={`${preset.width}x${preset.height}`}>{preset.label} ({preset.width}x{preset.height})</option>
+                      ))}
+                      <option value="custom">Custom</option>
+                    </select>
+                  </div>
+                </details>
+              </div>
             )}
           </section>
         </div>

@@ -1,5 +1,7 @@
-import { Link } from "react-router-dom";
-import { Card, CardHeader, EmptyState, PageHeader } from "../ui";
+import { StreamDeckRequestBuilder } from "../components/streamDeck";
+import { ButtonAnchor, ButtonLink, Card, CardHeader, CopyField, EmptyState, PageHeader } from "../ui";
+
+const STREAM_DECK_BASE_URL = "http://127.0.0.1:4782";
 
 const STREAM_DECK_ACTIONS = [
   { label: "Run macro", method: "POST", path: "/api/actions/macro/:macroId" },
@@ -17,29 +19,38 @@ export default function StreamDeckPage() {
       <PageHeader
         title="Stream Deck"
         description="Dedicated home for Stream Deck actions, API Ninja requests, and live control shortcuts."
+        action={
+          <ButtonAnchor variant="secondary" size="sm" href="/tutorials/stream-deck-setup.md" target="_blank" rel="noreferrer">
+            Open setup tutorial
+          </ButtonAnchor>
+        }
       />
 
       <Card>
         <CardHeader
           title="Action endpoints"
-          description="Use these endpoints in Stream Deck plugins or API Ninja buttons. The full request builder is still available on Dashboard while this page is being expanded."
-          action={<Link className="btn btn-primary btn-sm" to="/">Open dashboard builder</Link>}
+          description="Use these endpoints in Stream Deck plugins or API Ninja buttons."
+          action={<ButtonLink variant="secondary" size="sm" to="/">Back to dashboard</ButtonLink>}
         />
         <div className="stream-deck-endpoints">
           {STREAM_DECK_ACTIONS.map((action) => (
             <div className="stream-deck-endpoint" key={action.path}>
-              <span>{action.label}</span>
-              <code>{action.method}</code>
-              <code>{action.path}</code>
+              <div>
+                <span>{action.label}</span>
+                <small>{action.method}</small>
+              </div>
+              <CopyField label="Endpoint URL" value={`${STREAM_DECK_BASE_URL}${action.path}`} />
             </div>
           ))}
         </div>
       </Card>
 
+      <StreamDeckRequestBuilder />
+
       <EmptyState
-        title="Builder migration in progress"
-        description="This route is now part of the new shell, so the Dashboard can be slimmed down in a later pass without breaking navigation."
-        action={<Link className="btn btn-secondary btn-sm" to="/macros">Manage macros</Link>}
+        title="Want more shortcuts?"
+        description="Macros and activity layouts become selectable Stream Deck actions as soon as you create them."
+        action={<ButtonLink variant="secondary" size="sm" to="/macros">Manage macros</ButtonLink>}
       />
     </>
   );

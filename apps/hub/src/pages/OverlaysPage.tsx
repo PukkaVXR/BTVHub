@@ -11,7 +11,7 @@ import {
   type PreflightInfo,
 } from "../api";
 import { useToast } from "../hooks/useToast";
-import { PageHeader } from "../ui";
+import { Button, ButtonAnchor, CopyField, EmptyState, PageHeader, StatusPill } from "../ui";
 
 const CANVAS_WIDTH = 1920;
 const CANVAS_HEIGHT = 1080;
@@ -66,9 +66,15 @@ export default function OverlaysPage() {
   const toast = useToast();
 
   const overlayById = useMemo(() => new Map(overlays.map((overlay) => [overlay.id, overlay])), [overlays]);
+  const expectedOverlayById = useMemo(
+    () => new Map((preflight?.expectedOverlays ?? []).map((overlay) => [overlay.id, overlay])),
+    [preflight],
+  );
   const selectedLayout = layouts.find((layout) => layout.id === selectedLayoutId) ?? layouts[0];
   const quickPresets = useMemo(() => makeQuickPresets(canvas), [canvas]);
   const selectedResolution = RESOLUTION_PRESETS.find((preset) => preset.width === canvas.width && preset.height === canvas.height)?.label ?? "custom";
+  const reachableCount = preflight?.expectedOverlays.filter((overlay) => overlay.reachable).length ?? 0;
+  const expectedCount = preflight?.expectedOverlays.length ?? overlays.length;
 
   const load = () => {
     void api.overlays().then((r) => setOverlays(r.overlays));
@@ -94,11 +100,6 @@ export default function OverlaysPage() {
   useEffect(() => {
     load();
   }, []);
-
-  const copy = (url: string) => {
-    void navigator.clipboard.writeText(url);
-    toast("URL copied to clipboard");
-  };
 
   const updateLayout = (id: string, patch: Partial<ObsBrowserSourceLayout>) => {
     setLayouts((current) =>
@@ -235,7 +236,7 @@ export default function OverlaysPage() {
   };
 
   const overlayStatus = (id: string): ObsBrowserSourceStatus | undefined =>
-    preflight?.expectedOverlays.find((overlay) => overlay.id === id)?.obsSource;
+    expectedOverlayById.get(id)?.obsSource;
 
   const pointFromEvent = (event: PointerEvent<HTMLElement>) => {
     const rect = stageRef.current?.getBoundingClientRect();
@@ -292,6 +293,11 @@ export default function OverlaysPage() {
     <>
       <PageHeader
         title="Overlays"
+        action={
+          <Button type="button" variant="primary" onClick={() => void installBrowserSources()} disabled={installing || !obsScenes.length}>
+            {installing ? "Repairing..." : "Repair browser sources"}
+          </Button>
+        }
         description={
           <>
             Add these URLs as Browser Sources in OBS and use the layout editor to place, size, and shape them.
@@ -304,6 +310,8 @@ export default function OverlaysPage() {
                 )}
               </span>
             )}
+            {" "}
+            <span className={`badge ${preflight ? "badge-ok" : "badge-off"}`}>{reachableCount}/{expectedCount} reachable</span>
           </>
         }
       />
@@ -321,12 +329,12 @@ export default function OverlaysPage() {
             </p>
           </div>
           <div className="actions" style={{ marginTop: 0 }}>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => void installBrowserSources()} disabled={installing || !obsScenes.length}>
+            <Button type="button" variant="secondary" size="sm" onClick={() => void installBrowserSources()} disabled={installing || !obsScenes.length}>
               {installing ? "Installing..." : "Install / repair in OBS"}
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void copyManualSetup()}>
+            </Button>
+            <Button type="button" variant="secondary" size="sm" onClick={() => void copyManualSetup()}>
               Copy manual setup
-            </button>
+            </Button>
           </div>
         </div>
         <div className="grid" style={{ gridTemplateColumns: "minmax(220px, 360px) minmax(0, 1fr)", marginTop: 12 }}>
@@ -355,9 +363,9 @@ export default function OverlaysPage() {
               Snapshot the current alerts, widgets, legacy themes, and browser source layout as a reusable pack.
             </p>
           </div>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => void createPack()} disabled={savingPack}>
+          <Button type="button" variant="primary" size="sm" onClick={() => void createPack()} disabled={savingPack}>
             {savingPack ? "Saving..." : "Save current as pack"}
-          </button>
+          </Button>
         </div>
         {packs.length ? (
           <div className="overlay-pack-grid">
@@ -389,9 +397,15 @@ export default function OverlaysPage() {
             ))}
           </div>
         ) : (
-          <p className="subtitle" style={{ marginBottom: 0 }}>
-            No overlay packs saved yet. Save one once you have a layout and alert/widget setup worth reusing.
-          </p>
+          <EmptyState
+            title="No overlay packs saved yet"
+            description="Save one once you have a layout and alert/widget setup worth reusing."
+            action={
+              <Button type="button" variant="primary" size="sm" onClick={() => void createPack()} disabled={savingPack}>
+                {savingPack ? "Saving..." : "Save current as pack"}
+              </Button>
+            }
+          />
         )}
       </div>
 
@@ -613,33 +627,41 @@ export default function OverlaysPage() {
         </div>
       </div>
 
-      <div className="grid">
-        {overlays.map((o) => (
-          <div key={o.id} className="card">
-            <h2>{o.name}</h2>
-            <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>
-              Channels: {o.channels.join(", ")}
-            </p>
-            {overlayStatus(o.id) && (
-              <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>
-                OBS: {overlayStatus(o.id)?.configured
-                  ? overlayStatus(o.id)?.correctUrl
-                    ? `configured as ${overlayStatus(o.id)?.sourceName}`
-                    : `URL mismatch on ${overlayStatus(o.id)?.sourceName}`
-                  : "not configured"}
-              </p>
-            )}
-            <div className="url-box">{o.url}</div>
-            <div className="actions">
-              <button type="button" className="btn btn-primary btn-sm" onClick={() => copy(o.url)}>
-                Copy OBS URL
-              </button>
-              <a href={o.url} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
-                Preview
-              </a>
+      <div className="overlay-url-grid">
+        {overlays.map((o) => {
+          const expected = expectedOverlayById.get(o.id);
+          const obsStatus = overlayStatus(o.id);
+          const reachableTone = !preflight ? "neutral" : expected?.reachable ? "success" : "danger";
+          const obsTone = !obsStatus ? "neutral" : obsStatus.configured && obsStatus.correctUrl ? "success" : obsStatus.configured ? "warning" : "danger";
+          return (
+            <div key={o.id} className="card overlay-url-card">
+              <div className="overlay-url-card__header">
+                <div>
+                  <h2>{o.name}</h2>
+                  <p>Channels: {o.channels.join(", ")}</p>
+                </div>
+                <ButtonAnchor href={o.url} target="_blank" rel="noreferrer" variant="secondary" size="sm">
+                  Preview
+                </ButtonAnchor>
+              </div>
+
+              <div className="overlay-url-statuses">
+                <StatusPill
+                  tone={reachableTone}
+                  label={expected?.reachable ? "Reachable" : preflight ? "Not reachable" : "Reachability unknown"}
+                  detail={expected?.route ?? o.url}
+                />
+                <StatusPill
+                  tone={obsTone}
+                  label={obsStatus?.configured ? obsStatus.correctUrl ? "OBS linked" : "OBS URL mismatch" : "OBS not linked"}
+                  detail={obsStatus?.sourceName ?? "Run repair to create source"}
+                />
+              </div>
+
+              <CopyField label="OBS browser source URL" value={o.url} />
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );
