@@ -9,6 +9,7 @@ export default function SetupPage() {
   const [preflight, setPreflight] = useState<PreflightInfo | null>(null);
   const [integrations, setIntegrations] = useState<IntegrationsInfo | null>(null);
   const [setupCompleted, setSetupCompleted] = useState(() => readSetupCompleted());
+  const [celebrating, setCelebrating] = useState(false);
   const toast = useToast();
 
   const load = () => {
@@ -34,10 +35,15 @@ export default function SetupPage() {
   const progress = steps.length ? Math.round((completeCount / steps.length) * 100) : 0;
   const nextStep = steps.find((step) => !step.complete);
 
-  const markSetupComplete = () => {
+  const completeSetup = (message?: string) => {
     writeSetupCompleted(true);
     setSetupCompleted(true);
-    toast("Setup marked complete");
+    setCelebrating(true);
+    if (message) toast({ message, tone: "success" });
+  };
+
+  const markSetupComplete = () => {
+    completeSetup("Setup marked complete");
   };
 
   const jumpToStep = (id: string) => {
@@ -50,10 +56,15 @@ export default function SetupPage() {
 
   useEffect(() => {
     if (allComplete && !setupCompleted) {
-      writeSetupCompleted(true);
-      setSetupCompleted(true);
+      completeSetup("Setup complete. Dashboard is ready to take over.");
     }
   }, [allComplete, setupCompleted]);
+
+  useEffect(() => {
+    if (!celebrating) return;
+    const timer = window.setTimeout(() => setCelebrating(false), 2600);
+    return () => window.clearTimeout(timer);
+  }, [celebrating]);
 
   return (
     <>
@@ -71,6 +82,13 @@ export default function SetupPage() {
         <Callout tone="success" title="Setup is marked complete">
           This keeps Setup tucked away as a Settings page while Dashboard takes over day-to-day readiness.
         </Callout>
+      ) : null}
+
+      {celebrating ? (
+        <div className="setup-complete-burst" role="status" aria-live="polite">
+          <strong>Setup complete</strong>
+          <span>Ready for the first real stream run.</span>
+        </div>
       ) : null}
 
       <div className="setup-wizard">

@@ -451,10 +451,10 @@ Document these before changing UI so you can verify improvements:
 
 ### 7.4 Webhooks
 
-- [ ] Webhook list + detail
-- [ ] `CopyField` for hook URL
-- [ ] Secret: configured indicator + regenerate hint
-- [ ] Log viewer: formatted JSON, truncate long bodies
+- [x] Webhook list + detail
+- [x] `CopyField` for hook URL
+- [x] Secret: configured indicator + regenerate hint
+- [x] Log viewer: formatted JSON, truncate long bodies
 
 ---
 
@@ -462,42 +462,42 @@ Document these before changing UI so you can verify improvements:
 
 ### 8.1 Activity feed
 
-- [ ] Feed layout: avatar/icon, user, event type chip, message, time ago
-- [ ] Filter chips: All, Follow, Sub, Cheer, Chat, Webhook, etc.
-- [ ] Row actions: “Test similar”, “Open alert project” (where applicable)
-- [ ] Empty state when no activity
+- [x] Feed layout: avatar/icon, user, event type chip, message, time ago
+- [x] Filter chips: All, Follow, Sub, Cheer, Chat, Webhook, etc.
+- [x] Row actions: “Test similar”, “Open alert project” (where applicable)
+- [x] Empty state when no activity
 
 ### 8.2 Command palette (optional MVP)
 
-- [ ] `Ctrl+K` opens palette
-- [ ] Actions: Test follow alert, Copy alerts URL, Go to Integrations, Emergency stop sounds, etc.
-- [ ] Fuzzy search commands by label
+- [x] `Ctrl+K` opens palette
+- [x] Actions: Test follow alert, Copy alerts URL, Go to Integrations, Emergency stop sounds, etc.
+- [x] Fuzzy search commands by label
 
 ### 8.3 Micro-celebrations (optional)
 
-- [ ] Brief success animation when setup completes (respect reduced motion)
-- [ ] Toast on first successful OBS test alert
+- [x] Brief success animation when setup completes (respect reduced motion)
+- [x] Toast on first successful OBS test alert
 
 ### 8.4 Typography & brand
 
-- [ ] Load display font for logo and page titles only
-- [ ] Update `index.html` title and meta description
-- [ ] Favicon / app icon if assets exist
+- [x] Load display font for logo and page titles only
+- [x] Update `index.html` title and meta description
+- [x] Favicon / app icon if assets exist
 
 ### 8.5 Final accessibility pass
 
-- [ ] Tab order logical in editor and modals
-- [ ] Dialog focus trap (if using Radix, built-in)
-- [ ] Screen reader labels on icon-only buttons
-- [ ] Toasts announced via `aria-live`
+- [x] Tab order logical in editor and modals
+- [x] Dialog focus trap (if using Radix, built-in)
+- [x] Screen reader labels on icon-only buttons
+- [x] Toasts announced via `aria-live`
 
 ### 8.6 Final QA checklist
 
 - [ ] Full setup flow: install → wizard → connect Twitch → OBS → test alert
-- [ ] Every nav item reachable and highlights correctly
-- [ ] All redirects from old routes work
+- [x] Every nav item reachable and highlights correctly
+- [x] All redirects from old routes work
 - [ ] No console errors on primary paths
-- [ ] `pnpm typecheck` passes
+- [x] `pnpm typecheck` passes
 - [ ] Spot-check responsive at 1280px, 1024px, 860px widths
 - [ ] Update README screenshots section (if screenshots added)
 
@@ -521,8 +521,8 @@ Mark when each page uses `src/ui` components and `PageHeader`:
 | `InteractivePage` | [ ] | [ ] | |
 | `MacrosPage` | [x] | [x] | Master–detail |
 | `AutomationsPage` | [x] | [x] | Rule builder |
-| `WebhooksPage` | [ ] | [ ] | |
-| `ActivityPage` | [ ] | [ ] | Feed |
+| `WebhooksPage` | [x] | [x] | List/detail |
+| `ActivityPage` | [x] | [x] | Feed |
 | `StreamDeckPage` (new) | [x] | [x] | Moved from Dashboard |
 
 ---

@@ -1162,6 +1162,7 @@ export default function AlertEditorPage() {
   const [history, setHistory] = useState<ProjectHistory>({ past: [], future: [] });
   const previewShellRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const templateDialogPanelRef = useRef<HTMLElement>(null);
   const dragRef = useRef<CanvasDragState | null>(null);
   const testAudioRef = useRef<HTMLAudioElement | null>(null);
   const testAudioTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
@@ -1273,6 +1274,14 @@ export default function AlertEditorPage() {
     setLocalTemplates(templates);
     setSelectedLocalTemplateId(templates[0]?.id ?? "");
   }, []);
+
+  useEffect(() => {
+    if (!templateDialogOpen) return;
+    window.setTimeout(() => {
+      const firstButton = templateDialogPanelRef.current?.querySelector<HTMLButtonElement>("button:not([disabled])");
+      firstButton?.focus();
+    }, 0);
+  }, [templateDialogOpen]);
 
   useEffect(() => {
     const id = routeProjectId ?? searchParams.get("id");
@@ -2246,8 +2255,34 @@ export default function AlertEditorPage() {
 
       {templateDialogOpen && (
         <div className="alert-template-dialog" role="dialog" aria-modal="true" aria-labelledby="alert-template-dialog-title">
-          <div className="alert-template-dialog__backdrop" onClick={() => setTemplateDialogOpen(false)} />
-          <section className="card alert-template-dialog__panel">
+          <div className="alert-template-dialog__backdrop" aria-hidden="true" onClick={() => setTemplateDialogOpen(false)} />
+          <section
+            ref={templateDialogPanelRef}
+            className="card alert-template-dialog__panel"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                setTemplateDialogOpen(false);
+                return;
+              }
+              if (event.key !== "Tab") return;
+              const focusable = Array.from(
+                templateDialogPanelRef.current?.querySelectorAll<HTMLElement>(
+                  'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+                ) ?? [],
+              );
+              if (!focusable.length) return;
+              const first = focusable[0];
+              const last = focusable[focusable.length - 1];
+              if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+              } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+              }
+            }}
+          >
             <div className="alert-template-dialog__header">
               <div>
                 <h2 id="alert-template-dialog-title">Template Gallery</h2>

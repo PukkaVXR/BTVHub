@@ -224,11 +224,11 @@ export default function MediaPicker({ value, onChange }: MediaPickerProps) {
       )}
 
       {preview && (
-        <div className="media-picker-preview" role="dialog" aria-modal="true">
+        <div className="media-picker-preview" role="dialog" aria-modal="true" aria-labelledby="media-picker-preview-title">
           <div className="media-picker-preview-panel">
             <div className="media-picker-preview-header">
               <div>
-                <strong>{preview.name}</strong>
+                <strong id="media-picker-preview-title">{preview.name}</strong>
                 <span>{preview.kind} - {formatBytes(preview.size)}</span>
               </div>
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPreview(null)}>

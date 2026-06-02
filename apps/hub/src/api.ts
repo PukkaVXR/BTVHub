@@ -1,3 +1,5 @@
+import { emitTestAlertSuccess } from "./lib/testAlertMilestone";
+
 const API = "/api";
 
 
@@ -352,9 +354,11 @@ export const api = {
       body: JSON.stringify(event),
     }),
 
-  testVisualAlert: (eventType: string) =>
-
-    request(`/test/alert/${eventType}`, { method: "POST" }),
+  testVisualAlert: async (eventType: string) => {
+    const result = await request(`/test/alert/${eventType}`, { method: "POST" });
+    emitTestAlertSuccess(eventType);
+    return result;
+  },
 
   integrations: () => request<IntegrationsInfo>("/integrations"),
 

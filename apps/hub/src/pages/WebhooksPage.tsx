@@ -4,7 +4,7 @@ import { api, type WebhookInfo } from "../api";
 import { SaveIndicator } from "../hooks/SaveIndicator";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useToast } from "../hooks/useToast";
-import { PageHeader } from "../ui";
+import { Button, CopyField, EmptyState, FormField, PageHeader, StatusPill } from "../ui";
 
 function configTemplate(action: WebhookHook["action"]): Record<string, unknown> {
   switch (action) {
@@ -20,6 +20,25 @@ function configTemplate(action: WebhookHook["action"]): Record<string, unknown> 
     default:
       return {};
   }
+}
+
+function formatWebhookBody(body: string): string {
+  try {
+    return JSON.stringify(JSON.parse(body), null, 2);
+  } catch {
+    return body;
+  }
+}
+
+function truncateBody(body: string): string {
+  const formatted = formatWebhookBody(body);
+  return formatted.length > 700 ? `${formatted.slice(0, 700)}\n... truncated ...` : formatted;
+}
+
+function generateWebhookSecret(): string {
+  const bytes = new Uint8Array(18);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 export default function WebhooksPage() {
@@ -78,6 +97,9 @@ export default function WebhooksPage() {
   const remove = async (id: string) => {
     await api.deleteWebhook(id);
     toast("Deleted");
+    if (editing?.id === id) {
+      setEditing(null);
+    }
     load();
   };
 
@@ -87,41 +109,76 @@ export default function WebhooksPage() {
     setActionConfigJson(JSON.stringify(configTemplate(action), null, 2));
   };
 
+  const editingInfo = editing ? hooks.find((hook) => hook.id === editing.id) : null;
+
   return (
     <>
-      <PageHeader title="Webhooks" description="POST external events to trigger alerts, goals, effects, macros, or custom events." />
-
-      <button
-        type="button"
-        className="btn btn-primary btn-sm"
-        style={{ marginBottom: 16 }}
-        onClick={() =>
-          startEditing({
-            id: `hook-${Date.now()}`,
-            name: "New Webhook",
-            action: "alert",
-            actionConfig: { eventType: "follow" },
-          })
+      <PageHeader
+        title="Webhooks"
+        description="POST external events to trigger alerts, goals, effects, macros, or custom events."
+        action={
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() =>
+              startEditing({
+                id: `hook-${Date.now()}`,
+                name: "New Webhook",
+                action: "alert",
+                actionConfig: { eventType: "follow" },
+              })
+            }
+          >
+            New webhook
+          </Button>
         }
-      >
-        New webhook
-      </button>
+      />
 
-      {editing && (
-        <div className="card">
-          <h2>
-            Edit webhook <SaveIndicator status={saveStatus} label="Webhook" />
-          </h2>
+      <div className="webhook-workspace">
+        <aside className="webhook-list" aria-label="Webhook endpoints">
+          {hooks.map((hook) => (
+            <button
+              key={hook.id}
+              type="button"
+              className={editing?.id === hook.id ? "active" : ""}
+              onClick={() => startEditing(hook)}
+            >
+              <span>{hook.name}</span>
+              <small>{hook.action}</small>
+              <StatusPill tone={hook.secret ? "success" : "neutral"} label={hook.secret ? "Secret configured" : "No secret"} />
+            </button>
+          ))}
+          {!hooks.length && (
+            <EmptyState title="No webhooks yet" description="Create one to let external tools trigger BTV actions." />
+          )}
+        </aside>
+
+        <main className="webhook-detail">
+      {editing ? (
+        <div className="card webhook-editor-card">
+          <div className="webhook-editor-header">
+            <h2>Edit webhook</h2>
+            <SaveIndicator status={saveStatus} label="Webhook" />
+          </div>
+          {editingInfo?.url ? <CopyField label="Webhook URL" value={editingInfo.url} /> : null}
           <div className="form-row">
             <label>Name</label>
             <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
           </div>
-          <div className="form-row">
-            <label>Secret header (X-BTV-Secret)</label>
+          <FormField
+            label="Secret header (X-BTV-Secret)"
+            hint={editing.secret ? "Configured. Generate a new value to rotate the secret, then update the external sender." : "Optional, but recommended for public or shared webhook URLs."}
+          >
             <input
               value={editing.secret ?? ""}
               onChange={(e) => setEditing({ ...editing, secret: e.target.value || undefined })}
             />
+          </FormField>
+          <div className="actions" style={{ marginTop: 8, marginBottom: 12 }}>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setEditing({ ...editing, secret: generateWebhookSecret() })}>
+              Generate / rotate secret
+            </Button>
+            {editing.secret ? <StatusPill tone="success" label="Secret configured" /> : <StatusPill tone="warning" label="No secret" />}
           </div>
           <div className="form-row">
             <label>Action</label>
@@ -157,55 +214,38 @@ export default function WebhooksPage() {
             </button>
           </div>
           <div className="actions">
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => void save()}>
+            <Button type="button" variant="primary" size="sm" onClick={() => void save()}>
               Save
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditing(null)}>
+            </Button>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(null)}>
               Cancel
-            </button>
+            </Button>
+            <Button type="button" variant="danger" size="sm" onClick={() => void remove(editing.id)}>
+              Delete
+            </Button>
           </div>
         </div>
+      ) : (
+        <EmptyState title="Select a webhook" description="Choose an endpoint from the list or create a new one to configure its action and secret." />
       )}
-
-      <div className="card">
-        <h2>Endpoints</h2>
-        {hooks.map((h) => (
-          <div key={h.id} style={{ marginBottom: 16 }}>
-            <strong>{h.name}</strong>
-            <div className="url-box">{h.url}</div>
-            <p style={{ fontSize: 12, color: "var(--muted)" }}>
-              Action: {h.action} | Config: <code>{JSON.stringify(h.actionConfig ?? {})}</code>
-            </p>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => startEditing(h)}>
-              Edit
-            </button>{" "}
-            <button type="button" className="btn btn-danger btn-sm" onClick={() => void remove(h.id)}>
-              Delete
-            </button>
-          </div>
-        ))}
+        </main>
       </div>
 
-      <div className="card">
+      <div className="card webhook-log-card">
         <h2>Request log</h2>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Hook</th>
-              <th>Body</th>
-            </tr>
-          </thead>
-          <tbody>
-            {log.map((r) => (
-              <tr key={r.created_at + r.hook_id}>
-                <td>{new Date(r.created_at).toLocaleString()}</td>
-                <td>{r.hook_id}</td>
-                <td style={{ maxWidth: 400, overflow: "hidden", textOverflow: "ellipsis" }}>{r.body}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="webhook-log-list">
+          {log.map((row) => (
+            <details key={row.created_at + row.hook_id} className="webhook-log-item">
+              <summary>
+                <span>{new Date(row.created_at).toLocaleString()}</span>
+                <strong>{hooks.find((hook) => hook.id === row.hook_id)?.name ?? row.hook_id}</strong>
+                <small>{truncateBody(row.body).replace(/\s+/g, " ").slice(0, 140)}</small>
+              </summary>
+              <pre>{truncateBody(row.body)}</pre>
+            </details>
+          ))}
+          {!log.length && <EmptyState title="No webhook requests yet" description="Requests will appear here after an external sender posts to a webhook URL." />}
+        </div>
       </div>
     </>
   );

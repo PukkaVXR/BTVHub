@@ -4,7 +4,9 @@ import { CommandPalette } from "./components/CommandPalette";
 import { EmergencyMenu } from "./components/EmergencyMenu";
 import { useAppHealth } from "./context/AppHealthContext";
 import { useSaveStatusSummary } from "./context/SaveStatusContext";
+import { useToast } from "./hooks/useToast";
 import { readSetupCompleted, SETUP_COMPLETED_EVENT } from "./lib/setupCompletion";
+import { hasSeenFirstTestAlert, markFirstTestAlertSeen, TEST_ALERT_SUCCESS_EVENT } from "./lib/testAlertMilestone";
 import { ErrorBoundary, PageLoading, StatusPill } from "./ui";
 
 const Dashboard = lazy(() => import("./pages/live/Dashboard"));
@@ -75,6 +77,7 @@ function LegacyAlertEditorRedirect() {
 export default function App() {
   const { preflight, error, refresh } = useAppHealth();
   const saveSummary = useSaveStatusSummary();
+  const toast = useToast();
   const location = useLocation();
   const reachableOverlays = preflight?.expectedOverlays.filter((overlay) => overlay.reachable).length ?? 0;
   const expectedOverlays = preflight?.expectedOverlays.length ?? 0;
@@ -101,6 +104,16 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const onTestAlertSuccess = () => {
+      if (hasSeenFirstTestAlert()) return;
+      markFirstTestAlertSeen();
+      toast({ message: "First OBS test alert succeeded. Your alert source is alive.", tone: "success" });
+    };
+    window.addEventListener(TEST_ALERT_SUCCESS_EVENT, onTestAlertSuccess);
+    return () => window.removeEventListener(TEST_ALERT_SUCCESS_EVENT, onTestAlertSuccess);
+  }, [toast]);
+
   const setupNeedsAttention = !setupCompleted && preflight ? !preflight.ok : !setupCompleted;
 
   const activeSections = useMemo(() => {
@@ -125,7 +138,9 @@ export default function App() {
   return (
     <div className="app">
       <aside className="sidebar">
-        <div className="logo">BTV Hub</div>
+        <div className="logo">
+          <img src="/btv-logo.svg" alt="BTV Hub" />
+        </div>
         <nav aria-label="Primary">
           {navSections.map((section) => (
             <div className={`nav-section${activeSections.has(section.label) ? " nav-section--active" : ""}`} key={section.label}>

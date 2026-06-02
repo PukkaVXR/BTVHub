@@ -16,6 +16,33 @@ interface Command {
   run?: () => Promise<void>;
 }
 
+function overlayOrigin(): string {
+  if (window.location.port === "4781") {
+    return window.location.origin.replace("4781", "4782");
+  }
+  return window.location.origin;
+}
+
+function fuzzyScore(command: Command, needle: string): number {
+  if (!needle) return 1;
+  const haystack = `${command.label} ${command.description} ${command.group} ${command.keywords}`.toLowerCase();
+  const label = command.label.toLowerCase();
+  if (label === needle) return 1000;
+  if (label.startsWith(needle)) return 850;
+  if (label.includes(needle)) return 700;
+  if (haystack.includes(needle)) return 550;
+
+  let score = 0;
+  let cursor = 0;
+  for (const char of needle) {
+    const index = haystack.indexOf(char, cursor);
+    if (index === -1) return 0;
+    score += index === cursor ? 12 : 5;
+    cursor = index + 1;
+  }
+  return score;
+}
+
 const NAV_COMMANDS: Command[] = [
   { id: "nav-dashboard", label: "Dashboard", description: "Live readiness and stream controls", group: "Live", keywords: "home live health readiness", kind: "navigate", path: "/" },
   { id: "nav-activity", label: "Activity", description: "Recent Twitch and overlay events", group: "Live", keywords: "events feed recent", kind: "navigate", path: "/activity" },
@@ -37,12 +64,75 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const wasOpenRef = useRef(false);
   const navigate = useNavigate();
   const toast = useToast();
 
   const commands = useMemo<Command[]>(
     () => [
       ...NAV_COMMANDS,
+      {
+        id: "action-test-follow-alert",
+        label: "Test follow alert",
+        description: "Fire a sample follow alert into OBS",
+        group: "Alerts",
+        keywords: "obs browser source visual alert manual test",
+        kind: "action",
+        run: async () => {
+          await api.testVisualAlert("follow");
+          toast({ message: "Test follow alert sent", tone: "success" });
+        },
+      },
+      {
+        id: "action-test-sub-alert",
+        label: "Test sub alert",
+        description: "Fire a sample subscription alert into OBS",
+        group: "Alerts",
+        keywords: "obs browser source visual alert manual test subscriber",
+        kind: "action",
+        run: async () => {
+          await api.testVisualAlert("sub");
+          toast({ message: "Test sub alert sent", tone: "success" });
+        },
+      },
+      {
+        id: "action-copy-alerts-url",
+        label: "Copy alerts browser source URL",
+        description: "Copy the OBS browser source URL for visual alerts",
+        group: "Overlays",
+        keywords: "copy obs browser source alerts url",
+        kind: "action",
+        run: async () => {
+          await navigator.clipboard.writeText(`${overlayOrigin().replace(/\/$/, "")}/o/alerts.html`);
+          toast({ message: "Alerts browser source URL copied", tone: "success" });
+        },
+      },
+      {
+        id: "action-clear-alert-queue",
+        label: "Clear alert queue",
+        description: "Remove queued alerts and clear the current alert",
+        group: "Alerts",
+        keywords: "panic queue clear current",
+        kind: "action",
+        run: async () => {
+          const res = await api.clearAlertQueue();
+          toast({ message: `Cleared ${res.cleared} queued alert${res.cleared === 1 ? "" : "s"}`, tone: "success" });
+        },
+      },
+      {
+        id: "action-replay-last-alert",
+        label: "Replay last alert",
+        description: "Replay the most recent alert",
+        group: "Alerts",
+        keywords: "repeat last test obs browser source",
+        kind: "action",
+        run: async () => {
+          await api.replayLastAlert();
+          toast({ message: "Last alert replay requested", tone: "success" });
+        },
+      },
       {
         id: "action-stop-sounds",
         label: "Stop sounds",
@@ -67,6 +157,18 @@ export function CommandPalette() {
           toast({ message: res.ok ? res.title : res.message, tone: res.ok ? "success" : "error" });
         },
       },
+      {
+        id: "action-reset-overlays",
+        label: "Reset overlays",
+        description: "Clear temporary overlay state and show overlays again",
+        group: "Emergency",
+        keywords: "panic restore show clear state",
+        kind: "action",
+        run: async () => {
+          const res = await api.emergencyAction("reset-overlays");
+          toast({ message: res.ok ? res.title : res.message, tone: res.ok ? "success" : "error" });
+        },
+      },
     ],
     [toast],
   );
@@ -75,16 +177,10 @@ export function CommandPalette() {
     const needle = query.trim().toLowerCase();
     if (!needle) return commands;
     return commands
-      .filter((command) =>
-        `${command.label} ${command.description} ${command.group} ${command.keywords}`.toLowerCase().includes(needle),
-      )
-      .sort((a, b) => {
-        const aLabel = a.label.toLowerCase();
-        const bLabel = b.label.toLowerCase();
-        const aExact = aLabel === needle ? 0 : aLabel.startsWith(needle) ? 1 : aLabel.includes(needle) ? 2 : 3;
-        const bExact = bLabel === needle ? 0 : bLabel.startsWith(needle) ? 1 : bLabel.includes(needle) ? 2 : 3;
-        return aExact - bExact || a.label.localeCompare(b.label);
-      });
+      .map((command) => ({ command, score: fuzzyScore(command, needle) }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score || a.command.label.localeCompare(b.command.label))
+      .map((entry) => entry.command);
   }, [commands, query]);
 
   useEffect(() => {
@@ -108,6 +204,16 @@ export function CommandPalette() {
   }, [open]);
 
   useEffect(() => {
+    if (open) {
+      wasOpenRef.current = true;
+      return;
+    }
+    if (!wasOpenRef.current) return;
+    wasOpenRef.current = false;
+    triggerRef.current?.focus();
+  }, [open]);
+
+  useEffect(() => {
     setActiveIndex(0);
   }, [query]);
 
@@ -118,15 +224,25 @@ export function CommandPalette() {
       return;
     }
 
-    await command.run?.();
-    setOpen(false);
+    try {
+      await command.run?.();
+      setOpen(false);
+    } catch (error) {
+      toast({ message: error instanceof Error ? error.message : "Command failed", tone: "error" });
+    }
   };
 
   const activeCommand = filteredCommands[activeIndex];
 
   return (
     <>
-      <button type="button" className="command-palette-trigger" onClick={() => setOpen(true)}>
+      <button
+        ref={triggerRef}
+        type="button"
+        className="command-palette-trigger"
+        aria-label="Open command palette"
+        onClick={() => setOpen(true)}
+      >
         <span>Command</span>
         <kbd>Ctrl K</kbd>
       </button>
@@ -134,7 +250,28 @@ export function CommandPalette() {
       {open ? (
         <div className="command-palette" role="dialog" aria-modal="true" aria-label="Command palette">
           <button type="button" className="command-palette__backdrop" aria-label="Close command palette" onClick={() => setOpen(false)} />
-          <div className="command-palette__panel">
+          <div
+            ref={panelRef}
+            className="command-palette__panel"
+            onKeyDown={(event) => {
+              if (event.key !== "Tab") return;
+              const focusable = Array.from(
+                panelRef.current?.querySelectorAll<HTMLElement>(
+                  'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+                ) ?? [],
+              );
+              if (!focusable.length) return;
+              const first = focusable[0];
+              const last = focusable[focusable.length - 1];
+              if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+              } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+              }
+            }}
+          >
             <label className="command-palette__search">
               <span>Search commands</span>
               <input

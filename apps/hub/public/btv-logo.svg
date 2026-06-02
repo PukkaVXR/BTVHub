@@ -1,0 +1,35 @@
+<svg width="216" height="64" viewBox="0 0 216 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">BTV Hub</title>
+  <desc id="desc">BTV Hub streaming control plane logo</desc>
+  <defs>
+    <linearGradient id="btvMark" x1="8" y1="8" x2="58" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#78A2FF"/>
+      <stop offset="0.52" stop-color="#5B8CFF"/>
+      <stop offset="1" stop-color="#31D18B"/>
+    </linearGradient>
+    <linearGradient id="btvText" x1="72" y1="15" x2="180" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F3F6FB"/>
+      <stop offset="1" stop-color="#AEB9C9"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#5B8CFF" flood-opacity="0.34"/>
+    </filter>
+  </defs>
+
+  <rect x="5" y="5" width="54" height="54" rx="14" fill="#10141A" stroke="#2A3444"/>
+  <path
+    d="M19 18H33.5C39.3 18 43.8 21.7 43.8 26.5C43.8 29.3 42.3 31.5 39.7 32.6C43.1 33.6 45.3 36 45.3 39.5C45.3 44.8 40.5 48 34.2 48H19V18ZM26.5 24.2V30.1H32.8C36.1 30.1 38.2 29 38.2 27.1C38.2 25.1 36.1 24.2 32.8 24.2H26.5ZM26.5 35.5V41.8H33.8C37.4 41.8 39.4 40.6 39.4 38.7C39.4 36.7 37.4 35.5 33.8 35.5H26.5Z"
+    fill="url(#btvMark)"
+    filter="url(#glow)"
+  />
+  <path d="M47.5 18H53.5L50.5 29L47.5 18Z" fill="#31D18B"/>
+  <path d="M13 18H16.5V48H13V18Z" fill="#78A2FF" opacity="0.72"/>
+
+  <text x="72" y="34" fill="url(#btvText)" font-family="Aptos Display, Segoe UI, Inter, Arial, sans-serif" font-size="25" font-weight="900" letter-spacing="0">
+    BTV Hub
+  </text>
+  <text x="73" y="49" fill="#6F7B8D" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" font-weight="700" letter-spacing="1.4">
+    STREAM CONTROL
+  </text>
+  <path d="M73 40H182" stroke="#5B8CFF" stroke-opacity="0.35"/>
+</svg>

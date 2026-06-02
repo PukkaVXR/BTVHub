@@ -1,0 +1,20 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mark" x1="8" y1="8" x2="58" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#78A2FF"/>
+      <stop offset="0.52" stop-color="#5B8CFF"/>
+      <stop offset="1" stop-color="#31D18B"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#5B8CFF" flood-opacity="0.34"/>
+    </filter>
+  </defs>
+  <rect x="5" y="5" width="54" height="54" rx="14" fill="#10141A" stroke="#2A3444"/>
+  <path
+    d="M19 18H33.5C39.3 18 43.8 21.7 43.8 26.5C43.8 29.3 42.3 31.5 39.7 32.6C43.1 33.6 45.3 36 45.3 39.5C45.3 44.8 40.5 48 34.2 48H19V18ZM26.5 24.2V30.1H32.8C36.1 30.1 38.2 29 38.2 27.1C38.2 25.1 36.1 24.2 32.8 24.2H26.5ZM26.5 35.5V41.8H33.8C37.4 41.8 39.4 40.6 39.4 38.7C39.4 36.7 37.4 35.5 33.8 35.5H26.5Z"
+    fill="url(#mark)"
+    filter="url(#glow)"
+  />
+  <path d="M47.5 18H53.5L50.5 29L47.5 18Z" fill="#31D18B"/>
+  <path d="M13 18H16.5V48H13V18Z" fill="#78A2FF" opacity="0.72"/>
+</svg>
