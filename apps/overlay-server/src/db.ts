@@ -104,6 +104,68 @@ export function initDb(): DatabaseSync {
       steps_json TEXT NOT NULL DEFAULT '[]'
     );
 
+    CREATE TABLE IF NOT EXISTS chat_commands (
+      id TEXT PRIMARY KEY,
+      command TEXT NOT NULL UNIQUE,
+      aliases_json TEXT NOT NULL DEFAULT '[]',
+      permission TEXT NOT NULL DEFAULT 'everyone',
+      enabled INTEGER DEFAULT 1,
+      cooldown_ms INTEGER NOT NULL DEFAULT 0,
+      response TEXT NOT NULL,
+      responses_json TEXT NOT NULL DEFAULT '[]',
+      use_count INTEGER NOT NULL DEFAULT 0,
+      last_used_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_timers (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      interval_ms INTEGER NOT NULL,
+      message TEXT NOT NULL,
+      responses_json TEXT NOT NULL DEFAULT '[]',
+      run_count INTEGER NOT NULL DEFAULT 0,
+      last_run_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_quotes (
+      id TEXT PRIMARY KEY,
+      quote_number INTEGER NOT NULL UNIQUE,
+      text TEXT NOT NULL,
+      author TEXT,
+      added_by TEXT,
+      use_count INTEGER NOT NULL DEFAULT 0,
+      last_used_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS loyalty_viewers (
+      id TEXT PRIMARY KEY,
+      login TEXT,
+      display_name TEXT NOT NULL,
+      points INTEGER NOT NULL DEFAULT 0,
+      lifetime_points INTEGER NOT NULL DEFAULT 0,
+      chat_messages INTEGER NOT NULL DEFAULT 0,
+      last_earned_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS viewer_queue_entries (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL UNIQUE,
+      login TEXT,
+      display_name TEXT NOT NULL,
+      note TEXT,
+      joined_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS source_groups (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -253,6 +315,52 @@ function migrateSchemaColumns(): void {
   }
   if (!alertCols.some((c) => c.name === "safe_mode")) {
     db.exec("ALTER TABLE alert_projects ADD COLUMN safe_mode INTEGER NOT NULL DEFAULT 0");
+  }
+  const commandCols = db.prepare("PRAGMA table_info(chat_commands)").all() as Array<{ name: string }>;
+  if (!commandCols.some((c) => c.name === "aliases_json")) {
+    db.exec("ALTER TABLE chat_commands ADD COLUMN aliases_json TEXT NOT NULL DEFAULT '[]'");
+  }
+  if (!commandCols.some((c) => c.name === "permission")) {
+    db.exec("ALTER TABLE chat_commands ADD COLUMN permission TEXT NOT NULL DEFAULT 'everyone'");
+  }
+  if (!commandCols.some((c) => c.name === "cooldown_ms")) {
+    db.exec("ALTER TABLE chat_commands ADD COLUMN cooldown_ms INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!commandCols.some((c) => c.name === "responses_json")) {
+    db.exec("ALTER TABLE chat_commands ADD COLUMN responses_json TEXT NOT NULL DEFAULT '[]'");
+  }
+  if (!commandCols.some((c) => c.name === "use_count")) {
+    db.exec("ALTER TABLE chat_commands ADD COLUMN use_count INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!commandCols.some((c) => c.name === "last_used_at")) {
+    db.exec("ALTER TABLE chat_commands ADD COLUMN last_used_at TEXT");
+  }
+  const timerCols = db.prepare("PRAGMA table_info(chat_timers)").all() as Array<{ name: string }>;
+  if (!timerCols.some((c) => c.name === "responses_json")) {
+    db.exec("ALTER TABLE chat_timers ADD COLUMN responses_json TEXT NOT NULL DEFAULT '[]'");
+  }
+  if (!timerCols.some((c) => c.name === "run_count")) {
+    db.exec("ALTER TABLE chat_timers ADD COLUMN run_count INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!timerCols.some((c) => c.name === "last_run_at")) {
+    db.exec("ALTER TABLE chat_timers ADD COLUMN last_run_at TEXT");
+  }
+  const quoteCols = db.prepare("PRAGMA table_info(chat_quotes)").all() as Array<{ name: string }>;
+  if (!quoteCols.some((c) => c.name === "use_count")) {
+    db.exec("ALTER TABLE chat_quotes ADD COLUMN use_count INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!quoteCols.some((c) => c.name === "last_used_at")) {
+    db.exec("ALTER TABLE chat_quotes ADD COLUMN last_used_at TEXT");
+  }
+  const loyaltyCols = db.prepare("PRAGMA table_info(loyalty_viewers)").all() as Array<{ name: string }>;
+  if (!loyaltyCols.some((c) => c.name === "lifetime_points")) {
+    db.exec("ALTER TABLE loyalty_viewers ADD COLUMN lifetime_points INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!loyaltyCols.some((c) => c.name === "chat_messages")) {
+    db.exec("ALTER TABLE loyalty_viewers ADD COLUMN chat_messages INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!loyaltyCols.some((c) => c.name === "last_earned_at")) {
+    db.exec("ALTER TABLE loyalty_viewers ADD COLUMN last_earned_at TEXT");
   }
 }
 
@@ -858,6 +966,497 @@ export function upsertMacro(macro: MacroConfig): void {
 
 export function deleteMacro(id: string): void {
   db.prepare("DELETE FROM macros WHERE id = ?").run(id);
+}
+
+export interface ChatCommand {
+  id: string;
+  command: string;
+  aliases: string[];
+  permission: "everyone" | "subscriber" | "vip" | "moderator" | "broadcaster";
+  enabled: boolean;
+  cooldownMs: number;
+  response: string;
+  responses: string[];
+  useCount: number;
+  lastUsedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function parseChatCommandAliases(raw: unknown): string[] {
+  if (!raw) return [];
+  try {
+    const value = JSON.parse(String(raw));
+    return Array.isArray(value) ? value.filter((alias): alias is string => typeof alias === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function rowToChatCommand(row: Record<string, unknown>): ChatCommand {
+  const responses = parseChatCommandResponses(row.responses_json, String(row.response ?? ""));
+  return {
+    id: String(row.id),
+    command: String(row.command),
+    aliases: parseChatCommandAliases(row.aliases_json),
+    permission: String(row.permission ?? "everyone") as ChatCommand["permission"],
+    enabled: Boolean(row.enabled),
+    cooldownMs: Number(row.cooldown_ms ?? 0),
+    response: String(row.response),
+    responses,
+    useCount: Number(row.use_count ?? 0),
+    lastUsedAt: row.last_used_at ? String(row.last_used_at) : undefined,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+function parseChatCommandResponses(raw: unknown, fallback: string): string[] {
+  if (raw) {
+    try {
+      const value = JSON.parse(String(raw));
+      const responses = Array.isArray(value)
+        ? value.map((response) => String(response).trim()).filter(Boolean)
+        : [];
+      if (responses.length) return responses;
+    } catch {
+      // Fall back to the legacy response column.
+    }
+  }
+  return fallback ? [fallback] : [];
+}
+
+export function getChatCommands(): ChatCommand[] {
+  return (db.prepare("SELECT * FROM chat_commands ORDER BY command").all() as Array<Record<string, unknown>>).map(
+    rowToChatCommand,
+  );
+}
+
+export function getChatCommand(id: string): ChatCommand | null {
+  const row = db.prepare("SELECT * FROM chat_commands WHERE id = ?").get(id) as
+    | Record<string, unknown>
+    | undefined;
+  return row ? rowToChatCommand(row) : null;
+}
+
+export function getChatCommandByCommand(command: string): ChatCommand | null {
+  const row = db.prepare("SELECT * FROM chat_commands WHERE lower(command) = lower(?)").get(command) as
+    | Record<string, unknown>
+    | undefined;
+  return row ? rowToChatCommand(row) : null;
+}
+
+export function getChatCommandByTrigger(trigger: string): ChatCommand | null {
+  const normalized = trigger.toLowerCase();
+  return getChatCommands().find((command) =>
+    command.command.toLowerCase() === normalized || command.aliases.some((alias) => alias.toLowerCase() === normalized)
+  ) ?? null;
+}
+
+export function upsertChatCommand(command: ChatCommand): void {
+  const now = new Date().toISOString();
+  const responses = command.responses.length ? command.responses : [command.response];
+  db.prepare(
+    `INSERT INTO chat_commands (id, command, aliases_json, permission, enabled, cooldown_ms, response, responses_json, use_count, last_used_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET command=excluded.command, aliases_json=excluded.aliases_json,
+       permission=excluded.permission, enabled=excluded.enabled, cooldown_ms=excluded.cooldown_ms,
+       response=excluded.response, responses_json=excluded.responses_json, updated_at=excluded.updated_at`,
+  ).run(
+    command.id,
+    command.command,
+    JSON.stringify(command.aliases),
+    command.permission,
+    command.enabled ? 1 : 0,
+    command.cooldownMs,
+    responses[0] ?? command.response,
+    JSON.stringify(responses),
+    command.useCount,
+    command.lastUsedAt ?? null,
+    command.createdAt || now,
+    command.updatedAt || now,
+  );
+}
+
+export function recordChatCommandUse(id: string): number {
+  const now = new Date().toISOString();
+  db.prepare("UPDATE chat_commands SET use_count = use_count + 1, last_used_at = ? WHERE id = ?").run(now, id);
+  const row = db.prepare("SELECT use_count FROM chat_commands WHERE id = ?").get(id) as { use_count: number } | undefined;
+  return Number(row?.use_count ?? 0);
+}
+
+export function deleteChatCommand(id: string): void {
+  db.prepare("DELETE FROM chat_commands WHERE id = ?").run(id);
+}
+
+export interface ChatTimer {
+  id: string;
+  name: string;
+  enabled: boolean;
+  intervalMs: number;
+  message: string;
+  responses: string[];
+  runCount: number;
+  lastRunAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function rowToChatTimer(row: Record<string, unknown>): ChatTimer {
+  const responses = parseChatCommandResponses(row.responses_json, String(row.message ?? ""));
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    enabled: Boolean(row.enabled),
+    intervalMs: Number(row.interval_ms),
+    message: String(row.message),
+    responses,
+    runCount: Number(row.run_count ?? 0),
+    lastRunAt: row.last_run_at ? String(row.last_run_at) : undefined,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+export function getChatTimers(): ChatTimer[] {
+  return (db.prepare("SELECT * FROM chat_timers ORDER BY name").all() as Array<Record<string, unknown>>).map(
+    rowToChatTimer,
+  );
+}
+
+export function getChatTimer(id: string): ChatTimer | null {
+  const row = db.prepare("SELECT * FROM chat_timers WHERE id = ?").get(id) as
+    | Record<string, unknown>
+    | undefined;
+  return row ? rowToChatTimer(row) : null;
+}
+
+export function upsertChatTimer(timer: ChatTimer): void {
+  const now = new Date().toISOString();
+  const responses = timer.responses.length ? timer.responses : [timer.message];
+  db.prepare(
+    `INSERT INTO chat_timers (id, name, enabled, interval_ms, message, responses_json, run_count, last_run_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET name=excluded.name, enabled=excluded.enabled,
+       interval_ms=excluded.interval_ms, message=excluded.message, responses_json=excluded.responses_json,
+       updated_at=excluded.updated_at`,
+  ).run(
+    timer.id,
+    timer.name,
+    timer.enabled ? 1 : 0,
+    timer.intervalMs,
+    responses[0] ?? timer.message,
+    JSON.stringify(responses),
+    timer.runCount,
+    timer.lastRunAt ?? null,
+    timer.createdAt || now,
+    timer.updatedAt || now,
+  );
+}
+
+export function recordChatTimerRun(id: string): number {
+  const now = new Date().toISOString();
+  db.prepare("UPDATE chat_timers SET run_count = run_count + 1, last_run_at = ? WHERE id = ?").run(now, id);
+  const row = db.prepare("SELECT run_count FROM chat_timers WHERE id = ?").get(id) as { run_count: number } | undefined;
+  return Number(row?.run_count ?? 0);
+}
+
+export function deleteChatTimer(id: string): void {
+  db.prepare("DELETE FROM chat_timers WHERE id = ?").run(id);
+}
+
+export interface ChatQuote {
+  id: string;
+  quoteNumber: number;
+  text: string;
+  author?: string;
+  addedBy?: string;
+  useCount: number;
+  lastUsedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function rowToChatQuote(row: Record<string, unknown>): ChatQuote {
+  return {
+    id: String(row.id),
+    quoteNumber: Number(row.quote_number),
+    text: String(row.text),
+    author: row.author ? String(row.author) : undefined,
+    addedBy: row.added_by ? String(row.added_by) : undefined,
+    useCount: Number(row.use_count ?? 0),
+    lastUsedAt: row.last_used_at ? String(row.last_used_at) : undefined,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+export function getChatQuotes(): ChatQuote[] {
+  return (db.prepare("SELECT * FROM chat_quotes ORDER BY quote_number DESC").all() as Array<Record<string, unknown>>).map(
+    rowToChatQuote,
+  );
+}
+
+export function getChatQuote(id: string): ChatQuote | null {
+  const row = db.prepare("SELECT * FROM chat_quotes WHERE id = ?").get(id) as
+    | Record<string, unknown>
+    | undefined;
+  return row ? rowToChatQuote(row) : null;
+}
+
+export function getChatQuoteByNumber(quoteNumber: number): ChatQuote | null {
+  const row = db.prepare("SELECT * FROM chat_quotes WHERE quote_number = ?").get(quoteNumber) as
+    | Record<string, unknown>
+    | undefined;
+  return row ? rowToChatQuote(row) : null;
+}
+
+export function getRandomChatQuote(): ChatQuote | null {
+  const row = db.prepare("SELECT * FROM chat_quotes ORDER BY random() LIMIT 1").get() as
+    | Record<string, unknown>
+    | undefined;
+  return row ? rowToChatQuote(row) : null;
+}
+
+export function nextChatQuoteNumber(): number {
+  const row = db.prepare("SELECT COALESCE(MAX(quote_number), 0) + 1 AS next FROM chat_quotes").get() as { next: number };
+  return Number(row.next);
+}
+
+export function upsertChatQuote(quote: ChatQuote): void {
+  const now = new Date().toISOString();
+  const quoteNumber = quote.quoteNumber > 0 ? quote.quoteNumber : nextChatQuoteNumber();
+  db.prepare(
+    `INSERT INTO chat_quotes (id, quote_number, text, author, added_by, use_count, last_used_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET quote_number=excluded.quote_number, text=excluded.text,
+       author=excluded.author, added_by=excluded.added_by, updated_at=excluded.updated_at`,
+  ).run(
+    quote.id,
+    quoteNumber,
+    quote.text,
+    quote.author ?? null,
+    quote.addedBy ?? null,
+    quote.useCount,
+    quote.lastUsedAt ?? null,
+    quote.createdAt || now,
+    quote.updatedAt || now,
+  );
+}
+
+export function recordChatQuoteUse(id: string): number {
+  const now = new Date().toISOString();
+  db.prepare("UPDATE chat_quotes SET use_count = use_count + 1, last_used_at = ? WHERE id = ?").run(now, id);
+  const row = db.prepare("SELECT use_count FROM chat_quotes WHERE id = ?").get(id) as { use_count: number } | undefined;
+  return Number(row?.use_count ?? 0);
+}
+
+export function deleteChatQuote(id: string): void {
+  db.prepare("DELETE FROM chat_quotes WHERE id = ?").run(id);
+}
+
+export interface LoyaltyViewer {
+  id: string;
+  login?: string;
+  displayName: string;
+  points: number;
+  lifetimePoints: number;
+  chatMessages: number;
+  lastEarnedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function rowToLoyaltyViewer(row: Record<string, unknown>): LoyaltyViewer {
+  return {
+    id: String(row.id),
+    login: row.login ? String(row.login) : undefined,
+    displayName: String(row.display_name),
+    points: Number(row.points ?? 0),
+    lifetimePoints: Number(row.lifetime_points ?? 0),
+    chatMessages: Number(row.chat_messages ?? 0),
+    lastEarnedAt: row.last_earned_at ? String(row.last_earned_at) : undefined,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+export function getLoyaltyViewers(limit = 100): LoyaltyViewer[] {
+  return (db
+    .prepare(
+      `SELECT * FROM loyalty_viewers
+       ORDER BY points DESC, lifetime_points DESC, display_name ASC
+       LIMIT ?`,
+    )
+    .all(limit) as Array<Record<string, unknown>>).map(rowToLoyaltyViewer);
+}
+
+export function getLoyaltyViewer(idOrLogin: string): LoyaltyViewer | null {
+  const row = db
+    .prepare("SELECT * FROM loyalty_viewers WHERE id = ? OR lower(login) = lower(?) LIMIT 1")
+    .get(idOrLogin, idOrLogin) as Record<string, unknown> | undefined;
+  return row ? rowToLoyaltyViewer(row) : null;
+}
+
+export function awardLoyaltyPoints(input: {
+  id: string;
+  login?: string;
+  displayName: string;
+  points: number;
+  messageCount?: number;
+  earnCooldownMs?: number;
+}): LoyaltyViewer {
+  const now = new Date().toISOString();
+  const existing = getLoyaltyViewer(input.id);
+  const cooldownMs = input.earnCooldownMs ?? 60_000;
+  const canEarn = !existing?.lastEarnedAt || Date.now() - new Date(existing.lastEarnedAt).getTime() >= cooldownMs;
+  const earned = canEarn ? Math.max(0, Math.floor(input.points)) : 0;
+  const messageCount = Math.max(0, Math.floor(input.messageCount ?? 0));
+  db.prepare(
+    `INSERT INTO loyalty_viewers
+      (id, login, display_name, points, lifetime_points, chat_messages, last_earned_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+      login=excluded.login,
+      display_name=excluded.display_name,
+      points=loyalty_viewers.points + ?,
+      lifetime_points=loyalty_viewers.lifetime_points + ?,
+      chat_messages=loyalty_viewers.chat_messages + ?,
+      last_earned_at=COALESCE(excluded.last_earned_at, loyalty_viewers.last_earned_at),
+      updated_at=excluded.updated_at`,
+  ).run(
+    input.id,
+    input.login ?? null,
+    input.displayName,
+    earned,
+    earned,
+    messageCount,
+    earned > 0 ? now : null,
+    existing?.createdAt ?? now,
+    now,
+    earned,
+    earned,
+    messageCount,
+  );
+  return getLoyaltyViewer(input.id)!;
+}
+
+export function setLoyaltyViewerPoints(id: string, points: number): LoyaltyViewer | null {
+  const viewer = getLoyaltyViewer(id);
+  if (!viewer) return null;
+  const safePoints = Math.max(0, Math.floor(points));
+  db.prepare("UPDATE loyalty_viewers SET points = ?, updated_at = ? WHERE id = ?").run(
+    safePoints,
+    new Date().toISOString(),
+    viewer.id,
+  );
+  return getLoyaltyViewer(viewer.id);
+}
+
+export function adjustLoyaltyViewerPoints(id: string, delta: number): LoyaltyViewer | null {
+  const viewer = getLoyaltyViewer(id);
+  if (!viewer) return null;
+  const safeDelta = Math.trunc(delta);
+  const nextPoints = Math.max(0, viewer.points + safeDelta);
+  const lifetimeDelta = Math.max(0, safeDelta);
+  db.prepare(
+    `UPDATE loyalty_viewers
+     SET points = ?, lifetime_points = lifetime_points + ?, updated_at = ?
+     WHERE id = ?`,
+  ).run(nextPoints, lifetimeDelta, new Date().toISOString(), viewer.id);
+  return getLoyaltyViewer(viewer.id);
+}
+
+export interface ViewerQueueEntry {
+  id: string;
+  userId: string;
+  login?: string;
+  displayName: string;
+  note?: string;
+  joinedAt: string;
+  updatedAt: string;
+}
+
+function rowToViewerQueueEntry(row: Record<string, unknown>): ViewerQueueEntry {
+  return {
+    id: String(row.id),
+    userId: String(row.user_id),
+    login: row.login ? String(row.login) : undefined,
+    displayName: String(row.display_name),
+    note: row.note ? String(row.note) : undefined,
+    joinedAt: String(row.joined_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+export function getViewerQueueEntries(): ViewerQueueEntry[] {
+  return (db
+    .prepare("SELECT * FROM viewer_queue_entries ORDER BY joined_at ASC")
+    .all() as Array<Record<string, unknown>>).map(rowToViewerQueueEntry);
+}
+
+export function getViewerQueueEntryByUser(userIdOrLogin: string): ViewerQueueEntry | null {
+  const row = db
+    .prepare("SELECT * FROM viewer_queue_entries WHERE user_id = ? OR lower(login) = lower(?) LIMIT 1")
+    .get(userIdOrLogin, userIdOrLogin) as Record<string, unknown> | undefined;
+  return row ? rowToViewerQueueEntry(row) : null;
+}
+
+export function addViewerQueueEntry(input: {
+  userId: string;
+  login?: string;
+  displayName: string;
+  note?: string;
+}): { entry: ViewerQueueEntry; position: number; alreadyQueued: boolean } {
+  const now = new Date().toISOString();
+  const existing = getViewerQueueEntryByUser(input.userId);
+  if (existing) {
+    db.prepare(
+      `UPDATE viewer_queue_entries
+       SET login = ?, display_name = ?, note = COALESCE(?, note), updated_at = ?
+       WHERE id = ?`,
+    ).run(input.login ?? null, input.displayName, input.note?.trim() || null, now, existing.id);
+    const entry = getViewerQueueEntryByUser(input.userId)!;
+    return { entry, position: getViewerQueuePosition(input.userId), alreadyQueued: true };
+  }
+  const id = crypto.randomUUID();
+  db.prepare(
+    `INSERT INTO viewer_queue_entries (id, user_id, login, display_name, note, joined_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  ).run(id, input.userId, input.login ?? null, input.displayName, input.note?.trim() || null, now, now);
+  const entry = getViewerQueueEntryByUser(input.userId)!;
+  return { entry, position: getViewerQueuePosition(input.userId), alreadyQueued: false };
+}
+
+export function getViewerQueuePosition(userIdOrLogin: string): number {
+  const entries = getViewerQueueEntries();
+  const index = entries.findIndex((entry) =>
+    entry.userId === userIdOrLogin || entry.login?.toLowerCase() === userIdOrLogin.toLowerCase()
+  );
+  return index >= 0 ? index + 1 : 0;
+}
+
+export function removeViewerQueueEntry(idOrUser: string): ViewerQueueEntry | null {
+  const entry = getViewerQueueEntryByUser(idOrUser)
+    ?? ((db.prepare("SELECT * FROM viewer_queue_entries WHERE id = ?").get(idOrUser) as Record<string, unknown> | undefined)
+      ? rowToViewerQueueEntry(db.prepare("SELECT * FROM viewer_queue_entries WHERE id = ?").get(idOrUser) as Record<string, unknown>)
+      : null);
+  if (!entry) return null;
+  db.prepare("DELETE FROM viewer_queue_entries WHERE id = ?").run(entry.id);
+  return entry;
+}
+
+export function popNextViewerQueueEntry(): ViewerQueueEntry | null {
+  const entry = getViewerQueueEntries()[0] ?? null;
+  if (!entry) return null;
+  db.prepare("DELETE FROM viewer_queue_entries WHERE id = ?").run(entry.id);
+  return entry;
+}
+
+export function clearViewerQueueEntries(): number {
+  const count = getViewerQueueEntries().length;
+  db.prepare("DELETE FROM viewer_queue_entries").run();
+  return count;
 }
 
 export interface SourceGroupSource {

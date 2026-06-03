@@ -354,6 +354,98 @@ export const api = {
       body: JSON.stringify(event),
     }),
 
+  chatCommands: () => request<ChatCommand[]>("/chat-commands"),
+
+  saveChatCommand: (command: ChatCommand) =>
+    request<{ ok: boolean; command: ChatCommand }>(`/chat-commands/${encodeURIComponent(command.id)}`, {
+      method: "PUT",
+      body: JSON.stringify(command),
+    }),
+
+  deleteChatCommand: (id: string) =>
+    request<{ ok: boolean }>(`/chat-commands/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+
+  testChatCommand: (id: string) =>
+    request<{ ok: boolean; message: string }>(`/chat-commands/${encodeURIComponent(id)}/test`, {
+      method: "POST",
+    }),
+
+  chatTimers: () => request<ChatTimer[]>("/chat-timers"),
+
+  saveChatTimer: (timer: ChatTimer) =>
+    request<{ ok: boolean; timer: ChatTimer }>(`/chat-timers/${encodeURIComponent(timer.id)}`, {
+      method: "PUT",
+      body: JSON.stringify(timer),
+    }),
+
+  deleteChatTimer: (id: string) =>
+    request<{ ok: boolean }>(`/chat-timers/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+
+  testChatTimer: (id: string) =>
+    request<{ ok: boolean; message: string }>(`/chat-timers/${encodeURIComponent(id)}/test`, {
+      method: "POST",
+    }),
+
+  chatQuotes: () => request<ChatQuote[]>("/chat-quotes"),
+
+  saveChatQuote: (quote: ChatQuote) =>
+    request<{ ok: boolean; quote: ChatQuote }>(`/chat-quotes/${encodeURIComponent(quote.id)}`, {
+      method: "PUT",
+      body: JSON.stringify(quote),
+    }),
+
+  deleteChatQuote: (id: string) =>
+    request<{ ok: boolean }>(`/chat-quotes/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+
+  useChatQuote: (id: string) =>
+    request<{ ok: boolean; quote: ChatQuote }>(`/chat-quotes/${encodeURIComponent(id)}/use`, {
+      method: "POST",
+    }),
+
+  loyaltyViewers: (limit = 100) =>
+    request<{ viewers: LoyaltyViewer[] }>(`/loyalty/viewers?limit=${encodeURIComponent(String(limit))}`),
+
+  adjustLoyaltyPoints: (id: string, delta: number) =>
+    request<{ ok: boolean; viewer: LoyaltyViewer }>(`/loyalty/viewers/${encodeURIComponent(id)}/points`, {
+      method: "POST",
+      body: JSON.stringify({ mode: "adjust", delta }),
+    }),
+
+  setLoyaltyPoints: (id: string, points: number) =>
+    request<{ ok: boolean; viewer: LoyaltyViewer }>(`/loyalty/viewers/${encodeURIComponent(id)}/points`, {
+      method: "POST",
+      body: JSON.stringify({ mode: "set", points }),
+    }),
+
+  viewerQueue: () => request<{ entries: ViewerQueueEntry[] }>("/viewer-queue"),
+
+  addViewerQueueEntry: (entry: { userId?: string; login?: string; displayName: string; note?: string }) =>
+    request<{ ok: boolean; entry: ViewerQueueEntry; position: number; alreadyQueued: boolean }>("/viewer-queue", {
+      method: "POST",
+      body: JSON.stringify(entry),
+    }),
+
+  removeViewerQueueEntry: (id: string) =>
+    request<{ ok: boolean; entry: ViewerQueueEntry }>(`/viewer-queue/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+
+  popViewerQueueEntry: () =>
+    request<{ ok: boolean; entry: ViewerQueueEntry }>("/viewer-queue/next", {
+      method: "POST",
+    }),
+
+  clearViewerQueue: () =>
+    request<{ ok: boolean; cleared: number }>("/viewer-queue/clear", {
+      method: "POST",
+    }),
+
   testVisualAlert: async (eventType: string) => {
     const result = await request(`/test/alert/${eventType}`, { method: "POST" });
     emitTestAlertSuccess(eventType);
@@ -802,6 +894,79 @@ export interface IntegrationStatus {
   displayName?: string;
   eventsubStatus?: string;
   userId?: string;
+  scopes?: string[];
+  chatSubscribed?: boolean;
+  chat?: TwitchChatStatus;
+}
+
+export interface TwitchChatStatus {
+  status: "offline" | "pending" | "connected" | "error";
+  connected: boolean;
+  canRead: boolean;
+  canWrite: boolean;
+  detail: string;
+}
+
+export interface ChatCommand {
+  id: string;
+  command: string;
+  aliases: string[];
+  permission: "everyone" | "subscriber" | "vip" | "moderator" | "broadcaster";
+  enabled: boolean;
+  cooldownMs: number;
+  response: string;
+  responses: string[];
+  useCount: number;
+  lastUsedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatTimer {
+  id: string;
+  name: string;
+  enabled: boolean;
+  intervalMs: number;
+  message: string;
+  responses: string[];
+  runCount: number;
+  lastRunAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatQuote {
+  id: string;
+  quoteNumber: number;
+  text: string;
+  author?: string;
+  addedBy?: string;
+  useCount: number;
+  lastUsedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LoyaltyViewer {
+  id: string;
+  login?: string;
+  displayName: string;
+  points: number;
+  lifetimePoints: number;
+  chatMessages: number;
+  lastEarnedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ViewerQueueEntry {
+  id: string;
+  userId: string;
+  login?: string;
+  displayName: string;
+  note?: string;
+  joinedAt: string;
+  updatedAt: string;
 }
 
 export interface HealthInfo {
@@ -1001,6 +1166,10 @@ export interface IntegrationsInfo {
     eventsubStatus?: string;
 
     chatSubscribed?: boolean;
+
+    scopes?: string[];
+
+    chat?: TwitchChatStatus;
 
   };
 

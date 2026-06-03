@@ -9,6 +9,7 @@ import { AlertQueue } from "./alert-queue.js";
 import { AutomationScheduler } from "./automation-scheduler.js";
 import { ensureApiToken, isAllowedOrigin, requireTrustedLocalWrite } from "./auth.js";
 import { OverlayBus } from "./bus.js";
+import { ChatTimerScheduler } from "./chat-timer-scheduler.js";
 import { CoreEventBus } from "./core-event-bus.js";
 import { initDb, getGoals, logSystem, setSetting } from "./db.js";
 import { EffectRunner } from "./effect-runner.js";
@@ -73,6 +74,7 @@ const automationScheduler = new AutomationScheduler(
   effectRunner,
   applySourceGroup,
 );
+const chatTimerScheduler = new ChatTimerScheduler();
 
 function safeStatus<T>(label: string, fallback: T, read: () => T): T {
   try {
@@ -91,7 +93,15 @@ const twitchStatusFallback: ReturnType<typeof getTwitchStatus> = {
   displayName: null,
   userId: null,
   eventsubStatus: "status_error",
+  scopes: [],
   chatSubscribed: false,
+  chat: {
+    status: "error",
+    connected: false,
+    canRead: false,
+    canWrite: false,
+    detail: "Twitch status unavailable",
+  },
 };
 
 const spotifyStatusFallback: ReturnType<typeof getSpotifyStatus> = {
@@ -176,6 +186,7 @@ if (getSpotifyStatus().connected) {
   startSpotifyPoller(bus);
 }
 automationScheduler.startAll();
+chatTimerScheduler.start();
 
 setInterval(() => bus.pingAll(), 30000);
 setInterval(() => {

@@ -72,7 +72,8 @@ export default function IntegrationsPage() {
   const twitchAuthUrl = info?.twitch.authStartUrl ?? "https://127.0.0.1:4783/auth/twitch";
   const oauthOrigin =
     info?.twitch.redirectUri?.replace(/\/auth\/twitch\/callback$/, "") ?? "https://127.0.0.1:4783";
-  const chatSubError = info?.twitch.eventsubStatus?.includes("sub_error:channel.chat");
+  const chatStatus = info?.twitch.chat;
+  const chatSubError = chatStatus?.status === "error";
   const twitchRedirectMismatch = searchParams.get("twitch_error") === "redirect_mismatch";
 
   const serviceSummary = useMemo(
@@ -85,6 +86,17 @@ export default function IntegrationsPage() {
           : info?.twitch.configured
             ? "Credentials saved"
             : "Needs credentials",
+      },
+      {
+        label: "Twitch Chat",
+        connected: Boolean(chatStatus?.connected),
+        detail: chatStatus?.connected
+          ? "Live messages"
+          : chatStatus?.status === "error"
+            ? "Needs reconnect"
+            : info?.twitch.connected
+              ? "Pending"
+              : "Offline",
       },
       {
         label: "OBS",
@@ -131,14 +143,14 @@ export default function IntegrationsPage() {
 
         {info?.twitch.connected && chatSubError ? (
           <Callout tone="danger" title="Chat EventSub failed">
-            Status: <code>{info.twitch.eventsubStatus}</code>. Disconnect Twitch, then connect again so OAuth includes{" "}
+            Status: <code>{chatStatus?.detail ?? info.twitch.eventsubStatus}</code>. Disconnect Twitch, then connect again so OAuth includes{" "}
             <code>user:read:chat</code>, which is required for live chat in OBS.
           </Callout>
         ) : null}
 
-        {info?.twitch.connected && !info.twitch.chatSubscribed && !chatSubError ? (
+        {info?.twitch.connected && !chatStatus?.connected && !chatSubError ? (
           <Callout tone="warning" title="Chat subscription pending">
-            EventSub status: {info.twitch.eventsubStatus ?? "starting..."}
+            {chatStatus?.detail ?? info.twitch.eventsubStatus ?? "Waiting for EventSub chat subscription"}
           </Callout>
         ) : null}
 
@@ -185,6 +197,34 @@ export default function IntegrationsPage() {
             </Button>
 
             <CopyField label="Twitch OAuth redirect URI" value={info?.twitch.redirectUri ?? ""} />
+
+            <div className="integration-chat-status" aria-label="Twitch chat readiness">
+              <StatusPill
+                tone={chatStatus?.connected ? "success" : info?.twitch.connected ? "warning" : "danger"}
+                label="Chat listener"
+                detail={chatStatus?.detail ?? "Connect Twitch to enable chat"}
+              />
+              <StatusPill
+                tone={chatStatus?.canRead ? "success" : "warning"}
+                label="Read scope"
+                detail={chatStatus?.canRead ? "Granted" : "Reconnect required"}
+              />
+              <StatusPill
+                tone={chatStatus?.canWrite ? "success" : "neutral"}
+                label="Send scope"
+                detail={chatStatus?.canWrite ? "Granted" : "Optional"}
+              />
+            </div>
+
+            {chatStatus?.connected ? (
+              <Callout tone="success" title="Chat is live">
+                Twitch chat messages are available to overlays, activity tracking, and automation triggers.
+              </Callout>
+            ) : chatStatus?.canRead === false && info?.twitch.connected ? (
+              <Callout tone="warning" title="Chat read scope missing">
+                Reconnect Twitch so BTV can request <code>user:read:chat</code> and subscribe to live chat messages.
+              </Callout>
+            ) : null}
 
             <div className="integration-card__actions">
               <ButtonAnchor variant="secondary" size="sm" href="https://dev.twitch.tv/console" target="_blank" rel="noreferrer">

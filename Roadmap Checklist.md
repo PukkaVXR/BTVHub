@@ -130,19 +130,19 @@ Visual alert editor polish is tracked in detail in `Visual Alert Editor Plan.md`
 
 Goal: adopt the best parts of Mix It Up and StreamElements chatbot.
 
-- [ ] Twitch chat connection as a first-class service.
-- [ ] Custom commands.
-- [ ] Command aliases.
-- [ ] Command permissions.
-- [ ] Command cooldowns.
-- [ ] Command variables.
-- [ ] Random command responses.
-- [ ] Command counters.
-- [ ] Timers.
-- [ ] Quotes.
-- [ ] Viewer queues.
+- [x] Twitch chat connection as a first-class service.
+- [x] Custom commands.
+- [x] Command aliases.
+- [x] Command permissions.
+- [x] Command cooldowns.
+- [x] Command variables.
+- [x] Random command responses.
+- [x] Command counters.
+- [x] Timers.
+- [x] Quotes.
+- [x] Viewer queues.
 - [ ] Giveaways/raffles.
-- [ ] Loyalty points.
+- [x] Loyalty points.
 - [ ] Simple mini-games.
 - [ ] Chat events update overlays.
 - [ ] Commands integrate with automations.
@@ -164,7 +164,7 @@ Goal: make BTV usable as a live production control surface.
 - [ ] Button icons and colours.
 - [ ] Multi-page decks.
 - [ ] Soundboard controls.
-- [ ] Emergency panel always visible in Live Control.
+- [x] Emergency panel always visible in Live Control.
 
 ## Phase 5: Advanced Interactive Modules
 
@@ -261,5 +261,5 @@ Goal: make BTV extensible.
 - [ ] Alerts/widgets/automations/chat commands.
 - [ ] Emergency controls.
 - [ ] Backup/export.
-- [ ] Polished dashboard.
+- [x] Polished dashboard.
 - [ ] Clear docs.

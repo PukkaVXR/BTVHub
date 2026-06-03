@@ -56,6 +56,7 @@ export const registerHealthRoutes: RouteModule = (app, ctx) => {
       { id: "overlay-reachability", label: "Browser source reachability", ok: expectedOverlays.some((overlay) => overlay.reachable), detail: `${expectedOverlays.filter((overlay) => overlay.reachable).length}/${expectedOverlays.length} expected overlays reachable` },
       { id: "alert-project-assets", label: "Alert project assets", ok: alertProjectChecks.errors === 0, detail: alertProjectChecks.errors ? `${alertProjectChecks.errors} broken asset reference(s)` : `${alertProjectChecks.projects.length} project(s) checked` },
       { id: "twitch", label: "Twitch", ok: twitch.connected, detail: twitch.displayName ?? twitch.login ?? twitch.eventsubStatus ?? "Not connected" },
+      { id: "twitch-chat", label: "Twitch chat", ok: twitch.chat?.connected ?? false, detail: twitch.chat?.detail ?? "Connect Twitch to enable chat" },
       { id: "spotify", label: "Spotify", ok: spotify.connected, detail: spotify.connected ? "Connected" : "Not connected" },
       { id: "obs", label: "OBS WebSocket", ok: obs.connected, detail: `${obs.host}:${obs.port}` },
     ];

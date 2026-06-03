@@ -95,18 +95,56 @@ export function stopEventSub(): void {
 
 export function getTwitchStatus() {
   const eventsubStatus = getSetting("twitch_eventsub_status");
+  const scopes = getStoredTwitchScopes();
+  const chatReadScope = scopes.includes("user:read:chat");
+  const chatWriteScope = scopes.includes("user:write:chat");
+  const chatSubscriptionFailed = eventsubStatus?.includes("sub_error:channel.chat") ?? false;
+  const connected = Boolean(getEncryptedSetting("twitch_tokens"));
+  const chatConnected = connected && eventsubStatus === "connected" && chatReadScope && !chatSubscriptionFailed;
+  const chatStatus = !connected
+    ? "offline"
+    : chatSubscriptionFailed || !chatReadScope
+      ? "error"
+      : eventsubStatus === "connected"
+        ? "connected"
+        : "pending";
   return {
     configured: Boolean(getTwitchConfig()),
-    connected: Boolean(getEncryptedSetting("twitch_tokens")),
+    connected,
     hasClientSecret: Boolean(getEncryptedSetting("twitch_client_secret")),
     login: getSetting("twitch_login"),
     displayName: getSetting("twitch_display_name"),
     userId: getSetting("twitch_user_id"),
     eventsubStatus,
-    chatSubscribed:
-      Boolean(eventsubStatus) &&
-      !eventsubStatus!.includes("sub_error:channel.chat"),
+    scopes,
+    chatSubscribed: chatConnected,
+    chat: {
+      status: chatStatus,
+      connected: chatConnected,
+      canRead: chatReadScope,
+      canWrite: chatWriteScope,
+      detail: chatStatus === "connected"
+        ? "Listening for Twitch chat messages"
+        : chatStatus === "error"
+          ? chatSubscriptionFailed
+            ? eventsubStatus
+            : "Reconnect Twitch to grant user:read:chat"
+          : connected
+            ? eventsubStatus ?? "Waiting for EventSub chat subscription"
+            : "Connect Twitch to enable chat",
+    },
   };
+}
+
+function getStoredTwitchScopes(): string[] {
+  const stored = getEncryptedSetting("twitch_tokens");
+  if (!stored) return [];
+  try {
+    const parsed = JSON.parse(stored) as { scope?: unknown };
+    return Array.isArray(parsed.scope) ? parsed.scope.filter((scope): scope is string => typeof scope === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function sendTwitchChatMessage(message: string): Promise<boolean> {

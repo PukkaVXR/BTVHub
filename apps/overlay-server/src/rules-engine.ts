@@ -4,11 +4,12 @@ import {
   type StreamEvent,
   type StreamEventType,
 } from "@btv/shared";
-import { getAlertProject, getAlertRules, getTheme, getWidgets, logActivity, logSessionEvent, updateGoal } from "./db.js";
+import { awardLoyaltyPoints, getAlertProject, getAlertRules, getTheme, getWidgets, logActivity, logSessionEvent, updateGoal } from "./db.js";
 import type { AlertQueue } from "./alert-queue.js";
 import { resolveAlertProjectVariation } from "./alert-variations.js";
 import { withAutomationVariables } from "./alert-template-vars.js";
 import type { OverlayBus } from "./bus.js";
+import { runChatCommandFromEvent } from "./chat-command-runner.js";
 import type { EffectRunner } from "./effect-runner.js";
 import type { EventAutomationEngine } from "./event-automation-engine.js";
 import type { CoreEventBus } from "./core-event-bus.js";
@@ -57,10 +58,27 @@ export class RulesEngine {
       }
     }
 
+    if (event.type === "chat") {
+      this.awardChatLoyalty(event);
+      await runChatCommandFromEvent(event);
+    }
+
     await this.updateGoals(event);
     await this.effectRunner.tryTriggerFromEvent(event);
     await this.eventAutomations?.handleEvent(event);
     await this.processAlerts(event);
+  }
+
+  private awardChatLoyalty(event: StreamEvent): void {
+    if (!event.user?.id || !event.user.displayName) return;
+    awardLoyaltyPoints({
+      id: event.user.id,
+      login: event.user.login,
+      displayName: event.user.displayName,
+      points: 5,
+      messageCount: 1,
+      earnCooldownMs: 60_000,
+    });
   }
 
   private async updateGoals(event: StreamEvent): Promise<void> {

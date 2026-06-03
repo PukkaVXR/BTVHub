@@ -17,6 +17,7 @@ const AlertsPage = lazy(() => import("./pages/AlertsPage"));
 const ThemesPage = lazy(() => import("./pages/ThemesPage"));
 const WidgetsPage = lazy(() => import("./pages/WidgetsPage"));
 const InteractivePage = lazy(() => import("./pages/InteractivePage"));
+const CommandsPage = lazy(() => import("./pages/CommandsPage"));
 const MacrosPage = lazy(() => import("./pages/MacrosPage"));
 const AutomationsPage = lazy(() => import("./pages/AutomationsPage"));
 const WebhooksPage = lazy(() => import("./pages/WebhooksPage"));
@@ -52,6 +53,7 @@ const navSections = [
     label: "Automation",
     items: [
       { path: "/interactive", label: "Interactive" },
+      { path: "/commands", label: "Commands" },
       { path: "/automations", label: "Automations" },
       { path: "/macros", label: "Macros" },
       { path: "/webhooks", label: "Webhooks" },
@@ -174,6 +176,12 @@ export default function App() {
         <div className="app-topbar">
           <div className="live-status-bar" aria-label="Live readiness status">
             <StatusPill to="/integrations" tone={preflight?.twitch.connected ? "success" : "danger"} label="Twitch" detail={String(preflight?.twitch.displayName ?? preflight?.twitch.login ?? "Offline")} />
+            <StatusPill
+              to="/integrations"
+              tone={preflight?.twitch.chat?.connected ? "success" : preflight?.twitch.connected ? "warning" : "danger"}
+              label="Chat"
+              detail={preflight?.twitch.chat?.connected ? "Live" : preflight?.twitch.chat?.status === "error" ? "Needs reconnect" : preflight?.twitch.connected ? "Pending" : "Offline"}
+            />
             <StatusPill to="/integrations" tone={preflight?.obs.connected ? "success" : "danger"} label="OBS" detail={preflight?.obs.connected ? `${preflight.obs.host}:${preflight.obs.port}` : "Offline"} />
             <StatusPill
               to="/overlays"
@@ -209,6 +217,7 @@ export default function App() {
               <Route path="/themes" element={<ThemesPage />} />
               <Route path="/widgets" element={<WidgetsPage />} />
               <Route path="/interactive" element={<InteractivePage />} />
+              <Route path="/commands" element={<CommandsPage />} />
               <Route path="/macros" element={<MacrosPage />} />
               <Route path="/automations" element={<AutomationsPage />} />
               <Route path="/webhooks" element={<WebhooksPage />} />
