@@ -9,7 +9,7 @@ interface RecentActivityPanelProps {
 
 export function RecentActivityPanel({ preflight, onReplayAlert }: RecentActivityPanelProps) {
   return (
-    <Card>
+    <Card hideableId="recent-activity" hideableTitle="Recent Activity">
       <h2>Recent Activity</h2>
       {preflight?.activity.length ? (
         <table className="table">

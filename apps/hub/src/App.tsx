@@ -2,6 +2,8 @@ import { Navigate, NavLink, Route, Routes, useLocation, useParams } from "react-
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { CommandPalette } from "./components/CommandPalette";
 import { EmergencyMenu } from "./components/EmergencyMenu";
+import { GlobalHotkeys } from "./components/GlobalHotkeys";
+import { HotkeysMenu } from "./components/HotkeysMenu";
 import { useAppHealth } from "./context/AppHealthContext";
 import { useSaveStatusSummary } from "./context/SaveStatusContext";
 import { useToast } from "./hooks/useToast";
@@ -10,11 +12,11 @@ import { hasSeenFirstTestAlert, markFirstTestAlertSeen, TEST_ALERT_SUCCESS_EVENT
 import { ErrorBoundary, PageLoading, StatusPill } from "./ui";
 
 const Dashboard = lazy(() => import("./pages/live/Dashboard"));
+const MobileControlPage = lazy(() => import("./pages/live/MobileControlPage"));
 const SetupPage = lazy(() => import("./pages/SetupPage"));
 const OverlaysPage = lazy(() => import("./pages/OverlaysPage"));
 const AlertEditorPage = lazy(() => import("./pages/AlertEditorPage"));
 const AlertsPage = lazy(() => import("./pages/AlertsPage"));
-const ThemesPage = lazy(() => import("./pages/ThemesPage"));
 const WidgetsPage = lazy(() => import("./pages/WidgetsPage"));
 const InteractivePage = lazy(() => import("./pages/InteractivePage"));
 const CommandsPage = lazy(() => import("./pages/CommandsPage"));
@@ -25,13 +27,22 @@ const IntegrationsPage = lazy(() => import("./pages/IntegrationsPage"));
 const ActivityPage = lazy(() => import("./pages/ActivityPage"));
 const AlertProjectsPage = lazy(() => import("./pages/AlertProjectsPage"));
 const StreamDeckPage = lazy(() => import("./pages/StreamDeckPage"));
+const TournamentScoreboardPage = lazy(() => import("./pages/TournamentScoreboardPage"));
+const PredictionVotingPage = lazy(() => import("./pages/PredictionVotingPage"));
+const BossFightPage = lazy(() => import("./pages/BossFightPage"));
+const ChatChaosPage = lazy(() => import("./pages/ChatChaosPage"));
+const SoundboardPage = lazy(() => import("./pages/SoundboardPage"));
+const ChannelPointLibraryPage = lazy(() => import("./pages/ChannelPointLibraryPage"));
+const StreamRecapPage = lazy(() => import("./pages/StreamRecapPage"));
 
 const navSections = [
   {
     label: "Live",
     items: [
       { path: "", label: "Dashboard" },
+      { path: "/mobile-control", label: "Mobile Control" },
       { path: "/activity", label: "Activity" },
+      { path: "/recaps", label: "Recaps" },
     ],
   },
   {
@@ -39,7 +50,6 @@ const navSections = [
     items: [
       { path: "/overlays", label: "Browser sources" },
       { path: "/widgets", label: "Widgets" },
-      { path: "/themes", label: "Themes", badge: "Legacy" },
     ],
   },
   {
@@ -47,17 +57,28 @@ const navSections = [
     items: [
       { path: "/alerts", label: "Projects", end: true },
       { path: "/alerts/routing", label: "Test & routing" },
+      { path: "/interactive", label: "Interactive" },
     ],
   },
   {
     label: "Automation",
     items: [
-      { path: "/interactive", label: "Interactive" },
       { path: "/commands", label: "Commands" },
       { path: "/automations", label: "Automations" },
       { path: "/macros", label: "Macros" },
       { path: "/webhooks", label: "Webhooks" },
       { path: "/stream-deck", label: "Stream Deck" },
+      { path: "/channel-points", label: "Channel Points" },
+      { path: "/soundboard", label: "Soundboard" },
+    ],
+  },
+  {
+    label: "Fun",
+    items: [
+      { path: "/tournament", label: "Tournament" },
+      { path: "/predictions", label: "Predictions" },
+      { path: "/boss-fight", label: "Boss Fight" },
+      { path: "/chat-chaos", label: "Chat Chaos" },
     ],
   },
   {
@@ -164,7 +185,7 @@ export default function App() {
                     className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
                   >
                     <span>{item.label}</span>
-                    {"badge" in item ? <small>{item.badge}</small> : item.path === "/setup" && setupNeedsAttention ? <small>Start</small> : null}
+                    {item.path === "/setup" && setupNeedsAttention ? <small>Start</small> : null}
                   </NavLink>
                 ))}
               </div>
@@ -173,6 +194,7 @@ export default function App() {
         </nav>
       </aside>
       <main className="main">
+        <GlobalHotkeys />
         <div className="app-topbar">
           <div className="live-status-bar" aria-label="Live readiness status">
             <StatusPill to="/integrations" tone={preflight?.twitch.connected ? "success" : "danger"} label="Twitch" detail={String(preflight?.twitch.displayName ?? preflight?.twitch.login ?? "Offline")} />
@@ -194,6 +216,7 @@ export default function App() {
           </div>
           <div className="app-topbar-actions">
             <GlobalSaveIndicator status={saveSummary.status} label={saveSummary.label} count={saveSummary.count} />
+            <HotkeysMenu />
             <CommandPalette />
             <EmergencyMenu
               automationsDisabled={preflight?.emergency.automationsDisabled}
@@ -206,6 +229,7 @@ export default function App() {
           <Suspense fallback={<PageLoading />}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/mobile-control" element={<MobileControlPage />} />
               <Route path="/setup" element={<SetupPage />} />
               <Route path="/overlays" element={<OverlaysPage />} />
               <Route path="/alerts" element={<AlertProjectsPage />} />
@@ -214,9 +238,16 @@ export default function App() {
               <Route path="/alerts/editor/:id" element={<LegacyAlertEditorRedirect />} />
               <Route path="/alert-editor" element={<Navigate to="/alerts" replace />} />
               <Route path="/alert-rules" element={<Navigate to="/alerts/routing" replace />} />
-              <Route path="/themes" element={<ThemesPage />} />
+              <Route path="/themes" element={<Navigate to="/widgets" replace />} />
               <Route path="/widgets" element={<WidgetsPage />} />
               <Route path="/interactive" element={<InteractivePage />} />
+              <Route path="/tournament" element={<TournamentScoreboardPage />} />
+              <Route path="/predictions" element={<PredictionVotingPage />} />
+              <Route path="/boss-fight" element={<BossFightPage />} />
+              <Route path="/chat-chaos" element={<ChatChaosPage />} />
+              <Route path="/soundboard" element={<SoundboardPage />} />
+              <Route path="/channel-points" element={<ChannelPointLibraryPage />} />
+              <Route path="/recaps" element={<StreamRecapPage />} />
               <Route path="/commands" element={<CommandsPage />} />
               <Route path="/macros" element={<MacrosPage />} />
               <Route path="/automations" element={<AutomationsPage />} />

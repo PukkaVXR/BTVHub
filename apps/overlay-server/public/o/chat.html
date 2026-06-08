@@ -6,13 +6,17 @@
   <link rel="stylesheet" href="/styles/overlay.css" />
 </head>
 <body>
-  <div class="chat-widget"><div id="chat-messages"></div></div>
+  <div class="chat-widget">
+    <div id="chat-stats" class="chat-live-stats" hidden></div>
+    <div id="chat-messages"></div>
+  </div>
   <script type="module">
     import "/js/overlay-theme.js";
     import { OverlayClient } from "/js/overlay-client.js";
 
     let maxMessages = 20;
     let fadeMs = 8000;
+    let showStats = true;
     const bttvEmotes = new Map();
     const twitchBadges = new Map();
     const fadeStartMs = () => Math.max(0, fadeMs - 1000);
@@ -21,6 +25,7 @@
       const cfg = await fetch("/api/widgets/chat-config").then((r) => r.json());
       maxMessages = Number(cfg.maxMessages) || 20;
       fadeMs = Number(cfg.fadeMs) || 8000;
+      showStats = cfg.showStats !== false;
     } catch {
       /* defaults */
     }
@@ -29,9 +34,14 @@
     void loadTwitchBadges();
 
     const box = document.getElementById("chat-messages");
+    const statsBox = document.getElementById("chat-stats");
     const client = new OverlayClient({
       channels: ["chat"],
       onMessage: (msg) => {
+        if (msg.kind === "chat:stats") {
+          renderChatStats(msg.stats);
+          return;
+        }
         if (msg.kind !== "chat:message") return;
         const el = document.createElement("div");
         el.className = "chat-line";
@@ -46,6 +56,14 @@
       },
     });
     client.connect();
+
+    function renderChatStats(stats) {
+      if (!showStats || !statsBox) return;
+      statsBox.hidden = false;
+      const active = Number(stats.activeChatters ?? 0);
+      const rate = Number(stats.messagesPerMinute ?? 0);
+      statsBox.textContent = `${rate}/min • ${active} active chatter${active === 1 ? "" : "s"}`;
+    }
 
     async function loadBttvEmotes() {
       try {

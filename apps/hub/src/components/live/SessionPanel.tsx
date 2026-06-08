@@ -12,7 +12,7 @@ interface SessionPanelProps {
 
 export function SessionPanel({ session, title, onTitleChange, onStart, onStop }: SessionPanelProps) {
   return (
-    <Card>
+    <Card hideableId="stream-session" hideableTitle="Stream Session">
       <CardHeader
         title="Stream Session"
         description={

@@ -70,7 +70,7 @@ export default function AlertsPage() {
       <SaveIndicator status={saveStatus} label="Alert routing" />
 
       <div className="alert-routing-layout">
-        <Card className="alert-routing-test-card">
+        <Card className="alert-routing-test-card" hideableId="test-alerts" hideableTitle="Test Alerts">
           <CardHeader
             title="Test Alerts"
             description="Fire sample events into OBS without changing your routing rules."
@@ -95,7 +95,7 @@ export default function AlertsPage() {
           </div>
         </Card>
 
-        <Card className="alert-routing-table-card">
+        <Card className="alert-routing-table-card" hideableId="routing-rules" hideableTitle="Routing Rules">
           <CardHeader
             title="Routing Rules"
             description="Each row controls which visual project and sound should respond to a stream event."

@@ -1,6 +1,15 @@
 import { emitTestAlertSuccess } from "./lib/testAlertMilestone";
 
-const API = "/api";
+const API = resolveApiBase();
+
+function resolveApiBase(): string {
+  const configured = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_BTV_API_BASE;
+  if (configured?.trim()) return configured.trim().replace(/\/$/, "");
+  if (typeof window !== "undefined" && window.location.port === "4781") {
+    return `${window.location.protocol}//${window.location.hostname}:4782/api`;
+  }
+  return "/api";
+}
 
 
 
@@ -66,6 +75,9 @@ export const api = {
 
   sessionDetail: (id: string) =>
     request<StreamSessionDetail>(`/sessions/${encodeURIComponent(id)}`),
+
+  sessionRecap: (id: string) =>
+    request<StreamRecap>(`/sessions/${encodeURIComponent(id)}/recap`),
 
   startSession: (title?: string) =>
     request<ActionResponse & { session: StreamSessionSummary }>("/sessions/start", {
@@ -446,6 +458,51 @@ export const api = {
       method: "POST",
     }),
 
+  giveaways: () => request<{ giveaways: Giveaway[]; active: Giveaway | null }>("/giveaways"),
+
+  openGiveaway: (data: { name: string; keyword?: string }) =>
+    request<{ ok: boolean; giveaway: Giveaway }>("/giveaways/open", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  closeGiveaway: (id: string) =>
+    request<{ ok: boolean; giveaway: Giveaway }>(`/giveaways/${encodeURIComponent(id)}/close`, {
+      method: "POST",
+    }),
+
+  addGiveawayEntry: (id: string, entry: { userId?: string; login?: string; displayName: string }) =>
+    request<{ ok: boolean; giveaway: Giveaway; entry: GiveawayEntry; alreadyEntered: boolean; position: number }>(
+      `/giveaways/${encodeURIComponent(id)}/entries`,
+      {
+        method: "POST",
+        body: JSON.stringify(entry),
+      },
+    ),
+
+  removeGiveawayEntry: (entryId: string) =>
+    request<{ ok: boolean; entry: GiveawayEntry }>(`/giveaways/entries/${encodeURIComponent(entryId)}`, {
+      method: "DELETE",
+    }),
+
+  pickGiveawayWinner: (id: string) =>
+    request<{ ok: boolean; giveaway: Giveaway; winner: GiveawayEntry }>(`/giveaways/${encodeURIComponent(id)}/pick`, {
+      method: "POST",
+    }),
+
+  announceGiveawayWinner: (id: string) =>
+    request<{ ok: boolean; giveaway: Giveaway; winner: GiveawayEntry }>(`/giveaways/${encodeURIComponent(id)}/announce`, {
+      method: "POST",
+    }),
+
+  clearGiveawayEntries: (id: string) =>
+    request<{ ok: boolean; cleared: number }>(`/giveaways/${encodeURIComponent(id)}/clear`, {
+      method: "POST",
+    }),
+
+  miniGameRuns: (limit = 25) =>
+    request<{ runs: MiniGameRun[] }>(`/mini-games/runs?limit=${encodeURIComponent(String(limit))}`),
+
   testVisualAlert: async (eventType: string) => {
     const result = await request(`/test/alert/${eventType}`, { method: "POST" });
     emitTestAlertSuccess(eventType);
@@ -569,6 +626,74 @@ export const api = {
       body: JSON.stringify(gif),
     }),
 
+  tournamentScoreboard: () => request<TournamentScoreboardState>("/tournament-scoreboard"),
+
+  saveTournamentScoreboard: (scoreboard: TournamentScoreboardState) =>
+    request<TournamentScoreboardState>("/tournament-scoreboard", {
+      method: "PUT",
+      body: JSON.stringify(scoreboard),
+    }),
+
+  resetTournamentScoreboard: () =>
+    request<TournamentScoreboardState>("/tournament-scoreboard/reset", { method: "POST" }),
+
+  prediction: () => request<PredictionState>("/predictions"),
+
+  savePrediction: (prediction: PredictionState) =>
+    request<PredictionState>("/predictions", {
+      method: "PUT",
+      body: JSON.stringify(prediction),
+    }),
+
+  resetPrediction: () =>
+    request<PredictionState>("/predictions/reset", { method: "POST" }),
+
+  votePredictionOption: (optionId: string) =>
+    request<PredictionState>(`/predictions/options/${encodeURIComponent(optionId)}/vote`, { method: "POST" }),
+
+  revealPredictionWinner: (optionId: string) =>
+    request<PredictionState>(`/predictions/options/${encodeURIComponent(optionId)}/winner`, { method: "POST" }),
+
+  bossFight: () => request<BossFightState>("/boss-fight"),
+
+  saveBossFight: (boss: BossFightState) =>
+    request<BossFightState>("/boss-fight", {
+      method: "PUT",
+      body: JSON.stringify(boss),
+    }),
+
+  resetBossFight: () =>
+    request<BossFightState>("/boss-fight/reset", { method: "POST" }),
+
+  damageBossFight: (amount: number) =>
+    request<BossFightState>("/boss-fight/damage", {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    }),
+
+  healBossFight: (amount: number) =>
+    request<BossFightState>("/boss-fight/heal", {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    }),
+
+  chatChaos: () => request<ChatChaosState>("/chat-chaos"),
+
+  saveChatChaos: (chaos: ChatChaosState) =>
+    request<ChatChaosState>("/chat-chaos", {
+      method: "PUT",
+      body: JSON.stringify(chaos),
+    }),
+
+  resetChatChaos: () =>
+    request<ChatChaosState>("/chat-chaos/reset", { method: "POST" }),
+
+  adjustChatChaos: (amount: number) =>
+    request<ChatChaosState>("/chat-chaos/adjust", {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    }),
+
 };
 
 
@@ -631,6 +756,64 @@ export interface GiphyResult {
 }
 
 export type GiphyAssetType = "gif" | "sticker";
+
+export interface TournamentScoreboardTeam {
+  id: string;
+  name: string;
+  score: number;
+  color: string;
+}
+
+export interface TournamentScoreboardState {
+  title: string;
+  subtitle: string;
+  bestOf: number;
+  visible: boolean;
+  teams: TournamentScoreboardTeam[];
+  updatedAt: string;
+}
+
+export interface PredictionOption {
+  id: string;
+  label: string;
+  votes: number;
+  color: string;
+  isWinner: boolean;
+}
+
+export interface PredictionState {
+  title: string;
+  prompt: string;
+  status: "draft" | "open" | "locked" | "revealed";
+  visible: boolean;
+  options: PredictionOption[];
+  updatedAt: string;
+}
+
+export interface BossFightState {
+  name: string;
+  subtitle: string;
+  maxHp: number;
+  currentHp: number;
+  shield: number;
+  phase: number;
+  visible: boolean;
+  enraged: boolean;
+  color: string;
+  updatedAt: string;
+}
+
+export interface ChatChaosState {
+  title: string;
+  subtitle: string;
+  level: number;
+  threshold: number;
+  decayPerMinute: number;
+  visible: boolean;
+  color: string;
+  updatedAt: string;
+  status: "calm" | "building" | "chaotic" | "meltdown";
+}
 
 export interface AssetSourceMetadata {
   source?: "upload" | "giphy";
@@ -969,6 +1152,40 @@ export interface ViewerQueueEntry {
   updatedAt: string;
 }
 
+export interface GiveawayEntry {
+  id: string;
+  giveawayId: string;
+  userId: string;
+  login?: string;
+  displayName: string;
+  enteredAt: string;
+}
+
+export interface Giveaway {
+  id: string;
+  name: string;
+  keyword: string;
+  status: "open" | "closed";
+  winnerEntryId?: string;
+  createdAt: string;
+  updatedAt: string;
+  entries: GiveawayEntry[];
+  winner?: GiveawayEntry;
+}
+
+export interface MiniGameRun {
+  id: string;
+  game: string;
+  userId: string;
+  login?: string;
+  displayName: string;
+  wager: number;
+  outcome: "win" | "lose" | "tie" | "play";
+  pointsDelta: number;
+  result: Record<string, unknown>;
+  createdAt: string;
+}
+
 export interface HealthInfo {
   ok: boolean;
   overlayUrl?: string;
@@ -1137,6 +1354,22 @@ export interface StreamSessionDetail {
   summary: StreamSessionSummary;
   events: SessionEventRow[];
   sceneSpans: SceneSpanRow[];
+}
+
+export interface StreamRecap {
+  summary: StreamSessionSummary;
+  events: SessionEventRow[];
+  sceneSpans: SceneSpanRow[];
+  generatedAt: string;
+  highlights: string[];
+  topEvents: StreamSessionSummary["eventsByType"];
+  topScenes: StreamSessionSummary["sceneSpans"];
+  supporters: Array<{
+    name: string;
+    events: number;
+    amount: number;
+  }>;
+  markdown: string;
 }
 
 

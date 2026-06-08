@@ -301,7 +301,7 @@ export default function ActivityPage() {
         </div>
       )}
 
-      <Card className="activity-feed-card">
+      <Card className="activity-feed-card" hideableId="recent-activity-feed" hideableTitle="Recent Activity">
         <CardHeader
           title="Recent Activity"
           description="A live timeline of stream events, chat, webhook triggers, and alerts."

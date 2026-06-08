@@ -8,7 +8,7 @@ interface EmergencyControlsPanelProps {
 
 export function EmergencyControlsPanel({ preflight, onAction }: EmergencyControlsPanelProps) {
   return (
-    <Card className="live-emergency-panel">
+    <Card className="live-emergency-panel" hideableId="emergency-controls" hideableTitle="Emergency Controls">
       <CardHeader
         title="Emergency Controls"
         description="Fast stream-safety actions for overlays, sounds, automations, channel points, and reconnects."

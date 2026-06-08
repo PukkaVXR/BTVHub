@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BTV Boss Fight Overlay</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, "Segoe UI", system-ui, sans-serif;
+      }
+
+      html,
+      body {
+        background: transparent;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        width: 100%;
+      }
+
+      body {
+        align-items: flex-start;
+        display: flex;
+        justify-content: center;
+      }
+
+      .boss {
+        background: linear-gradient(180deg, rgba(8, 11, 18, 0.9), rgba(8, 11, 18, 0.68));
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 24px;
+        box-shadow: 0 26px 80px rgba(0, 0, 0, 0.42), 0 0 42px color-mix(in srgb, var(--boss-color) 30%, transparent);
+        box-sizing: border-box;
+        color: white;
+        display: grid;
+        gap: 14px;
+        margin-top: 42px;
+        max-width: min(1040px, calc(100vw - 84px));
+        opacity: 0;
+        padding: 22px;
+        transform: translateY(-24px) scale(0.98);
+        transition: opacity 220ms ease, transform 220ms ease, box-shadow 220ms ease;
+        width: 980px;
+      }
+
+      .boss.visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      .boss.enraged {
+        animation: bossPulse 880ms ease-in-out infinite alternate;
+      }
+
+      .boss-header {
+        align-items: end;
+        display: flex;
+        gap: 18px;
+        justify-content: space-between;
+      }
+
+      .boss-kicker {
+        color: rgba(255, 255, 255, 0.62);
+        font-size: 13px;
+        font-weight: 950;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .boss-name {
+        font-size: clamp(32px, 5vw, 58px);
+        font-weight: 1000;
+        letter-spacing: -0.03em;
+        line-height: 0.96;
+        margin-top: 4px;
+        text-shadow: 0 4px 22px rgba(0, 0, 0, 0.45);
+      }
+
+      .boss-meta {
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 15px;
+        font-weight: 850;
+        text-align: right;
+      }
+
+      .boss-bar {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 999px;
+        height: 42px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .boss-fill,
+      .boss-shield {
+        inset: 0 auto 0 0;
+        position: absolute;
+        transition: width 320ms ease;
+      }
+
+      .boss-fill {
+        background: linear-gradient(90deg, var(--boss-color), color-mix(in srgb, var(--boss-color) 56%, #fff));
+        box-shadow: 0 0 34px color-mix(in srgb, var(--boss-color) 54%, transparent);
+        width: var(--hp-percent);
+      }
+
+      .boss-shield {
+        background: linear-gradient(90deg, rgba(94, 234, 212, 0.35), rgba(91, 140, 255, 0.34));
+        width: var(--shield-percent);
+      }
+
+      .boss-bar strong {
+        display: grid;
+        font-size: 16px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 1000;
+        inset: 0;
+        place-items: center;
+        position: absolute;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.65);
+      }
+
+      .boss-footer {
+        align-items: center;
+        color: rgba(255, 255, 255, 0.66);
+        display: flex;
+        font-size: 13px;
+        font-weight: 900;
+        justify-content: space-between;
+        text-transform: uppercase;
+      }
+
+      @keyframes bossPulse {
+        from {
+          box-shadow: 0 26px 80px rgba(0, 0, 0, 0.42), 0 0 36px color-mix(in srgb, var(--boss-color) 38%, transparent);
+        }
+
+        to {
+          box-shadow: 0 26px 80px rgba(0, 0, 0, 0.42), 0 0 70px color-mix(in srgb, var(--boss-color) 72%, transparent);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="boss" id="boss">
+      <section class="boss-header">
+        <div>
+          <div class="boss-kicker" id="subtitle">Chat versus the boss</div>
+          <div class="boss-name" id="name">Stream Boss</div>
+        </div>
+        <div class="boss-meta" id="meta">Phase 1</div>
+      </section>
+      <section class="boss-bar" aria-live="polite">
+        <div class="boss-fill"></div>
+        <div class="boss-shield"></div>
+        <strong id="hp">1000 / 1000 HP</strong>
+      </section>
+      <section class="boss-footer">
+        <span id="shield">Shield 0</span>
+        <span id="status">Stable</span>
+      </section>
+    </main>
+
+    <script>
+      const boss = document.getElementById("boss");
+      const subtitle = document.getElementById("subtitle");
+      const name = document.getElementById("name");
+      const meta = document.getElementById("meta");
+      const hp = document.getElementById("hp");
+      const shield = document.getElementById("shield");
+      const status = document.getElementById("status");
+
+      function render(state) {
+        const maxHp = Math.max(1, Number(state.maxHp || 1));
+        const currentHp = Math.max(0, Math.min(maxHp, Number(state.currentHp || 0)));
+        const hpPercent = Math.round((currentHp / maxHp) * 100);
+        const shieldPercent = Math.min(100, Math.round((Number(state.shield || 0) / maxHp) * 100));
+        boss.classList.toggle("visible", Boolean(state.visible));
+        boss.classList.toggle("enraged", Boolean(state.enraged));
+        boss.style.setProperty("--boss-color", state.color || "#ff5a67");
+        boss.style.setProperty("--hp-percent", `${hpPercent}%`);
+        boss.style.setProperty("--shield-percent", `${shieldPercent}%`);
+        subtitle.textContent = state.subtitle || "Chat versus the boss";
+        name.textContent = state.name || "Stream Boss";
+        meta.textContent = `Phase ${state.phase || 1}`;
+        hp.textContent = `${currentHp} / ${maxHp} HP`;
+        shield.textContent = `Shield ${Math.max(0, Number(state.shield || 0))}`;
+        status.textContent = state.enraged ? "Enraged" : currentHp <= 0 ? "Defeated" : "Stable";
+      }
+
+      async function poll() {
+        try {
+          const response = await fetch("/api/boss-fight", { cache: "no-store" });
+          if (!response.ok) throw new Error("Boss fight unavailable");
+          render(await response.json());
+        } catch {
+          boss.classList.remove("visible");
+        }
+      }
+
+      void poll();
+      setInterval(poll, 1500);
+    </script>
+  </body>
+</html>

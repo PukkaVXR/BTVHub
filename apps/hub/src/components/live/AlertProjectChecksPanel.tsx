@@ -10,7 +10,7 @@ export function AlertProjectChecksPanel({ preflight }: AlertProjectChecksPanelPr
   if (!projects.length || !preflight) return null;
 
   return (
-    <Card>
+    <Card hideableId="alert-project-checks" hideableTitle="Alert Project Checks">
       <CardHeader
         title="Alert Project Checks"
         action={

@@ -238,13 +238,13 @@ export default function AlertProjectsPage() {
       <AlertsSectionTabs />
 
       {error ? (
-        <Card>
+        <Card hideableId="load-error" hideableTitle="Load Error">
           <StatusPill tone="danger" label="Could not load alerts" detail={error} />
         </Card>
       ) : null}
 
       {loading ? (
-        <Card>
+        <Card hideableId="loading-projects" hideableTitle="Loading Projects">
           <CardHeader title="Loading alert projects" description="Checking your visual alert library..." />
         </Card>
       ) : null}
@@ -267,7 +267,7 @@ export default function AlertProjectsPage() {
       {!loading && sortedProjects.length ? (
         <div className="alert-project-list">
           {sortedProjects.map((project) => (
-            <Card key={project.id} className="alert-project-card">
+            <Card key={project.id} className="alert-project-card" hideableId={`project-${project.id}`} hideableTitle={project.name}>
               <CardHeader
                 title={project.name}
                 description={`${project.eventType} - ${project.durationMs}ms - ${project.layers.length} layer${project.layers.length === 1 ? "" : "s"}`}

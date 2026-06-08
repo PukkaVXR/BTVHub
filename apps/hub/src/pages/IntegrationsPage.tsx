@@ -163,7 +163,7 @@ export default function IntegrationsPage() {
       </div>
 
       <div className="integrations-grid">
-        <Card className="integration-card integration-card--twitch">
+        <Card className="integration-card integration-card--twitch" hideableId="twitch" hideableTitle="Twitch">
           <CardHeader
             title="Twitch"
             description="OAuth, EventSub, chat identity, channel events, and live chat support."
@@ -289,7 +289,7 @@ export default function IntegrationsPage() {
           </div>
         </Card>
 
-        <Card className="integration-card">
+        <Card className="integration-card" hideableId="obs-websocket" hideableTitle="OBS WebSocket">
           <CardHeader
             title="OBS WebSocket"
             description="Connects BTV controls to scenes, sources, browser source repair, and test alerts."
@@ -340,7 +340,7 @@ export default function IntegrationsPage() {
           </div>
         </Card>
 
-        <Card className="integration-card">
+        <Card className="integration-card" hideableId="spotify" hideableTitle="Spotify">
           <CardHeader
             title="Spotify"
             description="Feeds the Now Playing overlay and music-aware stream widgets."
@@ -418,7 +418,7 @@ export default function IntegrationsPage() {
           </div>
         </Card>
 
-        <Card className="integration-card">
+        <Card className="integration-card" hideableId="giphy" hideableTitle="GIPHY">
           <CardHeader
             title="GIPHY"
             description="Powers GIF and sticker search inside the Visual Alert Editor."

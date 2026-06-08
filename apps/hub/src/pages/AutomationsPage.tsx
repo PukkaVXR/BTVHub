@@ -7,6 +7,7 @@ import {
   type AutomationConfig,
   type AutomationRule,
   type AutomationRun,
+  type ChatCommand,
   type MacroConfig,
   type SourceGroup,
 } from "../api";
@@ -210,6 +211,13 @@ function automationStatusTone(status: AutomationConfig["lastStatus"] | undefined
   return "neutral";
 }
 
+function chatCommandOptions(commands: ChatCommand[]): Array<{ value: string; label: string }> {
+  return commands.flatMap((command) => [
+    { value: command.command, label: `${command.command} - ${command.enabled ? "enabled" : "disabled"}` },
+    ...command.aliases.map((alias) => ({ value: alias, label: `${alias} - alias for ${command.command}` })),
+  ]);
+}
+
 export default function AutomationsPage() {
   const [automations, setAutomations] = useState<AutomationConfig[]>([]);
   const [rules, setRules] = useState<AutomationRule[]>([]);
@@ -217,6 +225,7 @@ export default function AutomationsPage() {
   const [macros, setMacros] = useState<MacroConfig[]>([]);
   const [effects, setEffects] = useState<Array<{ id: string; name: string }>>([]);
   const [sourceGroups, setSourceGroups] = useState<SourceGroup[]>([]);
+  const [chatCommands, setChatCommands] = useState<ChatCommand[]>([]);
   const [editing, setEditing] = useState<AutomationConfig | null>(null);
   const [editingRule, setEditingRule] = useState<AutomationRule | null>(null);
   const [configJson, setConfigJson] = useState("{}");
@@ -232,14 +241,23 @@ export default function AutomationsPage() {
   const toast = useToast();
 
   const load = () => {
-    void Promise.all([api.automations(), api.automationRules(), api.automationRuns(), api.macros(), api.effects(), api.sourceGroups()]).then(
-      ([a, r, runList, m, e, s]) => {
+    void Promise.all([
+      api.automations(),
+      api.automationRules(),
+      api.automationRuns(),
+      api.macros(),
+      api.effects(),
+      api.sourceGroups(),
+      api.chatCommands(),
+    ]).then(
+      ([a, r, runList, m, e, s, commands]) => {
         setAutomations(a);
         setRules(r);
         setRuns(runList);
         setMacros(m);
         setEffects(e.map((effect) => ({ id: effect.id, name: effect.name })));
         setSourceGroups(s);
+        setChatCommands(commands);
       },
     );
   };
@@ -260,6 +278,7 @@ export default function AutomationsPage() {
       return {};
     }
   }, [configJson]);
+  const commandOptions = useMemo(() => chatCommandOptions(chatCommands), [chatCommands]);
 
   const edit = (automation: AutomationConfig) => {
     setEditing(automation);
@@ -528,7 +547,7 @@ export default function AutomationsPage() {
                       ...editingRule,
                       trigger:
                         type === "chat_command"
-                          ? { type, command: "!hello" }
+                          ? { type, command: commandOptions[0]?.value ?? "!hello" }
                           : type === "manual"
                             ? { type }
                             : type === "btv_event"
@@ -579,15 +598,34 @@ export default function AutomationsPage() {
                   </select>
                 </div>
               )}
-              {editingRule.trigger.type === "chat_command" && (
-                <div>
-                  <label>Command</label>
-                  <input
-                    value={editingRule.trigger.command}
-                    onChange={(e) => setEditingRule({ ...editingRule, trigger: { type: "chat_command", command: e.target.value } })}
-                  />
-                </div>
-              )}
+              {editingRule.trigger.type === "chat_command" && (() => {
+                const trigger = editingRule.trigger;
+                return (
+                  <div>
+                    <label>Command</label>
+                    {commandOptions.length ? (
+                      <select
+                        value={trigger.command}
+                        onChange={(e) => setEditingRule({ ...editingRule, trigger: { type: "chat_command", command: e.target.value } })}
+                      >
+                        {!commandOptions.some((option) => option.value === trigger.command) && (
+                          <option value={trigger.command}>{trigger.command || "Custom command"}</option>
+                        )}
+                        {commandOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        value={trigger.command}
+                        onChange={(e) => setEditingRule({ ...editingRule, trigger: { type: "chat_command", command: e.target.value } })}
+                        placeholder="!hello"
+                      />
+                    )}
+                    <p className="subtitle">Actions can use {"{command}"} and {"{args}"} from the chat message.</p>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="automation-builder-step">

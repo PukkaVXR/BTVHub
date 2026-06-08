@@ -92,7 +92,7 @@ export default function SetupPage() {
       ) : null}
 
       <div className="setup-wizard">
-        <Card className="setup-progress-card">
+        <Card className="setup-progress-card" hideableId="setup-progress" hideableTitle="Setup Progress">
           <div
             className="setup-progress-ring"
             style={{ "--setup-progress": `${progress}%` } as CSSProperties}
@@ -129,6 +129,8 @@ export default function SetupPage() {
           {steps.map((step, index) => (
             <Card
               key={step.id}
+              hideableId={`setup-step-${step.id}`}
+              hideableTitle={step.title}
               id={`setup-step-${step.id}`}
               className={`setup-step-card${step.complete ? " setup-step-card--complete" : ""}`}
             >

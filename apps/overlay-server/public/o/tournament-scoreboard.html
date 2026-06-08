@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BTV Tournament Scoreboard</title>
+  <link rel="stylesheet" href="/styles/overlay.css" />
+  <style>
+    body {
+      align-items: flex-start;
+      background: transparent;
+      display: flex;
+      font-family: Inter, system-ui, sans-serif;
+      justify-content: center;
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      padding: 36px;
+    }
+
+    .scoreboard {
+      backdrop-filter: blur(18px);
+      background: rgba(8, 12, 20, 0.74);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 18px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+      color: #fff;
+      min-width: min(920px, calc(100vw - 72px));
+      opacity: 1;
+      overflow: hidden;
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .scoreboard.hidden {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+
+    .scoreboard-header {
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.11);
+      display: flex;
+      gap: 16px;
+      justify-content: space-between;
+      padding: 16px 22px;
+    }
+
+    .scoreboard-header strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1.05;
+    }
+
+    .scoreboard-header span {
+      color: rgba(255, 255, 255, 0.72);
+      display: block;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .best-of {
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 13px;
+      font-weight: 900;
+      padding: 8px 12px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .teams {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .team {
+      align-items: center;
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 10px minmax(0, 1fr) auto;
+      min-height: 104px;
+      padding: 18px 22px;
+    }
+
+    .team + .team {
+      border-left: 1px solid rgba(255, 255, 255, 0.11);
+    }
+
+    .team-color {
+      align-self: stretch;
+      border-radius: 999px;
+    }
+
+    .team-name {
+      font-size: 28px;
+      font-weight: 950;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .team-score {
+      font-size: 58px;
+      font-weight: 1000;
+      line-height: 1;
+      min-width: 76px;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <section class="scoreboard" id="scoreboard" aria-live="polite">
+    <header class="scoreboard-header">
+      <div>
+        <strong id="title">Tournament Match</strong>
+        <span id="subtitle">Winners bracket</span>
+      </div>
+      <div class="best-of" id="bestOf">Best of 3</div>
+    </header>
+    <div class="teams" id="teams"></div>
+  </section>
+
+  <script>
+    const scoreboard = document.getElementById("scoreboard");
+    const title = document.getElementById("title");
+    const subtitle = document.getElementById("subtitle");
+    const bestOf = document.getElementById("bestOf");
+    const teams = document.getElementById("teams");
+
+    function render(state) {
+      scoreboard.classList.toggle("hidden", !state.visible);
+      title.textContent = state.title || "Tournament Match";
+      subtitle.textContent = state.subtitle || "";
+      bestOf.textContent = `Best of ${state.bestOf || 1}`;
+      teams.innerHTML = "";
+      for (const team of state.teams || []) {
+        const row = document.createElement("article");
+        row.className = "team";
+        row.innerHTML = `
+          <span class="team-color"></span>
+          <span class="team-name"></span>
+          <span class="team-score"></span>
+        `;
+        row.querySelector(".team-color").style.backgroundColor = team.color || "#5b8cff";
+        row.querySelector(".team-name").textContent = team.name || "Team";
+        row.querySelector(".team-score").textContent = String(team.score ?? 0);
+        teams.append(row);
+      }
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch("/api/tournament-scoreboard", { cache: "no-store" });
+        if (!response.ok) return;
+        render(await response.json());
+      } catch {
+        // Keep the last good scoreboard visible in OBS.
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 1500);
+  </script>
+</body>
+</html>

@@ -7,7 +7,7 @@ interface ObsSourceUrlsPanelProps {
 
 export function ObsSourceUrlsPanel({ overlays }: ObsSourceUrlsPanelProps) {
   return (
-    <Card>
+    <Card hideableId="obs-source-urls" hideableTitle="OBS Source URLs">
       <h2>OBS Source URLs</h2>
       <div className="live-obs-url-grid">
         {overlays.slice(0, 4).map((overlay) => (

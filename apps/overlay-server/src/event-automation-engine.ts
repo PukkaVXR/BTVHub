@@ -45,12 +45,39 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, Math.max(0, Math.min(ms, MAX_WAIT_MS))));
 }
 
+function normalizeChatCommand(command: string): string {
+  const raw = command.trim().split(/\s+/)[0] ?? "";
+  if (!raw) return "";
+  return (raw.startsWith("!") ? raw : `!${raw}`).toLowerCase();
+}
+
+function readChatCommand(event: StreamEvent): { command: string; args: string } | null {
+  if (event.type !== "chat") return null;
+  const payloadCommand = event.payload.command;
+  if (typeof payloadCommand === "string" && payloadCommand.trim()) {
+    return {
+      command: normalizeChatCommand(payloadCommand),
+      args: typeof event.payload.args === "string" ? event.payload.args : "",
+    };
+  }
+
+  const message = event.message?.trim() ?? "";
+  if (!message.startsWith("!")) return null;
+  const [commandToken] = message.split(/\s+/);
+  if (!commandToken) return null;
+  return {
+    command: normalizeChatCommand(commandToken),
+    args: message.slice(commandToken.length).trim(),
+  };
+}
+
 function eventMatches(rule: AutomationRule, event: StreamEvent): boolean {
   const trigger = rule.trigger;
   if (trigger.type === "manual") return false;
   if (trigger.type === "stream_event") return event.type === trigger.eventType;
   if (trigger.type === "chat_command") {
-    return event.type === "chat" && (event.message ?? "").trim().toLowerCase().startsWith(trigger.command.toLowerCase());
+    const parsed = readChatCommand(event);
+    return Boolean(parsed && parsed.command === normalizeChatCommand(trigger.command));
   }
   return false;
 }
@@ -106,9 +133,15 @@ function conditionMatches(condition: AutomationCondition, event: StreamEvent): b
 }
 
 function renderTemplate(template: string, event: StreamEvent): string {
+  const chatCommand = readChatCommand(event);
   return template
     .replaceAll("{user}", event.user?.displayName ?? "there")
+    .replaceAll("{displayName}", event.user?.displayName ?? "there")
+    .replaceAll("{login}", event.user?.login ?? event.user?.displayName ?? "viewer")
     .replaceAll("{event}", event.type)
+    .replaceAll("{message}", event.message ?? "")
+    .replaceAll("{command}", chatCommand?.command ?? "")
+    .replaceAll("{args}", chatCommand?.args ?? "")
     .replace(/\{var:([^}]+)\}/g, (_match, key: string) => String(getAutomationStateValue(key.trim()) ?? ""));
 }
 

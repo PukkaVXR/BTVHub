@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { useToast } from "../hooks/useToast";
+import { GLOBAL_HOTKEYS, matchesHotkey } from "../lib/hotkeys";
 import { Button } from "../ui";
 
 interface EmergencyMenuProps {
@@ -25,10 +26,11 @@ export function EmergencyMenu({
   const detailsRef = useRef<HTMLDetailsElement>(null);
   const [runningAction, setRunningAction] = useState<string | null>(null);
   const toast = useToast();
+  const openHotkey = GLOBAL_HOTKEYS.find((hotkey) => hotkey.id === "emergency-menu")!;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "e") {
+      if (matchesHotkey(event, openHotkey.keys)) {
         event.preventDefault();
         if (detailsRef.current) {
           detailsRef.current.open = !detailsRef.current.open;
@@ -71,7 +73,7 @@ export function EmergencyMenu({
       <summary className="emergency-menu__trigger" aria-label="Open emergency controls">
         <span className="emergency-menu__dot" aria-hidden="true" />
         <span>Emergency</span>
-        <kbd>Ctrl Shift E</kbd>
+        <kbd>{openHotkey.keys.join(" ")}</kbd>
       </summary>
       <div className="emergency-menu__panel">
         <div className="emergency-menu__header">

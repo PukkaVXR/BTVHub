@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BTV Prediction Overlay</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, "Segoe UI", system-ui, sans-serif;
+      }
+
+      html,
+      body {
+        background: transparent;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        width: 100%;
+      }
+
+      body {
+        align-items: flex-end;
+        display: flex;
+        justify-content: center;
+      }
+
+      .prediction {
+        background: rgba(8, 11, 18, 0.78);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 22px;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        box-sizing: border-box;
+        color: white;
+        display: grid;
+        gap: 14px;
+        margin: 42px;
+        max-width: min(920px, calc(100vw - 84px));
+        opacity: 0;
+        padding: 22px;
+        transform: translateY(26px) scale(0.98);
+        transition: opacity 220ms ease, transform 220ms ease;
+        width: 860px;
+      }
+
+      .prediction.visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      .prediction-header {
+        align-items: start;
+        display: flex;
+        gap: 14px;
+        justify-content: space-between;
+      }
+
+      .prediction-kicker {
+        color: rgba(255, 255, 255, 0.62);
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .prediction-prompt {
+        font-size: clamp(26px, 4vw, 46px);
+        font-weight: 1000;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        margin-top: 6px;
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+      }
+
+      .prediction-status {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 999px;
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 13px;
+        font-weight: 900;
+        padding: 8px 11px;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .prediction-options {
+        display: grid;
+        gap: 10px;
+      }
+
+      .prediction-option {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        overflow: hidden;
+        padding: 12px 14px;
+        position: relative;
+      }
+
+      .prediction-option.winner {
+        border-color: rgba(255, 255, 255, 0.5);
+        box-shadow: 0 0 30px color-mix(in srgb, var(--option-color) 55%, transparent);
+      }
+
+      .prediction-fill {
+        background: linear-gradient(90deg, var(--option-color), color-mix(in srgb, var(--option-color) 42%, transparent));
+        inset: 0 auto 0 0;
+        opacity: 0.56;
+        position: absolute;
+        transition: width 320ms ease;
+        width: var(--option-percent);
+      }
+
+      .prediction-option-content {
+        align-items: center;
+        display: grid;
+        gap: 14px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        position: relative;
+      }
+
+      .prediction-option strong {
+        font-size: clamp(18px, 2.4vw, 28px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .prediction-option span {
+        color: rgba(255, 255, 255, 0.82);
+        font-size: clamp(16px, 2vw, 24px);
+        font-variant-numeric: tabular-nums;
+        font-weight: 950;
+      }
+
+      .prediction-footer {
+        color: rgba(255, 255, 255, 0.62);
+        font-size: 13px;
+        font-weight: 800;
+        text-align: right;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="prediction" id="prediction" aria-live="polite">
+      <section class="prediction-header">
+        <div>
+          <div class="prediction-kicker" id="title">Prediction</div>
+          <div class="prediction-prompt" id="prompt">Who wins this round?</div>
+        </div>
+        <div class="prediction-status" id="status">Draft</div>
+      </section>
+      <section class="prediction-options" id="options"></section>
+      <div class="prediction-footer" id="footer">0 total votes</div>
+    </main>
+
+    <script>
+      const root = document.getElementById("prediction");
+      const title = document.getElementById("title");
+      const prompt = document.getElementById("prompt");
+      const status = document.getElementById("status");
+      const options = document.getElementById("options");
+      const footer = document.getElementById("footer");
+
+      function statusLabel(value) {
+        if (value === "open") return "Voting open";
+        if (value === "locked") return "Locked";
+        if (value === "revealed") return "Winner revealed";
+        return "Draft";
+      }
+
+      function render(state) {
+        const total = state.options.reduce((sum, option) => sum + option.votes, 0);
+        root.classList.toggle("visible", Boolean(state.visible));
+        title.textContent = state.title || "Prediction";
+        prompt.textContent = state.prompt || "Who wins this round?";
+        status.textContent = statusLabel(state.status);
+        footer.textContent = `${total} total vote${total === 1 ? "" : "s"}`;
+        options.innerHTML = "";
+        for (const option of state.options) {
+          const percent = total > 0 ? Math.round((option.votes / total) * 100) : 0;
+          const element = document.createElement("article");
+          element.className = `prediction-option${option.isWinner ? " winner" : ""}`;
+          element.style.setProperty("--option-color", option.color || "#5b8cff");
+          element.style.setProperty("--option-percent", `${percent}%`);
+          element.innerHTML = `
+            <div class="prediction-fill"></div>
+            <div class="prediction-option-content">
+              <strong></strong>
+              <span>${percent}%</span>
+            </div>
+          `;
+          element.querySelector("strong").textContent = option.label;
+          options.appendChild(element);
+        }
+      }
+
+      async function poll() {
+        try {
+          const response = await fetch("/api/predictions", { cache: "no-store" });
+          if (!response.ok) throw new Error("Prediction unavailable");
+          render(await response.json());
+        } catch {
+          root.classList.remove("visible");
+        }
+      }
+
+      void poll();
+      setInterval(poll, 1500);
+    </script>
+  </body>
+</html>

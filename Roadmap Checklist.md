@@ -141,11 +141,11 @@ Goal: adopt the best parts of Mix It Up and StreamElements chatbot.
 - [x] Timers.
 - [x] Quotes.
 - [x] Viewer queues.
-- [ ] Giveaways/raffles.
+- [x] Giveaways/raffles.
 - [x] Loyalty points.
-- [ ] Simple mini-games.
-- [ ] Chat events update overlays.
-- [ ] Commands integrate with automations.
+- [x] Simple mini-games.
+- [x] Chat events update overlays.
+- [x] Commands integrate with automations.
 
 ## Phase 4: Stream Deck / Mobile / Remote Control
 
@@ -155,35 +155,35 @@ Goal: make BTV usable as a live production control surface.
 - [x] Stream Deck OBS status endpoint.
 - [x] Stream Deck macros endpoint.
 - [x] Stream Deck source groups endpoint.
-- [ ] Dashboard button decks.
-- [ ] Mobile-friendly live control page.
-- [ ] Stream Deck plugin or polished HTTP API guide.
-- [ ] Hotkeys.
-- [ ] Action buttons.
-- [ ] Button states.
-- [ ] Button icons and colours.
-- [ ] Multi-page decks.
-- [ ] Soundboard controls.
+- [x] Dashboard button decks.
+- [x] Mobile-friendly live control page.
+- [x] Stream Deck plugin or polished HTTP API guide.
+- [x] Hotkeys.
+- [x] Action buttons.
+- [x] Button states.
+- [x] Button icons and colours.
+- [x] Multi-page decks.
+- [x] Soundboard controls.
 - [x] Emergency panel always visible in Live Control.
 
 ## Phase 5: Advanced Interactive Modules
 
 Goal: make BTV more than an alert tool.
 
-- [ ] Quiz module.
-- [ ] Quiz question builder.
-- [ ] Quiz question overlay.
-- [ ] Quiz timer overlay.
-- [ ] Quiz scoreboard.
-- [ ] Quiz answer reveal controls.
-- [ ] Quiz sounds/animation hooks.
-- [ ] Tournament scoreboard module.
-- [ ] Prediction/voting module.
-- [ ] Boss fight module.
-- [ ] Chat chaos meter.
-- [ ] Soundboard module.
-- [ ] Channel point effect library.
-- [ ] Stream recap generator.
+- [L8R] Quiz module.
+- [L8R] Quiz question builder.
+- [L8R] Quiz question overlay.
+- [L8R] Quiz timer overlay.
+- [L8R] Quiz scoreboard.
+- [L8R] Quiz answer reveal controls.
+- [L8R] Quiz sounds/animation hooks.
+- [x] Tournament scoreboard module.
+- [x] Prediction/voting module.
+- [x] Boss fight module.
+- [x] Chat chaos meter.
+- [x] Soundboard module.
+- [x] Channel point effect library.
+- [x] Stream recap generator.
 
 ## Phase 6: Plugin and Marketplace Foundation
 

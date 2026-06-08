@@ -23,7 +23,11 @@ export const registerWidgetsRoutes: RouteModule = (app) => {
   app.get("/api/widgets/chat-config", async () => {
     const w = getWidgets().find((x) => x.type === "chat");
     const cfg = (w?.config ?? {}) as Record<string, unknown>;
-    return { maxMessages: Number(cfg.maxMessages ?? 20), fadeMs: Number(cfg.fadeMs ?? 8000) };
+    return {
+      maxMessages: Number(cfg.maxMessages ?? 20),
+      fadeMs: Number(cfg.fadeMs ?? 8000),
+      showStats: cfg.showStats !== false,
+    };
   });
   app.get("/api/widgets/chat-badges", async () => {
     const badges: ChatBadgeMap = {};

@@ -166,6 +166,40 @@ export function initDb(): DatabaseSync {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS giveaways (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      keyword TEXT NOT NULL DEFAULT '!enter',
+      status TEXT NOT NULL DEFAULT 'open',
+      winner_entry_id TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS giveaway_entries (
+      id TEXT PRIMARY KEY,
+      giveaway_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      login TEXT,
+      display_name TEXT NOT NULL,
+      entered_at TEXT NOT NULL,
+      UNIQUE(giveaway_id, user_id),
+      FOREIGN KEY(giveaway_id) REFERENCES giveaways(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS mini_game_runs (
+      id TEXT PRIMARY KEY,
+      game TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      login TEXT,
+      display_name TEXT NOT NULL,
+      wager INTEGER NOT NULL DEFAULT 0,
+      outcome TEXT NOT NULL,
+      points_delta INTEGER NOT NULL DEFAULT 0,
+      result_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS source_groups (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -1457,6 +1491,222 @@ export function clearViewerQueueEntries(): number {
   const count = getViewerQueueEntries().length;
   db.prepare("DELETE FROM viewer_queue_entries").run();
   return count;
+}
+
+export interface GiveawayEntry {
+  id: string;
+  giveawayId: string;
+  userId: string;
+  login?: string;
+  displayName: string;
+  enteredAt: string;
+}
+
+export interface Giveaway {
+  id: string;
+  name: string;
+  keyword: string;
+  status: "open" | "closed";
+  winnerEntryId?: string;
+  createdAt: string;
+  updatedAt: string;
+  entries: GiveawayEntry[];
+  winner?: GiveawayEntry;
+}
+
+function rowToGiveawayEntry(row: Record<string, unknown>): GiveawayEntry {
+  return {
+    id: String(row.id),
+    giveawayId: String(row.giveaway_id),
+    userId: String(row.user_id),
+    login: row.login ? String(row.login) : undefined,
+    displayName: String(row.display_name),
+    enteredAt: String(row.entered_at),
+  };
+}
+
+function getGiveawayEntries(giveawayId: string): GiveawayEntry[] {
+  return (db
+    .prepare("SELECT * FROM giveaway_entries WHERE giveaway_id = ? ORDER BY entered_at ASC")
+    .all(giveawayId) as Array<Record<string, unknown>>).map(rowToGiveawayEntry);
+}
+
+function rowToGiveaway(row: Record<string, unknown>): Giveaway {
+  const entries = getGiveawayEntries(String(row.id));
+  const winnerEntryId = row.winner_entry_id ? String(row.winner_entry_id) : undefined;
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    keyword: String(row.keyword ?? "!enter"),
+    status: String(row.status ?? "open") === "closed" ? "closed" : "open",
+    winnerEntryId,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+    entries,
+    winner: winnerEntryId ? entries.find((entry) => entry.id === winnerEntryId) : undefined,
+  };
+}
+
+export function getGiveaways(): Giveaway[] {
+  return (db
+    .prepare("SELECT * FROM giveaways ORDER BY created_at DESC")
+    .all() as Array<Record<string, unknown>>).map(rowToGiveaway);
+}
+
+export function getGiveaway(id: string): Giveaway | null {
+  const row = db.prepare("SELECT * FROM giveaways WHERE id = ?").get(id) as Record<string, unknown> | undefined;
+  return row ? rowToGiveaway(row) : null;
+}
+
+export function getActiveGiveaway(): Giveaway | null {
+  const row = db
+    .prepare("SELECT * FROM giveaways WHERE status = 'open' ORDER BY created_at DESC LIMIT 1")
+    .get() as Record<string, unknown> | undefined;
+  return row ? rowToGiveaway(row) : null;
+}
+
+export function openGiveaway(input: { name: string; keyword?: string }): Giveaway {
+  const now = new Date().toISOString();
+  db.prepare("UPDATE giveaways SET status = 'closed', updated_at = ? WHERE status = 'open'").run(now);
+  const id = crypto.randomUUID();
+  const keyword = normalizeGiveawayKeyword(input.keyword);
+  db.prepare(
+    `INSERT INTO giveaways (id, name, keyword, status, winner_entry_id, created_at, updated_at)
+     VALUES (?, ?, ?, 'open', NULL, ?, ?)`,
+  ).run(id, input.name.trim() || "Stream giveaway", keyword, now, now);
+  return getGiveaway(id)!;
+}
+
+export function closeGiveaway(id: string): Giveaway | null {
+  const giveaway = getGiveaway(id);
+  if (!giveaway) return null;
+  db.prepare("UPDATE giveaways SET status = 'closed', updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
+  return getGiveaway(id);
+}
+
+export function enterGiveaway(input: {
+  giveawayId: string;
+  userId: string;
+  login?: string;
+  displayName: string;
+}): { giveaway: Giveaway; entry: GiveawayEntry; alreadyEntered: boolean; position: number } | null {
+  const giveaway = getGiveaway(input.giveawayId);
+  if (!giveaway || giveaway.status !== "open") return null;
+  const existing = db
+    .prepare("SELECT * FROM giveaway_entries WHERE giveaway_id = ? AND user_id = ?")
+    .get(input.giveawayId, input.userId) as Record<string, unknown> | undefined;
+  if (existing) {
+    const entry = rowToGiveawayEntry(existing);
+    return {
+      giveaway,
+      entry,
+      alreadyEntered: true,
+      position: giveaway.entries.findIndex((item) => item.id === entry.id) + 1,
+    };
+  }
+  const now = new Date().toISOString();
+  const id = crypto.randomUUID();
+  db.prepare(
+    `INSERT INTO giveaway_entries (id, giveaway_id, user_id, login, display_name, entered_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(id, input.giveawayId, input.userId, input.login ?? null, input.displayName, now);
+  const updated = getGiveaway(input.giveawayId)!;
+  const entry = updated.entries.find((item) => item.id === id)!;
+  return { giveaway: updated, entry, alreadyEntered: false, position: updated.entries.length };
+}
+
+export function removeGiveawayEntry(entryId: string): GiveawayEntry | null {
+  const row = db.prepare("SELECT * FROM giveaway_entries WHERE id = ?").get(entryId) as Record<string, unknown> | undefined;
+  if (!row) return null;
+  const entry = rowToGiveawayEntry(row);
+  db.prepare("DELETE FROM giveaway_entries WHERE id = ?").run(entryId);
+  return entry;
+}
+
+export function clearGiveawayEntries(giveawayId: string): number {
+  const count = getGiveawayEntries(giveawayId).length;
+  db.prepare("DELETE FROM giveaway_entries WHERE giveaway_id = ?").run(giveawayId);
+  db.prepare("UPDATE giveaways SET winner_entry_id = NULL, updated_at = ? WHERE id = ?").run(new Date().toISOString(), giveawayId);
+  return count;
+}
+
+export function pickGiveawayWinner(giveawayId: string): Giveaway | null {
+  const giveaway = getGiveaway(giveawayId);
+  if (!giveaway || giveaway.entries.length === 0) return null;
+  const winner = giveaway.entries[Math.floor(Math.random() * giveaway.entries.length)]!;
+  db.prepare("UPDATE giveaways SET winner_entry_id = ?, updated_at = ? WHERE id = ?").run(
+    winner.id,
+    new Date().toISOString(),
+    giveawayId,
+  );
+  return getGiveaway(giveawayId);
+}
+
+function normalizeGiveawayKeyword(keyword: unknown): string {
+  const raw = String(keyword ?? "!enter").trim().split(/\s+/)[0] ?? "!enter";
+  const prefixed = raw.startsWith("!") ? raw : `!${raw}`;
+  return /^![a-z0-9][a-z0-9_-]*$/i.test(prefixed) ? prefixed.toLowerCase() : "!enter";
+}
+
+export interface MiniGameRun {
+  id: string;
+  game: string;
+  userId: string;
+  login?: string;
+  displayName: string;
+  wager: number;
+  outcome: "win" | "lose" | "tie" | "play";
+  pointsDelta: number;
+  result: Record<string, unknown>;
+  createdAt: string;
+}
+
+function rowToMiniGameRun(row: Record<string, unknown>): MiniGameRun {
+  const outcome = String(row.outcome ?? "play");
+  return {
+    id: String(row.id),
+    game: String(row.game),
+    userId: String(row.user_id),
+    login: row.login ? String(row.login) : undefined,
+    displayName: String(row.display_name),
+    wager: Number(row.wager ?? 0),
+    outcome: outcome === "win" || outcome === "lose" || outcome === "tie" ? outcome : "play",
+    pointsDelta: Number(row.points_delta ?? 0),
+    result: parseRecord(row.result_json),
+    createdAt: String(row.created_at),
+  };
+}
+
+export function getMiniGameRuns(limit = 50): MiniGameRun[] {
+  return (db
+    .prepare("SELECT * FROM mini_game_runs ORDER BY created_at DESC LIMIT ?")
+    .all(Math.min(200, Math.max(1, Math.floor(limit)))) as Array<Record<string, unknown>>).map(rowToMiniGameRun);
+}
+
+export function recordMiniGameRun(input: Omit<MiniGameRun, "id" | "createdAt">): MiniGameRun {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  db.prepare(
+    `INSERT INTO mini_game_runs
+      (id, game, user_id, login, display_name, wager, outcome, points_delta, result_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    id,
+    input.game,
+    input.userId,
+    input.login ?? null,
+    input.displayName,
+    Math.max(0, Math.floor(input.wager)),
+    input.outcome,
+    Math.trunc(input.pointsDelta),
+    JSON.stringify(input.result ?? {}),
+    now,
+  );
+  db.prepare(
+    `DELETE FROM mini_game_runs
+     WHERE id NOT IN (SELECT id FROM mini_game_runs ORDER BY created_at DESC LIMIT 200)`,
+  ).run();
+  return getMiniGameRuns(1)[0]!;
 }
 
 export interface SourceGroupSource {

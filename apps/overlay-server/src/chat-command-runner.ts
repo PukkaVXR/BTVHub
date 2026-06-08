@@ -1,6 +1,9 @@
 import type { StreamEvent } from "@btv/shared";
 import {
+  adjustLoyaltyViewerPoints,
   getChatCommandByTrigger,
+  enterGiveaway,
+  getActiveGiveaway,
   getLoyaltyViewer,
   getChatQuoteByNumber,
   getRandomChatQuote,
@@ -10,6 +13,7 @@ import {
   removeViewerQueueEntry,
   recordChatCommandUse,
   recordChatQuoteUse,
+  recordMiniGameRun,
   type ChatCommand,
   type ChatQuote,
 } from "./db.js";
@@ -40,6 +44,10 @@ export async function runChatCommandFromEvent(event: StreamEvent): Promise<ChatC
   if (!command && trigger === "!join") return runJoinQueueCommand(event, args);
   if (!command && trigger === "!leave") return runLeaveQueueCommand(event);
   if (!command && trigger === "!queue") return runQueueStatusCommand(event);
+  if (!command && (trigger === "!dice" || trigger === "!roll")) return runDiceCommand(event, args);
+  if (!command && (trigger === "!raffle" || trigger === "!enter" || trigger === getActiveGiveaway()?.keyword)) {
+    return runGiveawayCommand(event);
+  }
   if (!command || !command.enabled) return { matched: false, sent: false, command: commandToken };
   if (!hasCommandPermission(event, command.permission)) {
     return { matched: true, sent: false, command: trigger, message: "Permission denied" };
@@ -75,6 +83,25 @@ export async function runChatCommandFromEvent(event: StreamEvent): Promise<ChatC
       message: err instanceof Error ? err.message : "Command response failed",
     };
   }
+}
+
+async function runGiveawayCommand(event: StreamEvent): Promise<ChatCommandResult> {
+  if (!event.user?.id || !event.user.displayName) {
+    return { matched: true, sent: false, command: "!raffle", message: "No viewer found" };
+  }
+  const giveaway = getActiveGiveaway();
+  if (!giveaway) return sendBuiltInChatMessage("!raffle", "There is no open giveaway right now.", "Giveaway status");
+  const result = enterGiveaway({
+    giveawayId: giveaway.id,
+    userId: event.user.id,
+    login: event.user.login,
+    displayName: event.user.displayName,
+  });
+  if (!result) return sendBuiltInChatMessage("!raffle", "This giveaway is closed.", "Giveaway entry");
+  const message = result.alreadyEntered
+    ? `${result.entry.displayName}, you are already entered in ${giveaway.name}.`
+    : `${result.entry.displayName} entered ${giveaway.name}! ${result.giveaway.entries.length} entered.`;
+  return sendBuiltInChatMessage("!raffle", message, "Giveaway entry");
 }
 
 async function runJoinQueueCommand(event: StreamEvent, note: string): Promise<ChatCommandResult> {
@@ -113,6 +140,43 @@ async function runQueueStatusCommand(event: StreamEvent): Promise<ChatCommandRes
     `Queue has ${entries.length} viewer${entries.length === 1 ? "" : "s"}. Next: ${head.displayName}.${personal}`,
     "Queue status",
   );
+}
+
+async function runDiceCommand(event: StreamEvent, args: string): Promise<ChatCommandResult> {
+  if (!event.user?.id || !event.user.displayName) {
+    return { matched: true, sent: false, command: "!dice", message: "No viewer found" };
+  }
+
+  const wager = parseDiceWager(args);
+  const viewer = getLoyaltyViewer(event.user.id);
+  const currentPoints = viewer?.points ?? 0;
+  const name = event.user.displayName;
+  if (wager > currentPoints) {
+    return sendBuiltInChatMessage(
+      "!dice",
+      `${name}, you only have ${currentPoints} point${currentPoints === 1 ? "" : "s"} to wager.`,
+      "Dice game",
+    );
+  }
+
+  const playerRoll = rollD6();
+  const btvRoll = rollD6();
+  const outcome = playerRoll > btvRoll ? "win" : playerRoll < btvRoll ? "lose" : "tie";
+  const pointsDelta = outcome === "win" ? wager : outcome === "lose" ? -wager : 0;
+  if (pointsDelta !== 0) adjustLoyaltyViewerPoints(event.user.id, pointsDelta);
+
+  recordMiniGameRun({
+    game: "dice",
+    userId: event.user.id,
+    login: event.user.login,
+    displayName: name,
+    wager,
+    outcome,
+    pointsDelta,
+    result: { playerRoll, btvRoll },
+  });
+
+  return sendBuiltInChatMessage("!dice", formatDiceResult(name, playerRoll, btvRoll, wager, outcome, pointsDelta), "Dice game");
 }
 
 async function sendBuiltInChatMessage(command: string, message: string, label: string): Promise<ChatCommandResult> {
@@ -184,6 +248,36 @@ async function runQuoteCommand(args: string): Promise<ChatCommandResult> {
 function formatQuote(quote: ChatQuote): string {
   const author = quote.author ? ` - ${quote.author}` : "";
   return `#${quote.quoteNumber}: "${quote.text}"${author}`;
+}
+
+function parseDiceWager(args: string): number {
+  const raw = args.trim().split(/\s+/)[0] ?? "";
+  const wager = Number.parseInt(raw, 10);
+  if (!Number.isFinite(wager) || wager <= 0) return 0;
+  return Math.min(1000, Math.floor(wager));
+}
+
+function rollD6(): number {
+  return Math.floor(Math.random() * 6) + 1;
+}
+
+function formatDiceResult(
+  name: string,
+  playerRoll: number,
+  btvRoll: number,
+  wager: number,
+  outcome: "win" | "lose" | "tie",
+  pointsDelta: number,
+): string {
+  const result = `${name} rolled ${playerRoll}. BTV rolled ${btvRoll}.`;
+  if (wager <= 0) {
+    if (outcome === "win") return `${result} ${name} wins for bragging rights.`;
+    if (outcome === "lose") return `${result} BTV wins this round.`;
+    return `${result} Tie game.`;
+  }
+  if (outcome === "win") return `${result} ${name} wins ${pointsDelta} points.`;
+  if (outcome === "lose") return `${result} ${name} loses ${Math.abs(pointsDelta)} points.`;
+  return `${result} Tie game. ${name}'s ${wager} point wager is returned.`;
 }
 
 function pickCommandResponse(command: ChatCommand): string {

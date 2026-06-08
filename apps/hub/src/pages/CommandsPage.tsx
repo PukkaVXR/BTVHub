@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, type ChatCommand, type ChatQuote, type ChatTimer, type LoyaltyViewer, type ViewerQueueEntry } from "../api";
+import {
+  api,
+  type ChatCommand,
+  type ChatQuote,
+  type ChatTimer,
+  type Giveaway,
+  type LoyaltyViewer,
+  type MiniGameRun,
+  type ViewerQueueEntry,
+} from "../api";
 import { useToast } from "../hooks/useToast";
 import { Button, Card, CardHeader, EmptyState, FormField, PageHeader, StatusPill } from "../ui";
 
@@ -58,6 +67,9 @@ export default function CommandsPage() {
   const [quotes, setQuotes] = useState<ChatQuote[]>([]);
   const [loyaltyViewers, setLoyaltyViewers] = useState<LoyaltyViewer[]>([]);
   const [viewerQueue, setViewerQueue] = useState<ViewerQueueEntry[]>([]);
+  const [giveaways, setGiveaways] = useState<Giveaway[]>([]);
+  const [miniGameRuns, setMiniGameRuns] = useState<MiniGameRun[]>([]);
+  const [activeGiveaway, setActiveGiveaway] = useState<Giveaway | null>(null);
   const [editing, setEditing] = useState<ChatCommand | null>(null);
   const [editingTimer, setEditingTimer] = useState<ChatTimer | null>(null);
   const [editingQuote, setEditingQuote] = useState<ChatQuote | null>(null);
@@ -65,24 +77,32 @@ export default function CommandsPage() {
   const [loyaltyAdjustment, setLoyaltyAdjustment] = useState(100);
   const [manualQueueName, setManualQueueName] = useState("");
   const [manualQueueNote, setManualQueueNote] = useState("");
+  const [giveawayName, setGiveawayName] = useState("Stream giveaway");
+  const [giveawayKeyword, setGiveawayKeyword] = useState("!enter");
+  const [manualGiveawayName, setManualGiveawayName] = useState("");
   const [loading, setLoading] = useState(true);
   const toast = useToast();
 
   const load = async () => {
     setLoading(true);
     try {
-      const [nextCommands, nextTimers, nextQuotes, nextLoyalty, nextQueue] = await Promise.all([
+      const [nextCommands, nextTimers, nextQuotes, nextLoyalty, nextQueue, nextGiveaways, nextMiniGames] = await Promise.all([
         api.chatCommands(),
         api.chatTimers(),
         api.chatQuotes(),
         api.loyaltyViewers(),
         api.viewerQueue(),
+        api.giveaways(),
+        api.miniGameRuns(),
       ]);
       setCommands(nextCommands);
       setTimers(nextTimers);
       setQuotes(nextQuotes);
       setLoyaltyViewers(nextLoyalty.viewers);
       setViewerQueue(nextQueue.entries);
+      setGiveaways(nextGiveaways.giveaways);
+      setActiveGiveaway(nextGiveaways.active);
+      setMiniGameRuns(nextMiniGames.runs);
     } finally {
       setLoading(false);
     }
@@ -152,10 +172,12 @@ export default function CommandsPage() {
         <StatusPill tone={quotes.length ? "info" : "neutral"} label="Quotes" detail={String(quotes.length)} />
         <StatusPill tone={loyaltyViewers.length ? "info" : "neutral"} label="Loyalty" detail={`${totalLoyaltyPoints} pts`} />
         <StatusPill tone={viewerQueue.length ? "success" : "neutral"} label="Queue" detail={String(viewerQueue.length)} />
+        <StatusPill tone={activeGiveaway ? "success" : "neutral"} label="Giveaway" detail={activeGiveaway ? `${activeGiveaway.entries.length} in` : "Closed"} />
+        <StatusPill tone={miniGameRuns.length ? "info" : "neutral"} label="Games" detail={String(miniGameRuns.length)} />
       </div>
 
       <div className="commands-layout">
-        <Card>
+        <Card hideableId="commands-list" hideableTitle="Commands">
           <CardHeader title="Commands" description="Select a command to edit its trigger and response." />
           {loading ? (
             <p className="subtitle">Loading commands...</p>
@@ -187,7 +209,7 @@ export default function CommandsPage() {
           )}
         </Card>
 
-        <Card>
+        <Card hideableId="command-editor" hideableTitle="Command Editor">
           <CardHeader
             title={editing ? "Command editor" : "Select a command"}
             description="Use variables like {user}, {login}, {command}, {trigger}, {args}, and {count} in responses."
@@ -323,7 +345,7 @@ export default function CommandsPage() {
       </div>
 
       <div className="commands-section">
-        <Card>
+        <Card hideableId="timers-list" hideableTitle="Timers">
           <CardHeader title="Timers" description="Send rotating Twitch chat messages on a schedule without needing a viewer command." />
           {loading ? (
             <p className="subtitle">Loading timers...</p>
@@ -353,7 +375,7 @@ export default function CommandsPage() {
           )}
         </Card>
 
-        <Card>
+        <Card hideableId="timer-editor" hideableTitle="Timer Editor">
           <CardHeader
             title={editingTimer ? "Timer editor" : "Select a timer"}
             description="One message per line. BTV chooses randomly each time the timer fires."
@@ -454,7 +476,7 @@ export default function CommandsPage() {
       </div>
 
       <div className="commands-section">
-        <Card>
+        <Card hideableId="quotes-list" hideableTitle="Quotes">
           <CardHeader title="Quotes" description="Build a stream quote book. Viewers can use !quote for a random quote or !quote 12 for a specific one." />
           {loading ? (
             <p className="subtitle">Loading quotes...</p>
@@ -483,7 +505,7 @@ export default function CommandsPage() {
           )}
         </Card>
 
-        <Card>
+        <Card hideableId="quote-editor" hideableTitle="Quote Editor">
           <CardHeader
             title={editingQuote ? "Quote editor" : "Select a quote"}
             description="Quote numbers are what viewers use after !quote."
@@ -578,7 +600,7 @@ export default function CommandsPage() {
       </div>
 
       <div className="commands-section">
-        <Card>
+        <Card hideableId="viewer-queue" hideableTitle="Viewer Queue">
           <CardHeader title="Viewer queue" description="Viewers can type !join, !leave, and !queue. Use this for games, reviews, raids, or community turns." />
           {loading ? (
             <p className="subtitle">Loading queue...</p>
@@ -613,7 +635,7 @@ export default function CommandsPage() {
           )}
         </Card>
 
-        <Card>
+        <Card hideableId="queue-controls" hideableTitle="Queue Controls">
           <CardHeader title="Queue controls" description="Pick the next viewer or manually add someone to the queue." />
           <div className="commands-editor">
             <div className="commands-editor__actions">
@@ -685,7 +707,219 @@ export default function CommandsPage() {
       </div>
 
       <div className="commands-section">
-        <Card>
+        <Card hideableId="giveaways-raffles" hideableTitle="Giveaways And Raffles">
+          <CardHeader title="Giveaways and raffles" description="Open a giveaway, let chat enter with the keyword, then pick and announce a winner." />
+          {activeGiveaway ? (
+            <div className="commands-editor">
+              <div className="commands-loyalty-hero">
+                <strong>{activeGiveaway.name}</strong>
+                <span>{activeGiveaway.entries.length} entered</span>
+                <small>Keyword: {activeGiveaway.keyword}</small>
+              </div>
+              {activeGiveaway.winner ? (
+                <div className="commands-loyalty-hero">
+                  <strong>Winner</strong>
+                  <span>{activeGiveaway.winner.displayName}</span>
+                  <small>{activeGiveaway.winner.login ? `@${activeGiveaway.winner.login}` : "Manual entry"}</small>
+                </div>
+              ) : null}
+              <div className="commands-editor__actions">
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={async () => {
+                    const response = await api.pickGiveawayWinner(activeGiveaway.id);
+                    setActiveGiveaway(response.giveaway);
+                    toast(`${response.winner.displayName} won`);
+                    await load();
+                  }}
+                  disabled={!activeGiveaway.entries.length}
+                >
+                  Pick winner
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={async () => {
+                    await api.announceGiveawayWinner(activeGiveaway.id);
+                    toast("Winner announced in chat");
+                  }}
+                  disabled={!activeGiveaway.winner}
+                >
+                  Announce
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={async () => {
+                    await api.closeGiveaway(activeGiveaway.id);
+                    toast("Giveaway closed");
+                    await load();
+                  }}
+                >
+                  Close
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={async () => {
+                    await api.clearGiveawayEntries(activeGiveaway.id);
+                    toast("Giveaway entries cleared");
+                    await load();
+                  }}
+                  disabled={!activeGiveaway.entries.length}
+                >
+                  Clear entries
+                </Button>
+              </div>
+              <div className="commands-list">
+                {activeGiveaway.entries.map((entry, index) => (
+                  <div className="commands-list__item commands-list__item--static" key={entry.id}>
+                    <span>
+                      <strong>#{index + 1} {entry.displayName}</strong>
+                      <em>{entry.login ? `@${entry.login}` : "Manual entry"}</em>
+                      <small>Entered {new Date(entry.enteredAt).toLocaleTimeString()}</small>
+                    </span>
+                    <div className="commands-list__status">
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        onClick={async () => {
+                          await api.removeGiveawayEntry(entry.id);
+                          toast("Entry removed");
+                          await load();
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <EmptyState title="No giveaway open" description="Open a raffle when you are ready for chat to enter." />
+          )}
+        </Card>
+
+        <Card hideableId="giveaway-controls" hideableTitle="Giveaway Controls">
+          <CardHeader title="Giveaway controls" description="Only one giveaway is open at a time; opening a new one closes the previous raffle." />
+          <div className="commands-editor">
+            <FormField label="Giveaway name">
+              <input
+                value={giveawayName}
+                onChange={(event) => setGiveawayName(event.target.value)}
+                placeholder="Stream giveaway"
+              />
+            </FormField>
+            <FormField label="Entry keyword" hint="Chat can also use !raffle and !enter.">
+              <input
+                value={giveawayKeyword}
+                onChange={(event) => setGiveawayKeyword(event.target.value)}
+                placeholder="!enter"
+              />
+            </FormField>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={async () => {
+                const response = await api.openGiveaway({ name: giveawayName, keyword: giveawayKeyword });
+                setActiveGiveaway(response.giveaway);
+                toast("Giveaway opened");
+                await load();
+              }}
+            >
+              Open giveaway
+            </Button>
+            <FormField label="Manual entry">
+              <input
+                value={manualGiveawayName}
+                onChange={(event) => setManualGiveawayName(event.target.value)}
+                placeholder="Viewer name"
+              />
+            </FormField>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                if (!activeGiveaway || !manualGiveawayName.trim()) return;
+                const displayName = manualGiveawayName.trim();
+                await api.addGiveawayEntry(activeGiveaway.id, {
+                  userId: `manual:${displayName.toLowerCase()}`,
+                  displayName,
+                });
+                setManualGiveawayName("");
+                toast("Entry added");
+                await load();
+              }}
+              disabled={!activeGiveaway || !manualGiveawayName.trim()}
+            >
+              Add entry
+            </Button>
+            <div className="commands-stats">
+              <StatusPill tone="neutral" label="Past giveaways" detail={String(giveaways.length)} />
+              <StatusPill tone={activeGiveaway ? "success" : "neutral"} label="Status" detail={activeGiveaway ? "Open" : "Closed"} />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <div className="commands-section">
+        <Card hideableId="simple-mini-games" hideableTitle="Simple Mini-Games">
+          <CardHeader
+            title="Simple mini-games"
+            description="Chat can play quick games through BTV commands, with optional loyalty point wagers."
+          />
+          <div className="commands-editor">
+            <div className="commands-loyalty-hero">
+              <strong>!dice</strong>
+              <span>Roll against BTV</span>
+              <small>Use !dice for fun, or !dice 25 to wager 25 loyalty points.</small>
+            </div>
+            <div className="commands-stats">
+              <StatusPill tone="info" label="Alias" detail="!roll" />
+              <StatusPill tone="warning" label="Max wager" detail="1000 pts" />
+              <StatusPill tone="success" label="Reward" detail="Win wager" />
+            </div>
+          </div>
+        </Card>
+
+        <Card hideableId="recent-mini-game-results" hideableTitle="Recent Mini-Game Results">
+          <CardHeader title="Recent mini-game results" description="A short audit trail for point wagers and chat game activity." />
+          {miniGameRuns.length ? (
+            <div className="commands-list">
+              {miniGameRuns.map((run) => (
+                <div className="commands-list__item commands-list__item--static" key={run.id}>
+                  <span>
+                    <strong>{run.displayName}</strong>
+                    <em>{diceResultLabel(run)}</em>
+                    <small>{new Date(run.createdAt).toLocaleString()}</small>
+                  </span>
+                  <div className="commands-list__status">
+                    <StatusPill tone={run.outcome === "win" ? "success" : run.outcome === "lose" ? "warning" : "neutral"} label={run.outcome} />
+                    {run.wager > 0 ? <StatusPill tone="info" label={`${run.wager} pt wager`} /> : null}
+                    {run.pointsDelta !== 0 ? (
+                      <StatusPill tone={run.pointsDelta > 0 ? "success" : "warning"} label={`${run.pointsDelta > 0 ? "+" : ""}${run.pointsDelta} pts`} />
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState title="No mini-games played yet" description="Ask chat to try !dice, then recent rolls will appear here." />
+          )}
+        </Card>
+      </div>
+
+      <div className="commands-section">
+        <Card hideableId="loyalty-points" hideableTitle="Loyalty Points">
           <CardHeader title="Loyalty points" description="Viewers earn 5 points from chat activity once per minute. Viewers can check balances with !points." />
           {loading ? (
             <p className="subtitle">Loading loyalty balances...</p>
@@ -715,7 +949,7 @@ export default function CommandsPage() {
           )}
         </Card>
 
-        <Card>
+        <Card hideableId="viewer-balance" hideableTitle="Viewer Balance">
           <CardHeader
             title={selectedViewer ? "Viewer balance" : "Select a viewer"}
             description="Adjust balances for giveaways, corrections, or manual rewards."
@@ -792,6 +1026,13 @@ export default function CommandsPage() {
       </div>
     </>
   );
+}
+
+function diceResultLabel(run: MiniGameRun): string {
+  const playerRoll = Number(run.result.playerRoll ?? 0);
+  const btvRoll = Number(run.result.btvRoll ?? 0);
+  if (playerRoll && btvRoll) return `Dice: ${playerRoll} vs BTV ${btvRoll}`;
+  return run.game === "dice" ? "Dice game" : run.game;
 }
 
 function permissionLabel(permission: ChatCommand["permission"]): string {

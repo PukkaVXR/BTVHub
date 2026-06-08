@@ -11,7 +11,7 @@ export function ReadinessStrip({ preflight }: ReadinessStripProps) {
   const firstBlockingCheck = checks.find((check) => !check.ok);
 
   return (
-    <Card className="live-readiness-strip">
+    <Card className="live-readiness-strip" hideableId="readiness-strip" hideableTitle="Readiness Strip">
       <div className="live-readiness-strip__summary">
         <StatusPill
           tone={preflight?.ok ? "success" : firstBlockingCheck ? "danger" : "warning"}

@@ -6,8 +6,10 @@ import { macroStepLabel } from "./liveUtils";
 interface QuickShortcutsProps {
   macros: MacroConfig[];
   sourceGroups: SourceGroup[];
+  activeSourceGroupId?: string;
   onRunMacro: (macro: MacroConfig) => void;
   onApplySourceGroup: (group: SourceGroup) => void;
+  onEmergencyAction?: (action: string) => void;
 }
 
 interface QuickShortcutFavorites {
@@ -15,8 +17,16 @@ interface QuickShortcutFavorites {
   sourceGroupIds: string[];
 }
 
+type DeckPage = "pinned" | "macros" | "layouts" | "emergency";
+
 const FAVORITES_STORAGE_KEY = "btv.dashboard.quickShortcuts";
 const DEFAULT_FAVORITES: QuickShortcutFavorites = { macroIds: [], sourceGroupIds: [] };
+const EMERGENCY_DECK_ACTIONS = [
+  { id: "stop-sounds", label: "Stop sounds", detail: "Silence active overlay audio", tone: "warning" },
+  { id: "hide-overlays", label: "Hide overlays", detail: "Clear visible overlay clutter", tone: "warning" },
+  { id: "reset-overlays", label: "Reset overlays", detail: "Restore temporary overlay state", tone: "info" },
+  { id: "all", label: "Stop all", detail: "Full production panic button", tone: "danger" },
+] as const;
 
 function readFavorites(): QuickShortcutFavorites {
   try {
@@ -34,8 +44,16 @@ function readFavorites(): QuickShortcutFavorites {
   }
 }
 
-export function QuickShortcuts({ macros, sourceGroups, onRunMacro, onApplySourceGroup }: QuickShortcutsProps) {
+export function DashboardButtonDecks({
+  macros,
+  sourceGroups,
+  activeSourceGroupId,
+  onRunMacro,
+  onApplySourceGroup,
+  onEmergencyAction,
+}: QuickShortcutsProps) {
   const [favorites, setFavorites] = useState<QuickShortcutFavorites>(() => readFavorites());
+  const [activeDeck, setActiveDeck] = useState<DeckPage>("pinned");
   const hasShortcuts = macros.length > 0 || sourceGroups.length > 0;
   const hasFavorites = favorites.macroIds.length > 0 || favorites.sourceGroupIds.length > 0;
 
@@ -56,8 +74,8 @@ export function QuickShortcuts({ macros, sourceGroups, onRunMacro, onApplySource
     [favorites.sourceGroupIds, sourceGroups],
   );
 
-  const visibleMacros = hasFavorites ? favoriteMacros : macros.slice(0, 2);
-  const visibleSourceGroups = hasFavorites ? favoriteSourceGroups : sourceGroups.slice(0, 3);
+  const visibleMacros = activeDeck === "pinned" ? favoriteMacros : macros;
+  const visibleSourceGroups = activeDeck === "pinned" ? favoriteSourceGroups : sourceGroups;
 
   const toggleFavorite = (kind: keyof QuickShortcutFavorites, id: string) => {
     setFavorites((current) => {
@@ -69,13 +87,14 @@ export function QuickShortcuts({ macros, sourceGroups, onRunMacro, onApplySource
   };
 
   const isFavorite = (kind: keyof QuickShortcutFavorites, id: string) => favorites[kind].includes(id);
+  const showPinnedEmpty = activeDeck === "pinned" && !hasFavorites;
 
   return (
-    <Card>
-      <div className="live-shortcut-title">
+    <Card className="dashboard-deck-card" hideableId="dashboard-button-decks" hideableTitle="Dashboard Button Decks">
+      <div className="live-shortcut-title dashboard-deck-title">
         <div>
-          <h2>Quick Shortcuts</h2>
-          <p>{hasFavorites ? "Pinned stream actions stay one click away." : "Pin your go-to actions to keep this panel focused."}</p>
+          <h2>Dashboard Button Decks</h2>
+          <p>Large live-production buttons for macros, activity layouts, and emergency controls.</p>
         </div>
         {hasFavorites ? (
           <Button type="button" variant="ghost" size="sm" onClick={() => setFavorites(DEFAULT_FAVORITES)}>
@@ -83,11 +102,21 @@ export function QuickShortcuts({ macros, sourceGroups, onRunMacro, onApplySource
           </Button>
         ) : null}
       </div>
-      {hasShortcuts ? (
+
+      <div className="dashboard-deck-tabs" role="tablist" aria-label="Dashboard button decks">
+        <DeckTab id="pinned" label="Pinned" count={favoriteMacros.length + favoriteSourceGroups.length} activeDeck={activeDeck} onSelect={setActiveDeck} />
+        <DeckTab id="macros" label="Macros" count={macros.length} activeDeck={activeDeck} onSelect={setActiveDeck} />
+        <DeckTab id="layouts" label="Layouts" count={sourceGroups.length} activeDeck={activeDeck} onSelect={setActiveDeck} />
+        <DeckTab id="emergency" label="Emergency" count={EMERGENCY_DECK_ACTIONS.length} activeDeck={activeDeck} onSelect={setActiveDeck} />
+      </div>
+
+      {showPinnedEmpty ? (
+        <EmptyState title="No pinned deck buttons yet" description="Pin macros or activity layouts below, or switch to a deck tab to run everything." />
+      ) : hasShortcuts || activeDeck === "emergency" ? (
         <>
           <div className="live-shortcut-grid">
-            {visibleMacros.map((macro) => (
-              <div className="live-shortcut" key={macro.id}>
+            {(activeDeck === "pinned" || activeDeck === "macros") && visibleMacros.map((macro) => (
+              <div className={`live-shortcut dashboard-deck-button${macro.enabled ? "" : " dashboard-deck-button--disabled"}`} key={macro.id}>
                 <div className="live-shortcut__header">
                   <div>
                     <strong>{macro.name}</strong>
@@ -116,8 +145,11 @@ export function QuickShortcuts({ macros, sourceGroups, onRunMacro, onApplySource
                 ) : null}
               </div>
             ))}
-            {visibleSourceGroups.map((group) => (
-              <div className="live-shortcut" key={group.id}>
+            {(activeDeck === "pinned" || activeDeck === "layouts") && visibleSourceGroups.map((group) => (
+              <div
+                className={`live-shortcut dashboard-deck-button${group.id === activeSourceGroupId ? " dashboard-deck-button--active" : ""}`}
+                key={group.id}
+              >
                 <div className="live-shortcut__header">
                   <div>
                     <strong>{group.name}</strong>
@@ -140,8 +172,22 @@ export function QuickShortcuts({ macros, sourceGroups, onRunMacro, onApplySource
                     </Button>
                   </div>
                 </div>
-                <p className="live-shortcut__steps">Activity layout shortcut</p>
+                <p className="live-shortcut__steps">
+                  {group.id === activeSourceGroupId ? "Active activity layout" : "Activity layout shortcut"}
+                </p>
               </div>
+            ))}
+            {activeDeck === "emergency" && EMERGENCY_DECK_ACTIONS.map((action) => (
+              <button
+                type="button"
+                className={`dashboard-deck-emergency dashboard-deck-emergency--${action.tone}`}
+                key={action.id}
+                onClick={() => onEmergencyAction?.(action.id)}
+                disabled={!onEmergencyAction}
+              >
+                <strong>{action.label}</strong>
+                <span>{action.detail}</span>
+              </button>
             ))}
           </div>
 
@@ -174,9 +220,38 @@ export function QuickShortcuts({ macros, sourceGroups, onRunMacro, onApplySource
           </details>
         </>
       ) : (
-        <EmptyState title="No shortcuts configured" description="Create a macro or activity layout to make it available here." />
+        <EmptyState title="No deck buttons configured" description="Create a macro or activity layout to make it available here." />
       )}
     </Card>
+  );
+}
+
+export const QuickShortcuts = DashboardButtonDecks;
+
+function DeckTab({
+  id,
+  label,
+  count,
+  activeDeck,
+  onSelect,
+}: {
+  id: DeckPage;
+  label: string;
+  count: number;
+  activeDeck: DeckPage;
+  onSelect: (id: DeckPage) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`dashboard-deck-tab${activeDeck === id ? " dashboard-deck-tab--active" : ""}`}
+      role="tab"
+      aria-selected={activeDeck === id}
+      onClick={() => onSelect(id)}
+    >
+      <span>{label}</span>
+      <small>{count}</small>
+    </button>
   );
 }
 

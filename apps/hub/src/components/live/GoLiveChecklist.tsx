@@ -13,7 +13,7 @@ export function GoLiveChecklist({
   onRepairBrowserSources,
 }: GoLiveChecklistProps) {
   return (
-    <Card>
+    <Card hideableId="go-live-checklist" hideableTitle="Go Live Checklist">
       <CardHeader title="Go Live Checklist" description="A compact pre-stream pass before you hit the big button." />
       <div className="live-checklist">
         {items.map((item) => (

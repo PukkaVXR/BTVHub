@@ -19,7 +19,7 @@ export function BrowserSourcesPanel({ preflight, overlayChannels, repairing, onR
   );
 
   return (
-    <Card>
+    <Card hideableId="connected-browser-sources" hideableTitle="Connected Browser Sources">
       <CardHeader
         title="Connected Browser Sources"
         description={`${preflight?.overlays.clientCount ?? 0} active WebSocket client${(preflight?.overlays.clientCount ?? 0) === 1 ? "" : "s"}`}

@@ -29,10 +29,15 @@
       title.textContent = cfg.title || "Recent Events";
       widget.dataset.compact = cfg.compact ? "true" : "false";
     } catch { /* default */ }
-    const labels = { follow: "Follow", sub: "Sub", resub: "Resub", cheer: "Cheer", raid: "Raid", gift_sub: "Gift Sub", channel_points: "Channel Point", goal_milestone: "Goal" };
+    const labels = { follow: "Follow", sub: "Sub", resub: "Resub", cheer: "Cheer", raid: "Raid", gift_sub: "Gift Sub", channel_points: "Channel Point", goal_milestone: "Goal", chat: "Chat" };
     const client = new OverlayClient({
       channels: ["ticker"],
       onMessage: (msg) => {
+        if (msg.kind === "chat:stats") {
+          widget.dataset.chatActive = Number(msg.stats?.messagesPerMinute ?? 0) > 0 ? "true" : "false";
+          widget.style.setProperty("--btv-chat-rate", String(msg.stats?.messagesPerMinute ?? 0));
+          return;
+        }
         if (msg.kind !== "ticker:event") return;
         if (eventTypes.length && !eventTypes.includes(msg.event.type)) return;
         const li = document.createElement("li");

@@ -119,6 +119,17 @@ export const BusMessageSchema = z.discriminatedUnion("kind", [
     }),
   }),
   z.object({
+    kind: z.literal("chat:stats"),
+    stats: z.object({
+      messagesPerMinute: z.number(),
+      activeChatters: z.number(),
+      totalMessages: z.number(),
+      latestUser: StreamUserSchema.optional(),
+      latestMessage: z.string().optional(),
+      at: z.string(),
+    }),
+  }),
+  z.object({
     kind: z.literal("goal:update"),
     goal: z.object({
       id: z.string(),

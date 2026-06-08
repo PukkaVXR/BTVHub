@@ -9,7 +9,7 @@ export function HealthPanel({ preflight }: HealthPanelProps) {
   const staleOverlayCount = preflight?.overlays.clients.filter((client) => client.status === "stale").length ?? 0;
 
   return (
-    <Card>
+    <Card hideableId="health-panel" hideableTitle="Health Panel">
       <CardHeader title="Health Panel" description="Fast read on the systems that tend to cause stream-day friction." />
       <div className="live-health-grid">
         <StatusPill

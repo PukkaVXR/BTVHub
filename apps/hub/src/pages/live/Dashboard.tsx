@@ -285,8 +285,10 @@ export default function Dashboard() {
       <QuickShortcuts
         macros={macros}
         sourceGroups={sourceGroups}
+        activeSourceGroupId={activeSourceGroupId}
         onRunMacro={(macro) => void runMacro(macro)}
         onApplySourceGroup={(group) => void applySourceGroup(group)}
+        onEmergencyAction={(action) => void emergencyAction(action)}
       />
 
       <div className="card live-stream-deck-card">

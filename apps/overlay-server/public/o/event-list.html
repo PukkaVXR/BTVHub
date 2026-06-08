@@ -34,6 +34,7 @@
       gift_sub: "Gift Sub",
       channel_points: "Channel Point",
       goal_milestone: "Goal",
+      chat: "Chat",
     };
 
     function describe(ev) {
@@ -47,6 +48,11 @@
     const client = new OverlayClient({
       channels: ["eventList"],
       onMessage: (msg) => {
+        if (msg.kind === "chat:stats") {
+          document.body.dataset.chatActive = Number(msg.stats?.messagesPerMinute ?? 0) > 0 ? "true" : "false";
+          document.body.style.setProperty("--btv-chat-rate", String(msg.stats?.messagesPerMinute ?? 0));
+          return;
+        }
         if (msg.kind !== "ticker:event") return;
         const ev = msg.event;
         const details = describe(ev);

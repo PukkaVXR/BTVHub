@@ -59,7 +59,7 @@ export function LiveObsControlPanel({
   const canSaveSourceGroup = Boolean(selectedObsScene && sourceGroupName.trim() && selectedSourceNames.length);
 
   return (
-    <Card>
+    <Card hideableId="obs-control" hideableTitle="OBS Control">
       <CardHeader
         title="OBS Control"
         description={`Current scene: ${currentObsScene ?? "Unavailable"}`}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useToast } from "../hooks/useToast";
+import { GLOBAL_HOTKEYS, matchesHotkey } from "../lib/hotkeys";
 
 type CommandKind = "navigate" | "action";
 
@@ -51,6 +52,13 @@ const NAV_COMMANDS: Command[] = [
   { id: "nav-alerts", label: "Alert projects", description: "Choose a visual alert project", group: "Alerts", keywords: "visual editor cinematic", kind: "navigate", path: "/alerts" },
   { id: "nav-alert-routing", label: "Alert routing", description: "Test alerts and map events to projects", group: "Alerts", keywords: "rules tests sounds", kind: "navigate", path: "/alerts/routing" },
   { id: "nav-interactive", label: "Interactive", description: "Interactive effects and live triggers", group: "Automation", keywords: "effects triggers tentacles", kind: "navigate", path: "/interactive" },
+  { id: "nav-tournament", label: "Tournament", description: "Live tournament scoreboard controls", group: "Automation", keywords: "scoreboard score match teams bracket", kind: "navigate", path: "/tournament" },
+  { id: "nav-predictions", label: "Predictions", description: "Live prediction and voting controls", group: "Automation", keywords: "poll vote prediction winner reveal", kind: "navigate", path: "/predictions" },
+  { id: "nav-boss-fight", label: "Boss Fight", description: "Live boss health bar and damage controls", group: "Automation", keywords: "raid boss hp damage heal phase shield", kind: "navigate", path: "/boss-fight" },
+  { id: "nav-chat-chaos", label: "Chat Chaos", description: "Live chat chaos meter controls", group: "Automation", keywords: "energy hype meter chaos chat meltdown", kind: "navigate", path: "/chat-chaos" },
+  { id: "nav-soundboard", label: "Soundboard", description: "Create and test reusable sound buttons", group: "Automation", keywords: "audio sounds effects buttons stream deck mobile", kind: "navigate", path: "/soundboard" },
+  { id: "nav-channel-points", label: "Channel Points", description: "Reward-to-effect library", group: "Automation", keywords: "twitch rewards redemptions channel points effects", kind: "navigate", path: "/channel-points" },
+  { id: "nav-recaps", label: "Stream Recaps", description: "Generate stream summaries from session analytics", group: "Automation", keywords: "session recap summary analytics markdown export", kind: "navigate", path: "/recaps" },
   { id: "nav-automations", label: "Automations", description: "Event rules and scheduled automations", group: "Automation", keywords: "rules timers scheduled", kind: "navigate", path: "/automations" },
   { id: "nav-macros", label: "Macros", description: "Ordered actions for OBS, Twitch, and effects", group: "Automation", keywords: "actions stream deck sequence", kind: "navigate", path: "/macros" },
   { id: "nav-webhooks", label: "Webhooks", description: "External trigger URLs and logs", group: "Automation", keywords: "api external triggers", kind: "navigate", path: "/webhooks" },
@@ -69,6 +77,7 @@ export function CommandPalette() {
   const wasOpenRef = useRef(false);
   const navigate = useNavigate();
   const toast = useToast();
+  const openHotkey = GLOBAL_HOTKEYS.find((hotkey) => hotkey.id === "command-palette")!;
 
   const commands = useMemo<Command[]>(
     () => [
@@ -185,7 +194,7 @@ export function CommandPalette() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+      if (matchesHotkey(event, openHotkey.keys)) {
         event.preventDefault();
         setOpen(true);
       }
@@ -244,7 +253,7 @@ export function CommandPalette() {
         onClick={() => setOpen(true)}
       >
         <span>Command</span>
-        <kbd>Ctrl K</kbd>
+        <kbd>{openHotkey.keys.join(" ")}</kbd>
       </button>
 
       {open ? (

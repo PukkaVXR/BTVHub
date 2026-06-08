@@ -22,7 +22,7 @@ export function AlertQueuePanel({
   const current = preflight?.alerts.current;
 
   return (
-    <Card>
+    <Card hideableId="alert-queue" hideableTitle="Alert Queue">
       <CardHeader
         title="Alert Queue"
         action={

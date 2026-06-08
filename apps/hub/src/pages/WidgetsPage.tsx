@@ -8,7 +8,7 @@ import { useAutoSave } from "../hooks/useAutoSave";
 import { useToast } from "../hooks/useToast";
 import { Button, ButtonAnchor, Callout, Card, CardHeader, PageHeader, StatusPill } from "../ui";
 
-const TICKER_EVENT_TYPES = ["follow", "sub", "resub", "gift_sub", "cheer", "raid", "channel_points", "goal_milestone"];
+const TICKER_EVENT_TYPES = ["follow", "sub", "resub", "gift_sub", "cheer", "raid", "channel_points", "chat", "goal_milestone"];
 const DEFAULT_OVERLAY_THEME: OverlayThemeConfig = {
   name: "BTV Default",
   fontFamily: '"Segoe UI", system-ui, sans-serif',
@@ -214,7 +214,11 @@ export default function WidgetsPage() {
 
         <main className="widgets-detail">
       {(selectedPanel === "theme" || selectedPanel === "overrides") && (
-      <Card className="overlay-theme-editor">
+      <Card
+        className="overlay-theme-editor"
+        hideableId={selectedPanel === "theme" ? "overlay-theme-pack" : "overlay-theme-overrides"}
+        hideableTitle={selectedPanel === "theme" ? "Overlay Theme Pack" : "Individual Overlay Theme Overrides"}
+      >
         <CardHeader
           title={selectedPanel === "theme" ? "Overlay Theme Pack" : "Individual Overlay Theme Overrides"}
           description={selectedPanel === "theme"
@@ -333,7 +337,12 @@ export default function WidgetsPage() {
               const item = overlayTheme.widgets[target.id] ?? { enabled: true };
               const canCustomizeText = target.id !== "chat";
               return (
-                <Card key={target.id} className="overlay-widget-theme-card">
+                <Card
+                  key={target.id}
+                  className="overlay-widget-theme-card"
+                  hideableId={`theme-override-${target.id}`}
+                  hideableTitle={`Theme ${target.label}`}
+                >
                   <label>
                     <input
                       type="checkbox"
@@ -500,7 +509,7 @@ export default function WidgetsPage() {
       )}
 
       {widgets.filter((w) => selectedPanel === `widget:${w.id}`).map((w) => (
-        <Card key={w.id} className="widget-config-card">
+        <Card key={w.id} className="widget-config-card" hideableId={`widget-${w.id}`} hideableTitle={formatWidgetLabel(w)}>
           <CardHeader
             title={`${formatWidgetLabel(w)} (${w.type})`}
             description="Widget behaviour lives here. Visual styling is handled in Theme Pack and Overrides."
@@ -562,6 +571,22 @@ export default function WidgetsPage() {
                   }
                 />
               </div>
+              <label className="toggle-row">
+                <input
+                  type="checkbox"
+                  checked={w.config.showStats !== false}
+                  onChange={(e) =>
+                    setWidgets((ws) =>
+                      ws.map((x) =>
+                        x.id === w.id
+                          ? { ...x, config: { ...x.config, showStats: e.target.checked } }
+                          : x,
+                      ),
+                    )
+                  }
+                />{" "}
+                Show live chat activity stats
+              </label>
             </>
           )}
           {w.type === "ticker" && (
@@ -686,7 +711,7 @@ export default function WidgetsPage() {
       ))}
 
       {selectedPanel === "goals" && (
-      <Card className="widget-config-card">
+      <Card className="widget-config-card" hideableId="follower-goal" hideableTitle="Follower Goal">
         <CardHeader title="Follower goal" description="Configure goal values shown by the goals browser source." />
         {goals.map((g) => (
           <div key={g.id} style={{ display: "flex", gap: 12, alignItems: "end", marginBottom: 12, flexWrap: "wrap" }}>
