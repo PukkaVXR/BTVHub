@@ -34,6 +34,7 @@ const ChatChaosPage = lazy(() => import("./pages/ChatChaosPage"));
 const SoundboardPage = lazy(() => import("./pages/SoundboardPage"));
 const ChannelPointLibraryPage = lazy(() => import("./pages/ChannelPointLibraryPage"));
 const StreamRecapPage = lazy(() => import("./pages/StreamRecapPage"));
+const PluginsPage = lazy(() => import("./pages/PluginsPage"));
 
 const navSections = [
   {
@@ -79,6 +80,12 @@ const navSections = [
       { path: "/predictions", label: "Predictions" },
       { path: "/boss-fight", label: "Boss Fight" },
       { path: "/chat-chaos", label: "Chat Chaos" },
+    ],
+  },
+  {
+    label: "Plugins",
+    items: [
+      { path: "/plugins", label: "Plugins" },
     ],
   },
   {
@@ -248,6 +255,7 @@ export default function App() {
               <Route path="/soundboard" element={<SoundboardPage />} />
               <Route path="/channel-points" element={<ChannelPointLibraryPage />} />
               <Route path="/recaps" element={<StreamRecapPage />} />
+              <Route path="/plugins" element={<PluginsPage />} />
               <Route path="/commands" element={<CommandsPage />} />
               <Route path="/macros" element={<MacrosPage />} />
               <Route path="/automations" element={<AutomationsPage />} />

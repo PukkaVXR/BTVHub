@@ -70,7 +70,7 @@ export class OverlayBus {
   broadcast(msg: BusMessage, channel = "*"): void {
     const payload = JSON.stringify(msg);
     for (const [ws, meta] of this.clients) {
-      if (meta.channels.has("*") || meta.channels.has(channel)) {
+      if (channel === "*" || meta.channels.has("*") || meta.channels.has(channel)) {
         if (ws.readyState === 1) {
           try {
             ws.send(payload);
@@ -98,6 +98,17 @@ export class OverlayBus {
 
   pingAll(): void {
     this.broadcast({ kind: "ping", at: new Date().toISOString() });
+  }
+
+  closeAll(code = 1001, reason = "Server shutting down"): void {
+    for (const [ws] of this.clients) {
+      try {
+        ws.close(code, reason);
+      } catch {
+        // Ignore sockets that are already closing.
+      }
+      this.clients.delete(ws);
+    }
   }
 
   getSnapshot(): {

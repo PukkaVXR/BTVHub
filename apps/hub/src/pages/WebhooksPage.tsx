@@ -75,6 +75,7 @@ export default function WebhooksPage() {
   const persistWebhook = useCallback(async () => {
     const hook = macroFromEditor();
     if (!hook) return;
+    if (!hook.secret?.trim()) return;
     await api.saveWebhook(hook);
   }, [editing, actionConfigJson]);
 
@@ -88,10 +89,18 @@ export default function WebhooksPage() {
       toast("Invalid action config JSON");
       return;
     }
-    const res = await api.saveWebhook(hook);
-    toast(`Saved - ${res.url}`);
-    setEditing(null);
-    load();
+    if (!hook.secret?.trim()) {
+      toast("Generate a webhook secret before saving");
+      return;
+    }
+    try {
+      const res = await api.saveWebhook({ ...hook, secret: hook.secret.trim() });
+      toast(`Saved - ${res.url}`);
+      setEditing(null);
+      load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Webhook save failed");
+    }
   };
 
   const remove = async (id: string) => {
@@ -124,6 +133,7 @@ export default function WebhooksPage() {
               startEditing({
                 id: `hook-${Date.now()}`,
                 name: "New Webhook",
+                secret: generateWebhookSecret(),
                 action: "alert",
                 actionConfig: { eventType: "follow" },
               })
@@ -165,9 +175,13 @@ export default function WebhooksPage() {
             <label>Name</label>
             <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
           </div>
+          <div className="ui-callout ui-callout--warning">
+            Webhooks now require authentication. Send either <code>X-BTV-Secret</code> with this secret,
+            or <code>X-BTV-Signature</code> as an HMAC SHA-256 signature of the JSON payload.
+          </div>
           <FormField
             label="Secret header (X-BTV-Secret)"
-            hint={editing.secret ? "Configured. Generate a new value to rotate the secret, then update the external sender." : "Optional, but recommended for public or shared webhook URLs."}
+            hint={editing.secret ? "Configured. Generate a new value to rotate the secret, then update the external sender." : "Required before this webhook can be saved or triggered."}
           >
             <input
               value={editing.secret ?? ""}
@@ -178,7 +192,7 @@ export default function WebhooksPage() {
             <Button type="button" variant="secondary" size="sm" onClick={() => setEditing({ ...editing, secret: generateWebhookSecret() })}>
               Generate / rotate secret
             </Button>
-            {editing.secret ? <StatusPill tone="success" label="Secret configured" /> : <StatusPill tone="warning" label="No secret" />}
+            {editing.secret ? <StatusPill tone="success" label="Secret configured" /> : <StatusPill tone="danger" label="Secret required" />}
           </div>
           <div className="form-row">
             <label>Action</label>

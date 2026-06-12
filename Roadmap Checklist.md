@@ -16,6 +16,79 @@ Use this as the working progress tracker for the roadmap in `btv_top_tool_roadma
 - [x] Add automation builder UI for triggers, conditions, actions, cooldowns, and manual runs.
 - [x] Add automation run history UI.
 
+## Priority Sanity Pass: Beta Readiness Blockers
+
+Goal: pause feature expansion long enough to harden the trust boundary, reliability baseline, and engineering process. These items came from the current project review and should take priority before more marketplace/plugin growth.
+
+### P0: Security And Trust Boundary
+
+- [x] Require `X-BTV-Token`, local PIN/session cookie, or equivalent auth on all mutating `/api/*` routes.
+- [x] Update the Hub API client to send the selected auth/session credential automatically.
+- [x] Separate public overlay pages and overlay WebSocket access from admin API access.
+- [x] Ensure OBS browser-source pages cannot call admin mutating APIs.
+- [x] Gate `run_command` macro/effect actions behind auth and an explicit allowlist or confirmation flow.
+- [x] Make webhook secrets mandatory for enabled webhooks.
+- [x] Add webhook HMAC/signature validation.
+- [x] Add webhook rate limiting.
+- [x] Log unknown, unsigned, failed, and rate-limited webhook attempts.
+- [x] Move the master encryption key away from a plaintext `data/.key` file where possible.
+- [x] Add per-install random salt handling for local encryption.
+
+### P1: Reliability And Recovery
+
+- [x] Add Fastify `setErrorHandler` and `setNotFoundHandler` with structured logging.
+- [x] Add process-level `unhandledRejection` and `uncaughtException` logging.
+- [x] Add graceful shutdown for timers, WebSocket clients, OBS, Twitch EventSub, and background pollers.
+- [x] Add OBS auto-reconnect with backoff after connection close.
+- [x] Persist or explicitly document restart loss for alert queue state.
+- [x] Persist or explicitly document restart loss for automation/chat cooldown state.
+- [x] Wrap multi-step database operations in transactions.
+- [x] Guard remaining `JSON.parse` setting reads so corrupt settings do not crash routes.
+
+### P2: Maintainability And Architecture
+
+- [ ] Split `apps/overlay-server/src/db.ts` into per-domain repository modules.
+  - [x] Extract automation persistence into `apps/overlay-server/src/repositories/automation.repository.ts`.
+  - [x] Extract source group persistence into `apps/overlay-server/src/repositories/source-groups.repository.ts`.
+  - [x] Extract activity and system log persistence into `apps/overlay-server/src/repositories/logs.repository.ts`.
+  - [x] Extract stream session and OBS scene span persistence into `apps/overlay-server/src/repositories/stream-sessions.repository.ts`.
+  - [x] Extract webhook persistence and request logs into `apps/overlay-server/src/repositories/webhooks.repository.ts`.
+  - [x] Extract goals persistence into `apps/overlay-server/src/repositories/goals.repository.ts`.
+  - [x] Extract widget persistence into `apps/overlay-server/src/repositories/widgets.repository.ts`.
+  - [x] Extract alert rule persistence into `apps/overlay-server/src/repositories/alert-rules.repository.ts`.
+  - [x] Extract effect persistence into `apps/overlay-server/src/repositories/effects.repository.ts`.
+  - [x] Extract settings persistence into `apps/overlay-server/src/repositories/settings.repository.ts`.
+  - [x] Extract theme and alert project persistence into `apps/overlay-server/src/repositories/alert-projects.repository.ts`.
+  - [x] Extract macro persistence into `apps/overlay-server/src/repositories/macros.repository.ts`.
+  - [x] Extract chat command, timer, and quote persistence into `apps/overlay-server/src/repositories/chat.repository.ts`.
+  - [x] Extract loyalty viewer persistence into `apps/overlay-server/src/repositories/loyalty.repository.ts`.
+  - [x] Extract viewer queue persistence into `apps/overlay-server/src/repositories/viewer-queue.repository.ts`.
+  - [x] Extract giveaway persistence into `apps/overlay-server/src/repositories/giveaways.repository.ts`.
+- [ ] Decompose `AlertEditorPage.tsx` into canvas, layers, assets, preview, persistence, and inspector modules.
+- [ ] Split large multi-feature pages such as `AutomationsPage`, `CommandsPage`, and `StreamDeckRequestBuilder`.
+- [ ] Extract a shared action executor for macros, automations, effects, and scheduled actions.
+- [ ] Consolidate duplicated template interpolation and command parsing helpers.
+- [ ] Add a data-fetching layer or shared fetch hooks to reduce duplicate polling and retry logic.
+- [ ] Add shared frontend helpers for overlay origin resolution and JSON downloads.
+- [ ] Add Zod schemas for remaining route bodies that still use unchecked `req.body` casts.
+- [ ] Continue UI system migration and retire legacy `.btn` usage.
+- [ ] Split `styles.css` into smaller feature/style-system files.
+- [ ] Add Vite manual chunks for large optional editor surfaces.
+
+### P3: Engineering Process And Product Polish
+
+- [ ] Add Vitest and first coverage for rules, automation, macro, and action execution logic.
+- [ ] Add API client tests for high-risk request/response helpers.
+- [ ] Add linting and formatting with ESLint/Prettier or Biome.
+- [ ] Add GitHub Actions CI for typecheck, lint, and tests.
+- [ ] Add cross-platform start and port helper scripts.
+- [ ] Reconcile documented Node version requirements.
+- [ ] Remove or re-route orphaned `ThemesPage.tsx`.
+- [ ] Drop Monaco dependency if it is no longer used.
+- [ ] Add `LICENSE`.
+- [ ] Add `CONTRIBUTING.md`.
+- [ ] Add a short architecture document for services, routes, event flow, overlays, and persistence.
+
 ## Phase 0: Stabilise the Foundation
 
 Goal: make the current system reliable, understandable, and easier to debug.
@@ -189,14 +262,14 @@ Goal: make BTV more than an alert tool.
 
 Goal: make BTV extensible.
 
-- [ ] Plugin manifest system.
-- [ ] Internal plugin registry.
-- [ ] Plugin settings pages.
-- [ ] Action/trigger/widget registration.
-- [ ] Versioned plugin API.
-- [ ] Permissions model.
-- [ ] Import/export local plugin packs.
-- [ ] Export overlay packs.
+- [x] Plugin manifest system.
+- [x] Internal plugin registry.
+- [x] Plugin settings pages.
+- [x] Action/trigger/widget registration.
+- [x] Versioned plugin API.
+- [x] Permissions model.
+- [x] Import/export local plugin packs.
+- [x] Export overlay packs.
 - [ ] Export automation packs.
 - [ ] Export command packs.
 - [ ] Export full BTV profile.
@@ -211,13 +284,13 @@ Goal: make BTV extensible.
 - [ ] API token for external tools.
 - [x] Encrypted local setting support exists.
 - [ ] OS keychain token storage where possible.
-- [ ] Never expose secrets to overlay pages.
-- [ ] Separate public overlay routes from admin APIs.
-- [ ] Separate overlay WebSocket channel from admin channel.
-- [ ] Webhook secret tokens.
-- [ ] Webhook signature validation where possible.
-- [ ] Webhook rate limiting.
-- [ ] Unknown webhook request logging.
+- [x] Never expose secrets to overlay pages.
+- [x] Separate public overlay routes from admin APIs.
+- [x] Separate overlay WebSocket channel from admin channel.
+- [x] Webhook secret tokens.
+- [x] Webhook signature validation where possible.
+- [x] Webhook rate limiting.
+- [x] Unknown webhook request logging.
 - [ ] Crash recovery for Twitch reconnect.
 - [ ] Crash recovery for OBS reconnect.
 - [ ] Restore overlay state after restart.

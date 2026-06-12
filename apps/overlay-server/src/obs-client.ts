@@ -90,6 +90,12 @@ let obs: OBSWebSocket | null = null;
 let connectPromise: Promise<boolean> | null = null;
 const activeMotions = new Map<string, ActiveMotion>();
 let sceneChangedHandler: ((sceneName: string) => void) | undefined;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let reconnectAttempts = 0;
+let reconnectEnabled = true;
+
+const OBS_RECONNECT_BASE_MS = 2_000;
+const OBS_RECONNECT_MAX_MS = 60_000;
 
 export function setObsSceneChangedHandler(handler: (sceneName: string) => void): void {
   sceneChangedHandler = handler;
@@ -106,6 +112,8 @@ export function getObsConfig() {
 }
 
 export async function connectObs(): Promise<boolean> {
+  reconnectEnabled = true;
+  clearReconnectTimer();
   if (connectPromise) return connectPromise;
 
   connectPromise = doConnectObs();
@@ -122,24 +130,29 @@ async function doConnectObs(): Promise<boolean> {
   setSetting("obs_connected", "0");
 
   if (obs) {
+    const previous = obs;
+    obs = null;
     try {
-      await obs.disconnect();
+      await previous.disconnect();
     } catch {
       // Ignore stale sockets while replacing the client.
     }
-    obs = null;
   }
 
   client.on("ConnectionClosed", () => {
-    if (obs === client) obs = null;
+    const wasActive = obs === client;
+    if (wasActive) obs = null;
     setSetting("obs_connected", "0");
     logSystem("obs", "warn", "OBS WebSocket connection closed", { host: cfg.host, port: cfg.port });
+    if (wasActive) scheduleObsReconnect("connection_closed");
   });
 
   client.on("ConnectionError", () => {
-    if (obs === client) obs = null;
+    const wasActive = obs === client;
+    if (wasActive) obs = null;
     setSetting("obs_connected", "0");
     logSystem("obs", "error", "OBS WebSocket connection error", { host: cfg.host, port: cfg.port });
+    if (wasActive) scheduleObsReconnect("connection_error");
   });
 
   client.on("CurrentProgramSceneChanged", (data) => {
@@ -152,6 +165,7 @@ async function doConnectObs(): Promise<boolean> {
   try {
     await client.connect(`ws://${cfg.host}:${cfg.port}`, cfg.password || undefined);
     obs = client;
+    reconnectAttempts = 0;
     setSetting("obs_connected", "1");
     logSystem("obs", "info", "OBS WebSocket connected", { host: cfg.host, port: cfg.port });
     if (cfg.password && !getEncryptedSetting("obs_password")) {
@@ -161,8 +175,55 @@ async function doConnectObs(): Promise<boolean> {
   } catch {
     setSetting("obs_connected", "0");
     logSystem("obs", "error", "OBS WebSocket connection failed", { host: cfg.host, port: cfg.port });
+    scheduleObsReconnect("connect_failed");
     return false;
   }
+}
+
+export async function disconnectObs(): Promise<void> {
+  reconnectEnabled = false;
+  clearReconnectTimer();
+  for (const motion of activeMotions.values()) motion.cancelled = true;
+  activeMotions.clear();
+  const client = obs;
+  obs = null;
+  setSetting("obs_connected", "0");
+  if (!client) return;
+  try {
+    await client.disconnect();
+    logSystem("obs", "info", "OBS WebSocket disconnected");
+  } catch (err) {
+    logSystem("obs", "warn", "OBS WebSocket disconnect failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+function clearReconnectTimer(): void {
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  reconnectTimer = null;
+}
+
+function scheduleObsReconnect(reason: string): void {
+  if (!reconnectEnabled || reconnectTimer) return;
+  const cfg = getObsConfig();
+  if (!cfg.host || !cfg.port) return;
+  reconnectAttempts += 1;
+  const delayMs = Math.min(
+    OBS_RECONNECT_MAX_MS,
+    OBS_RECONNECT_BASE_MS * 2 ** Math.min(reconnectAttempts - 1, 5),
+  );
+  logSystem("obs", "warn", "OBS auto-reconnect scheduled", {
+    reason,
+    host: cfg.host,
+    port: cfg.port,
+    delayMs,
+    attempt: reconnectAttempts,
+  });
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    void connectObs();
+  }, delayMs);
 }
 
 export async function triggerObsScene(sceneName: string): Promise<void> {
@@ -197,6 +258,7 @@ function markObsDisconnected(err?: unknown): void {
     error: err instanceof Error ? err.message : String(err ?? "unknown"),
   });
   obs = null;
+  scheduleObsReconnect("request_failed");
 }
 
 async function safeObsCall(

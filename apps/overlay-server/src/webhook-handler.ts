@@ -1,6 +1,6 @@
 import { createStreamEvent } from "@btv/shared";
-import { createHash, timingSafeEqual } from "node:crypto";
-import { getWebhook, logWebhookRequest } from "./db.js";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { getWebhook, logSystem, logWebhookRequest } from "./db.js";
 import type { RulesEngine } from "./rules-engine.js";
 import type { EffectRunner } from "./effect-runner.js";
 import type { MacroRunner } from "./macro-runner.js";
@@ -14,6 +14,23 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(left, right);
 }
 
+function safeSignatureEqual(expected: string, received: string): boolean {
+  const normalizedExpected = expected.startsWith("sha256=") ? expected : `sha256=${expected}`;
+  const normalizedReceived = received.startsWith("sha256=") ? received : `sha256=${received}`;
+  return safeEqual(normalizedExpected, normalizedReceived);
+}
+
+function canonicalWebhookPayload(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalWebhookPayload).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value as Record<string, unknown>)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalWebhookPayload((value as Record<string, unknown>)[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
 function safeBodyLog(body: unknown): string {
   try {
     const json = JSON.stringify(body);
@@ -23,10 +40,48 @@ function safeBodyLog(body: unknown): string {
   }
 }
 
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_REQUESTS = 30;
+const webhookRateLimits = new Map<string, { count: number; resetAt: number }>();
+
+function rateLimitKey(hookId: string, clientKey: string | undefined): string {
+  return `${hookId}:${clientKey || "unknown"}`;
+}
+
+function isRateLimited(hookId: string, clientKey: string | undefined): boolean {
+  const now = Date.now();
+  const key = rateLimitKey(hookId, clientKey);
+  const current = webhookRateLimits.get(key);
+  if (!current || current.resetAt <= now) {
+    webhookRateLimits.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  current.count += 1;
+  return current.count > RATE_LIMIT_MAX_REQUESTS;
+}
+
+function logRejectedWebhook(
+  hookId: string,
+  reason: string,
+  body: unknown,
+  details: Record<string, unknown> = {},
+): void {
+  const logBody = JSON.stringify({
+    status: "rejected",
+    reason,
+    ...details,
+    body: safeBodyLog(body),
+  });
+  logWebhookRequest(hookId, logBody);
+  logSystem("webhook", "warn", `Webhook request rejected: ${reason}`, { hookId, ...details });
+}
+
 export async function handleWebhook(
   hookId: string,
   body: unknown,
   secretHeader: string | undefined,
+  signatureHeader: string | undefined,
+  clientKey: string | undefined,
   rules: RulesEngine,
   effects: EffectRunner,
   macros: MacroRunner,
@@ -34,9 +89,33 @@ export async function handleWebhook(
   coreEvents?: CoreEventBus,
 ): Promise<{ ok: boolean; error?: string }> {
   const hook = getWebhook(hookId);
-  if (!hook) return { ok: false, error: "Hook not found" };
+  if (!hook) {
+    logRejectedWebhook(`unknown:${hookId}`, "Hook not found", body, { clientKey });
+    return { ok: false, error: "Hook not found" };
+  }
 
-  if (hook.secret && !safeEqual(hook.secret, secretHeader ?? "")) {
+  if (isRateLimited(hookId, clientKey)) {
+    logRejectedWebhook(hookId, "Rate limited", body, { clientKey });
+    return { ok: false, error: "Rate limited" };
+  }
+
+  if (!hook.secret) {
+    logRejectedWebhook(hookId, "Secret required", body, { clientKey });
+    return { ok: false, error: "Secret required" };
+  }
+
+  const expectedSignature = `sha256=${createHmac("sha256", hook.secret)
+    .update(canonicalWebhookPayload(body))
+    .digest("hex")}`;
+  const signatureValid = signatureHeader ? safeSignatureEqual(expectedSignature, signatureHeader) : false;
+  const secretValid = secretHeader ? safeEqual(hook.secret, secretHeader) : false;
+
+  if (!signatureValid && !secretValid) {
+    logRejectedWebhook(hookId, signatureHeader ? "Invalid signature" : "Invalid secret", body, {
+      clientKey,
+      hasSignature: Boolean(signatureHeader),
+      hasSecretHeader: Boolean(secretHeader),
+    });
     return { ok: false, error: "Invalid secret" };
   }
 

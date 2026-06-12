@@ -42,7 +42,13 @@ export async function getAccessToken(): Promise<string> {
   const stored = getEncryptedSetting("twitch_tokens");
   if (!stored) throw new Error("Not authenticated");
 
-  if (!cachedTokens) cachedTokens = JSON.parse(stored) as TwitchTokens;
+  if (!cachedTokens) {
+    cachedTokens = parseTwitchTokens(stored);
+    if (!cachedTokens) {
+      deleteSetting("twitch_tokens");
+      throw new Error("Not authenticated");
+    }
+  }
 
   if (Date.now() < cachedTokens.expiresAt - 60_000) {
     return cachedTokens.accessToken;
@@ -139,12 +145,29 @@ export function getTwitchStatus() {
 function getStoredTwitchScopes(): string[] {
   const stored = getEncryptedSetting("twitch_tokens");
   if (!stored) return [];
+  const parsed = parseTwitchTokens(stored);
+  return Array.isArray(parsed?.scope) ? parsed.scope.filter((scope): scope is string => typeof scope === "string") : [];
+}
+
+function parseTwitchTokens(raw: string): TwitchTokens | null {
   try {
-    const parsed = JSON.parse(stored) as { scope?: unknown };
-    return Array.isArray(parsed.scope) ? parsed.scope.filter((scope): scope is string => typeof scope === "string") : [];
+    const parsed = JSON.parse(raw) as Partial<TwitchTokens>;
+    if (
+      typeof parsed.accessToken === "string"
+      && typeof parsed.refreshToken === "string"
+      && Number.isFinite(parsed.expiresAt)
+    ) {
+      return {
+        ...parsed,
+        accessToken: parsed.accessToken,
+        refreshToken: parsed.refreshToken,
+        expiresAt: Number(parsed.expiresAt),
+      } as TwitchTokens;
+    }
   } catch {
-    return [];
+    // Corrupt token storage should disconnect Twitch, not crash status/API routes.
   }
+  return null;
 }
 
 export async function sendTwitchChatMessage(message: string): Promise<boolean> {

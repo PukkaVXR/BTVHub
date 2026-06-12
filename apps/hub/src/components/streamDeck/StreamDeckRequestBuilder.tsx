@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   api,
+  getLocalApiToken,
   type MacroConfig,
   type ObsSceneInfo,
   type ObsSourceInfo,
@@ -687,9 +688,11 @@ export function StreamDeckRequestBuilder() {
   const testRequest = async () => {
     setTestResult(null);
     try {
+      const headers = { ...request.headers };
+      if (request.method === "POST") headers["X-BTV-Token"] = await getLocalApiToken();
       const response = await fetch(request.url, {
         method: request.method,
-        headers: request.headers,
+        headers,
         body: request.method === "POST" ? request.body || "{}" : undefined,
       });
       const body = await response.json().catch(() => ({}));

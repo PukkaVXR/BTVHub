@@ -1,6 +1,7 @@
 import { emitTestAlertSuccess } from "./lib/testAlertMilestone";
 
 const API = resolveApiBase();
+let apiTokenPromise: Promise<string> | null = null;
 
 function resolveApiBase(): string {
   const configured = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_BTV_API_BASE;
@@ -9,6 +10,23 @@ function resolveApiBase(): string {
     return `${window.location.protocol}//${window.location.hostname}:4782/api`;
   }
   return "/api";
+}
+
+export async function getLocalApiToken(): Promise<string> {
+  if (!apiTokenPromise) {
+    apiTokenPromise = fetch(`${API}/auth/token`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Could not bootstrap local API token");
+        const data = (await res.json()) as { token?: string };
+        if (!data.token) throw new Error("Local API token response was empty");
+        return data.token;
+      })
+      .catch((error) => {
+        apiTokenPromise = null;
+        throw error;
+      });
+  }
+  return apiTokenPromise;
 }
 
 
@@ -21,6 +39,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
     headers.set("Content-Type", "application/json");
 
+  }
+
+  if (path !== "/auth/token" && !headers.has("X-BTV-Token")) {
+    headers.set("X-BTV-Token", await getLocalApiToken());
   }
 
   const res = await fetch(`${API}${path}`, {
@@ -69,6 +91,50 @@ export const api = {
 
   preflight: () => request<PreflightInfo>("/preflight"),
 
+  plugins: () => request<import("@btv/shared").PluginRegistryResponse>("/plugins"),
+
+  setPluginEnabled: (id: string, enabled: boolean) =>
+    request<{ ok: boolean; plugin: import("@btv/shared").PluginRegistryItem }>(`/plugins/${encodeURIComponent(id)}/enabled`, {
+      method: "PUT",
+      body: JSON.stringify({ enabled }),
+    }),
+
+  savePluginSettings: (id: string, settings: Record<string, unknown>) =>
+    request<{ ok: boolean; plugin: import("@btv/shared").PluginRegistryItem }>(`/plugins/${encodeURIComponent(id)}/settings`, {
+      method: "PUT",
+      body: JSON.stringify({ settings }),
+    }),
+
+  updatePluginManifest: (
+    id: string,
+    data: {
+      name?: string;
+      description?: string;
+      author?: string;
+      capabilities?: import("@btv/shared").PluginCapabilityType[];
+      permissions?: import("@btv/shared").PluginPermission[];
+    },
+  ) =>
+    request<{ ok: boolean; plugin: import("@btv/shared").PluginRegistryItem }>(`/plugins/${encodeURIComponent(id)}/manifest`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  exportPluginPack: (id: string) =>
+    request<import("@btv/shared").PluginPack>(`/plugins/${encodeURIComponent(id)}/export`),
+
+  importPluginPack: (pack: import("@btv/shared").PluginPack) =>
+    request<{ ok: boolean; plugin: import("@btv/shared").PluginRegistryItem }>("/plugins/import", {
+      method: "POST",
+      body: JSON.stringify({ pack }),
+    }),
+
+  createDevPlugin: (data: { id?: string; name: string; description?: string; author?: string; capabilities: import("@btv/shared").PluginCapabilityType[] }) =>
+    request<{ ok: boolean; plugin: import("@btv/shared").PluginRegistryItem }>("/plugins/dev", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
   currentSession: () => request<StreamSessionSummary>("/sessions/current"),
 
   sessions: () => request<{ sessions: StreamSession[] }>("/sessions"),
@@ -103,6 +169,15 @@ export const api = {
   applyOverlayPack: (id: string) =>
     request<{ ok: boolean; pack: OverlayPackSummary }>(`/overlay-packs/${encodeURIComponent(id)}/apply`, {
       method: "POST",
+    }),
+
+  exportOverlayPack: (id: string) =>
+    request<OverlayPackExport>(`/overlay-packs/${encodeURIComponent(id)}/export`),
+
+  importOverlayPack: (pack: OverlayPackExport | unknown) =>
+    request<{ ok: boolean; pack: OverlayPackSummary }>("/overlay-packs/import", {
+      method: "POST",
+      body: JSON.stringify({ pack }),
     }),
 
   deleteOverlayPack: (id: string) =>
@@ -510,6 +585,17 @@ export const api = {
   },
 
   integrations: () => request<IntegrationsInfo>("/integrations"),
+
+  localCommandSecurity: () => request<LocalCommandSecurityResponse>("/security/local-commands"),
+
+  approveLocalCommand: (command: LocalCommandApprovalInput) =>
+    request<{ ok: boolean; approval: LocalCommandApproval }>("/security/local-commands/approve", {
+      method: "POST",
+      body: JSON.stringify(command),
+    }),
+
+  revokeLocalCommand: (id: string) =>
+    request<{ ok: boolean }>(`/security/local-commands/${encodeURIComponent(id)}`, { method: "DELETE" }),
 
   saveOAuthHost: (host: string) =>
 
@@ -1224,6 +1310,21 @@ export interface OverlayPackSummary {
   };
 }
 
+export interface OverlayPackExport {
+  format: "btv.overlay-pack";
+  version: 1;
+  exportedAt: string;
+  pack: {
+    id: string;
+    name: string;
+    description?: string;
+    version: number;
+    createdAt: string;
+    updatedAt: string;
+    snapshot: unknown;
+  };
+}
+
 export interface OverlayThemeConfig {
   name: string;
   fontFamily: string;
@@ -1370,6 +1471,35 @@ export interface StreamRecap {
     amount: number;
   }>;
   markdown: string;
+}
+
+export interface LocalCommandApproval {
+  id: string;
+  command: string;
+  args: string[];
+  cwd?: string;
+  createdAt: string;
+  label?: string;
+}
+
+export interface LocalCommandRequest extends LocalCommandApproval {
+  approved: boolean;
+  sourceType: "macro" | "effect";
+  sourceId: string;
+  sourceName: string;
+}
+
+export interface LocalCommandSecurityResponse {
+  approvals: LocalCommandApproval[];
+  requests: LocalCommandRequest[];
+}
+
+export interface LocalCommandApprovalInput {
+  command: string;
+  args?: string[];
+  cwd?: string;
+  timeoutMs?: number;
+  label?: string;
 }
 
 

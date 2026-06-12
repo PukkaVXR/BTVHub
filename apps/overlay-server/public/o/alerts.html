@@ -23,7 +23,7 @@
     let alertCleanup = null;
     const mediaLayer = document.getElementById("media-layer");
     const client = new OverlayClient({
-      channels: ["alerts", "effects", "*"],
+      channels: ["alerts", "effects"],
       onMessage: (msg) => {
         if (msg.kind === "alert:play") {
           alertCleanup?.();

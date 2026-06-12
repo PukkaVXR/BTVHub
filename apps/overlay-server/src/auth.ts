@@ -1,8 +1,21 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { timingSafeEqual } from "node:crypto";
 import { getEncryptedSetting, setEncryptedSetting } from "./db.js";
 import { getHubOrigin, getOAuthOrigin, getOverlayOrigin } from "./server-urls.js";
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+const PUBLIC_API_PATHS = new Set([
+  "/api/health",
+  "/api/overlay-theme",
+  "/api/widgets/chat-config",
+  "/api/widgets/chat-badges",
+  "/api/widgets/event-list-config",
+  "/api/widgets/ticker-config",
+  "/api/boss-fight",
+  "/api/chat-chaos",
+  "/api/predictions",
+  "/api/tournament-scoreboard",
+]);
 
 export function ensureApiToken(): string {
   const existing = getEncryptedSetting("api_token");
@@ -22,12 +35,47 @@ export function isAllowedOrigin(origin: string | undefined): boolean {
   return getAllowedOrigins().includes(origin);
 }
 
+export function isTrustedHubOrigin(origin: string | undefined): boolean {
+  return origin === getHubOrigin();
+}
+
+export function isValidApiToken(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  const expected = ensureApiToken();
+  const receivedBuffer = Buffer.from(value);
+  const expectedBuffer = Buffer.from(expected);
+  if (receivedBuffer.length !== expectedBuffer.length) return false;
+  return timingSafeEqual(receivedBuffer, expectedBuffer);
+}
+
+export function isPublicApiPath(url: string): boolean {
+  const path = url.split("?")[0] ?? url;
+  return PUBLIC_API_PATHS.has(path);
+}
+
+export async function issueApiTokenToTrustedHub(
+  req: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const origin = req.headers.origin;
+  if (Array.isArray(origin) || !isTrustedHubOrigin(origin)) {
+    return reply.status(403).send({
+      ok: false,
+      code: "UNTRUSTED_ORIGIN",
+      message: "API token bootstrap is only available to the local Hub",
+    });
+  }
+  return { token: ensureApiToken() };
+}
+
 export async function requireTrustedLocalWrite(
   req: FastifyRequest,
   reply: FastifyReply,
 ) {
-  if (!MUTATING_METHODS.has(req.method)) return;
   if (!req.url.startsWith("/api/")) return;
+  if (req.method === "OPTIONS") return;
+  if (req.url.startsWith("/api/auth/token")) return;
+  if (!MUTATING_METHODS.has(req.method) && isPublicApiPath(req.url)) return;
 
   const origin = req.headers.origin;
   if (Array.isArray(origin)) {
@@ -46,12 +94,20 @@ export async function requireTrustedLocalWrite(
     });
   }
 
+  if (origin && !isTrustedHubOrigin(origin)) {
+    return reply.status(403).send({
+      ok: false,
+      code: "ADMIN_WRITE_ORIGIN_REQUIRED",
+      message: "Admin API writes must come from the local Hub",
+    });
+  }
+
   const token = req.headers["x-btv-token"];
-  if (token && token !== ensureApiToken()) {
+  if (Array.isArray(token) || !isValidApiToken(token)) {
     return reply.status(401).send({
       ok: false,
       code: "UNAUTHORIZED",
-      message: "Invalid X-BTV-Token",
+      message: "Missing or invalid X-BTV-Token",
     });
   }
 }

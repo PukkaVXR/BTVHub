@@ -29,6 +29,13 @@ interface OverlayPack {
   snapshot: OverlayPackSnapshot;
 }
 
+interface OverlayPackExport {
+  format: "btv.overlay-pack";
+  version: 1;
+  exportedAt: string;
+  pack: OverlayPack;
+}
+
 interface OverlayPackSummary {
   id: string;
   name: string;
@@ -96,6 +103,40 @@ export const registerOverlayPacksRoutes: RouteModule = (app) => {
     if (!pack) return reply.status(404).send({ error: "Overlay pack not found" });
 
     applySnapshot(pack.snapshot);
+    return { ok: true, pack: packSummary(pack) };
+  });
+
+  app.get("/api/overlay-packs/:id/export", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const pack = readOverlayPacks().find((item) => item.id === id);
+    if (!pack) return reply.status(404).send({ error: "Overlay pack not found" });
+
+    const payload: OverlayPackExport = {
+      format: "btv.overlay-pack",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      pack,
+    };
+    return reply
+      .header("Content-Type", "application/json")
+      .header("Content-Disposition", `attachment; filename="${safeFileName(pack.name)}.btv-overlay-pack.json"`)
+      .send(payload);
+  });
+
+  app.post("/api/overlay-packs/import", async (req, reply) => {
+    const body = req.body as { pack?: OverlayPackExport | OverlayPack } | undefined;
+    const imported = normalizeImportedPack(body?.pack);
+    if (!imported) return reply.status(400).send({ error: "Valid overlay pack export is required" });
+
+    const now = new Date().toISOString();
+    const pack: OverlayPack = {
+      ...imported,
+      id: `pack-${Date.now()}`,
+      name: imported.name.endsWith(" (imported)") ? imported.name : `${imported.name} (imported)`,
+      createdAt: now,
+      updatedAt: now,
+    };
+    writeOverlayPacks([pack, ...readOverlayPacks()]);
     return { ok: true, pack: packSummary(pack) };
   });
 
@@ -168,6 +209,13 @@ function normalizePack(item: unknown): OverlayPack[] {
   }];
 }
 
+function normalizeImportedPack(item: unknown): OverlayPack | null {
+  if (!item || typeof item !== "object") return null;
+  const raw = item as Partial<OverlayPackExport> & Partial<OverlayPack>;
+  const candidate = raw.format === "btv.overlay-pack" ? raw.pack : raw;
+  return normalizePack(candidate)[0] ?? null;
+}
+
 function readBrowserSourceLayouts(): OverlayPackSnapshot["browserSourceLayouts"] | undefined {
   const parsed = readSettingJson(BROWSER_SOURCE_LAYOUTS_KEY) as OverlayPackSnapshot["browserSourceLayouts"];
   if (!parsed?.canvas || !Array.isArray(parsed.layouts)) return undefined;
@@ -201,4 +249,8 @@ function packSummary(pack: OverlayPack): OverlayPackSummary {
       overlayTheme: Boolean(pack.snapshot.overlayTheme),
     },
   };
+}
+
+function safeFileName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "overlay-pack";
 }

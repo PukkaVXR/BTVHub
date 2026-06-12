@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { HOST, OAUTH_HTTPS_PORT, OVERLAY_PORT } from "@btv/shared";
 import { AlertQueue } from "./alert-queue.js";
 import { AutomationScheduler } from "./automation-scheduler.js";
-import { ensureApiToken, isAllowedOrigin, requireTrustedLocalWrite } from "./auth.js";
+import { ensureApiToken, isAllowedOrigin, issueApiTokenToTrustedHub, requireTrustedLocalWrite } from "./auth.js";
 import { OverlayBus } from "./bus.js";
 import { ChatTimerScheduler } from "./chat-timer-scheduler.js";
 import { CoreEventBus } from "./core-event-bus.js";
@@ -15,17 +15,18 @@ import { initDb, getGoals, logSystem, setSetting } from "./db.js";
 import { EffectRunner } from "./effect-runner.js";
 import { EventAutomationEngine } from "./event-automation-engine.js";
 import { MacroRunner } from "./macro-runner.js";
-import { connectObs, getObsStatus, setObsSceneChangedHandler } from "./obs-client.js";
+import { connectObs, disconnectObs, getObsStatus, setObsSceneChangedHandler } from "./obs-client.js";
 import { registerRoutes } from "./routes/index.js";
 import { RulesEngine } from "./rules-engine.js";
 import { getOAuthOrigin, getOverlayOrigin } from "./server-urls.js";
 import { applySourceGroup } from "./services/source-groups.js";
-import { getSpotifyStatus, startSpotifyPoller } from "./spotify-service.js";
+import { getSpotifyStatus, startSpotifyPoller, stopSpotifyPoller } from "./spotify-service.js";
 import { ensureTlsMaterial, getCertPaths } from "./tls.js";
 import {
   getTwitchStatus,
   isTwitchConfigured,
   startEventSub,
+  stopEventSub,
 } from "./twitch-service.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -76,6 +77,91 @@ const automationScheduler = new AutomationScheduler(
 );
 const chatTimerScheduler = new ChatTimerScheduler();
 
+function errorDetails(err: unknown): Record<string, unknown> {
+  if (err instanceof Error) {
+    return {
+      name: err.name,
+      message: err.message,
+      stack: err.stack,
+    };
+  }
+  return { message: String(err) };
+}
+
+function installReliabilityHandlers(server: { setErrorHandler: (handler: (...args: any[]) => unknown) => void; setNotFoundHandler: (handler: (...args: any[]) => unknown) => void }, source: string): void {
+  server.setErrorHandler((err, req, reply) => {
+    const error = err as Error & { statusCode?: number };
+    const statusCode = typeof error.statusCode === "number" ? error.statusCode : 500;
+    logSystem("server", statusCode >= 500 ? "error" : "warn", `${source} request failed`, {
+      method: req.method,
+      url: req.url,
+      statusCode,
+      ...errorDetails(error),
+    });
+    req.log.error({ err: error, statusCode }, "Request failed");
+    reply.status(statusCode).send({
+      ok: false,
+      code: statusCode >= 500 ? "INTERNAL_SERVER_ERROR" : "REQUEST_FAILED",
+      message: statusCode >= 500 ? "Internal Server Error" : error.message,
+    });
+  });
+
+  server.setNotFoundHandler((req, reply) => {
+    logSystem("server", "warn", `${source} route not found`, {
+      method: req.method,
+      url: req.url,
+    });
+    reply.status(404).send({
+      ok: false,
+      code: "NOT_FOUND",
+      message: "Route not found",
+    });
+  });
+}
+
+process.on("unhandledRejection", (reason) => {
+  logSystem("process", "error", "Unhandled promise rejection", errorDetails(reason));
+  app.log.error({ reason }, "Unhandled promise rejection");
+});
+
+process.on("uncaughtException", (err) => {
+  logSystem("process", "error", "Uncaught exception", errorDetails(err));
+  app.log.fatal({ err }, "Uncaught exception");
+});
+
+installReliabilityHandlers(app, "HTTP");
+installReliabilityHandlers(oauthApp, "OAuth");
+
+let shuttingDown = false;
+const backgroundIntervals: Array<ReturnType<typeof setInterval>> = [];
+
+async function shutdown(reason: string): Promise<void> {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  logSystem("process", "info", "Overlay server shutting down", { reason });
+
+  for (const interval of backgroundIntervals) clearInterval(interval);
+  automationScheduler.stopAll();
+  chatTimerScheduler.stop();
+  alertQueue.shutdown();
+  stopSpotifyPoller();
+  stopEventSub();
+  bus.closeAll();
+
+  await disconnectObs();
+  await Promise.allSettled([app.close(), oauthApp.close()]);
+  logSystem("process", "info", "Overlay server shutdown complete", { reason });
+}
+
+function installSignalShutdown(signal: NodeJS.Signals): void {
+  process.once(signal, () => {
+    void shutdown(signal).finally(() => process.exit(0));
+  });
+}
+
+installSignalShutdown("SIGINT");
+installSignalShutdown("SIGTERM");
+
 function safeStatus<T>(label: string, fallback: T, read: () => T): T {
   try {
     return read();
@@ -117,6 +203,25 @@ const obsStatusFallback: ReturnType<typeof getObsStatus> = {
   connected: false,
 };
 
+const PUBLIC_OVERLAY_CHANNELS = new Set([
+  "alerts",
+  "effects",
+  "chat",
+  "goal",
+  "ticker",
+  "eventList",
+  "nowPlaying",
+]);
+
+function isPublicOverlayRoute(route: string | null): boolean {
+  return Boolean(route?.startsWith("/o/"));
+}
+
+function sanitizePublicOverlayChannels(channels: string[]): string[] {
+  const requested = channels.length ? channels : Array.from(PUBLIC_OVERLAY_CHANNELS);
+  return Array.from(new Set(requested.filter((channel) => PUBLIC_OVERLAY_CHANNELS.has(channel))));
+}
+
 function bootEventSub(): void {
   startEventSub(
     (e) => void rulesEngine.handleEvent(e),
@@ -141,6 +246,7 @@ const corsOptions = {
 
 await app.register(cors, corsOptions);
 await oauthApp.register(cors, corsOptions);
+app.get("/api/auth/token", issueApiTokenToTrustedHub);
 app.addHook("preHandler", requireTrustedLocalWrite);
 await app.register(fastifyStatic, { root: publicDir, prefix: "/" });
 await app.register(fastifyStatic, { root: assetsDir, prefix: "/assets/", decorateReply: false });
@@ -156,8 +262,21 @@ app.addHook("onRequest", async (req, reply) => {
 app.register(async (fastify) => {
   fastify.get("/ws", { websocket: true }, (socket, req) => {
     const url = new URL(req.url ?? "", getOverlayOrigin());
-    const channels = url.searchParams.get("channels")?.split(",").filter(Boolean) ?? ["*"];
-    bus.addClient(socket, channels, url.searchParams.get("route") ?? undefined);
+    const route = url.searchParams.get("route");
+    if (!isPublicOverlayRoute(route)) {
+      logSystem("overlay", "warn", "Rejected non-public overlay WebSocket connection", { route });
+      socket.close(1008, "Public overlay route required");
+      return;
+    }
+    const channels = sanitizePublicOverlayChannels(
+      url.searchParams.get("channels")?.split(",").filter(Boolean) ?? [],
+    );
+    if (!channels.length) {
+      logSystem("overlay", "warn", "Rejected overlay WebSocket connection with no public channels", { route });
+      socket.close(1008, "No public overlay channels requested");
+      return;
+    }
+    bus.addClient(socket, channels, route ?? undefined);
   });
 });
 
@@ -187,11 +306,21 @@ if (getSpotifyStatus().connected) {
 }
 automationScheduler.startAll();
 chatTimerScheduler.start();
+logSystem("recovery", "info", "Alert queue starts empty after restart", {
+  persisted: false,
+  reason: "Queued/current alerts are live stream state and are not replayed automatically.",
+});
+logSystem("recovery", "info", "Automation and chat timer schedules resumed", {
+  automations: "rescheduled from stored definitions",
+  chatTimers: "last run timestamps are persisted",
+});
 
-setInterval(() => bus.pingAll(), 30000);
-setInterval(() => {
-  coreEvents.publishSystem("timer.minute", { intervalMs: 60_000 });
-}, 60_000);
+backgroundIntervals.push(setInterval(() => bus.pingAll(), 30000));
+backgroundIntervals.push(
+  setInterval(() => {
+    coreEvents.publishSystem("timer.minute", { intervalMs: 60_000 });
+  }, 60_000),
+);
 
 for (const g of getGoals()) {
   bus.broadcast({

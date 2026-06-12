@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { api, type IntegrationsInfo, type PreflightInfo } from "../api";
+import { api, type IntegrationsInfo, type LocalCommandRequest, type LocalCommandSecurityResponse, type PreflightInfo } from "../api";
 import { useToast } from "../hooks/useToast";
 import { setupReadinessSteps, type SetupReadinessStep } from "../lib/readiness";
 import { readSetupCompleted, writeSetupCompleted } from "../lib/setupCompletion";
@@ -8,14 +8,16 @@ import { Button, ButtonAnchor, ButtonLink, Callout, Card, PageHeader } from "../
 export default function SetupPage() {
   const [preflight, setPreflight] = useState<PreflightInfo | null>(null);
   const [integrations, setIntegrations] = useState<IntegrationsInfo | null>(null);
+  const [localCommands, setLocalCommands] = useState<LocalCommandSecurityResponse | null>(null);
   const [setupCompleted, setSetupCompleted] = useState(() => readSetupCompleted());
   const [celebrating, setCelebrating] = useState(false);
   const toast = useToast();
 
   const load = () => {
-    void Promise.all([api.preflight(), api.integrations()]).then(([p, i]) => {
+    void Promise.all([api.preflight(), api.integrations(), api.localCommandSecurity()]).then(([p, i, commands]) => {
       setPreflight(p);
       setIntegrations(i);
+      setLocalCommands(commands);
     });
   };
 
@@ -52,6 +54,23 @@ export default function SetupPage() {
 
   const runStepAction = (step: SetupReadinessStep) => {
     if (step.actionId === "test-follow") void testFollow();
+  };
+
+  const approveCommand = async (command: LocalCommandRequest) => {
+    await api.approveLocalCommand({
+      command: command.command,
+      args: command.args,
+      cwd: command.cwd,
+      label: `${command.sourceType}: ${command.sourceName}`,
+    });
+    toast({ message: "Local command approved", tone: "success" });
+    load();
+  };
+
+  const revokeCommand = async (id: string) => {
+    await api.revokeLocalCommand(id);
+    toast({ message: "Local command approval revoked", tone: "info" });
+    load();
   };
 
   useEffect(() => {
@@ -125,6 +144,67 @@ export default function SetupPage() {
           </div>
         </Card>
 
+        <Card className="setup-command-security-card" hideableId="setup-local-command-security" hideableTitle="Local Command Security">
+          <div className="setup-step-card__header">
+            <span className="setup-step-card__number">!</span>
+            <div>
+              <h2>Local Command Security</h2>
+              <p>
+                Macros and effects can only run local commands after the exact command, args, and working directory have been approved here.
+              </p>
+            </div>
+            <span className={localCommands?.requests.some((command) => !command.approved) ? "badge badge-off" : "badge badge-ok"}>
+              {localCommands?.requests.some((command) => !command.approved) ? "Review" : "Locked"}
+            </span>
+          </div>
+          {localCommands?.requests.length ? (
+            <div className="setup-command-security-list">
+              {localCommands.requests.map((command) => (
+                <div className="setup-command-security-item" key={`${command.id}-${command.sourceType}-${command.sourceId}`}>
+                  <div>
+                    <strong>{command.sourceName}</strong>
+                    <span>{command.sourceType}</span>
+                    <code>{formatCommand(command)}</code>
+                    {command.cwd ? <small>cwd: {command.cwd}</small> : null}
+                  </div>
+                  {command.approved ? (
+                    <Button type="button" variant="secondary" size="sm" onClick={() => void revokeCommand(command.id)}>
+                      Revoke
+                    </Button>
+                  ) : (
+                    <Button type="button" variant="primary" size="sm" onClick={() => void approveCommand(command)}>
+                      Approve
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 12 }}>
+              No macros or effects currently request local command execution.
+            </p>
+          )}
+          {localCommands?.approvals.length ? (
+            <details className="setup-command-approvals">
+              <summary>{localCommands.approvals.length} approved command signature(s)</summary>
+              <div className="setup-command-security-list">
+                {localCommands.approvals.map((approval) => (
+                  <div className="setup-command-security-item" key={approval.id}>
+                    <div>
+                      <strong>{approval.label || approval.command}</strong>
+                      <code>{formatCommand(approval)}</code>
+                      <small>Approved {new Date(approval.createdAt).toLocaleString()}</small>
+                    </div>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => void revokeCommand(approval.id)}>
+                      Revoke
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </details>
+          ) : null}
+        </Card>
+
         <div className="setup-step-list">
           {steps.map((step, index) => (
             <Card
@@ -165,4 +245,8 @@ export default function SetupPage() {
       </div>
     </>
   );
+}
+
+function formatCommand(command: { command: string; args?: string[] }): string {
+  return [command.command, ...(command.args ?? [])].join(" ");
 }

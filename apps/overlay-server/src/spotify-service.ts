@@ -13,6 +13,12 @@ const SPOTIFY_NOW_PLAYING = "https://api.spotify.com/v1/me/player/currently-play
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
+interface SpotifyTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+}
+
 function spotifyBasicAuth(clientId: string, clientSecret: string): string {
   return `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`;
 }
@@ -98,11 +104,11 @@ async function getSpotifyAccessToken(): Promise<string | null> {
   const stored = getEncryptedSetting("spotify_tokens");
   if (!config || !stored) return null;
 
-  let tokens = JSON.parse(stored) as {
-    accessToken: string;
-    refreshToken: string;
-    expiresAt: number;
-  };
+  let tokens = parseSpotifyTokens(stored);
+  if (!tokens) {
+    deleteSetting("spotify_tokens");
+    return null;
+  }
 
   if (Date.now() < tokens.expiresAt - 60_000) return tokens.accessToken;
 
@@ -130,6 +136,26 @@ async function getSpotifyAccessToken(): Promise<string | null> {
   };
   setEncryptedSetting("spotify_tokens", JSON.stringify(tokens));
   return tokens.accessToken;
+}
+
+function parseSpotifyTokens(raw: string): SpotifyTokens | null {
+  try {
+    const parsed = JSON.parse(raw) as Partial<SpotifyTokens>;
+    if (
+      typeof parsed.accessToken === "string"
+      && typeof parsed.refreshToken === "string"
+      && Number.isFinite(parsed.expiresAt)
+    ) {
+      return {
+        accessToken: parsed.accessToken,
+        refreshToken: parsed.refreshToken,
+        expiresAt: Number(parsed.expiresAt),
+      };
+    }
+  } catch {
+    // Corrupt token storage should disconnect Spotify, not crash status/API routes.
+  }
+  return null;
 }
 
 export function startSpotifyPoller(bus: OverlayBus): void {

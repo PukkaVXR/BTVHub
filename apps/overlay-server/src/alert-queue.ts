@@ -63,6 +63,18 @@ export class AlertQueue {
     return count;
   }
 
+  shutdown(): void {
+    this.clear();
+    if (this.currentTimer) clearTimeout(this.currentTimer);
+    this.currentTimer = null;
+    this.finishCurrent?.();
+    this.finishCurrent = null;
+    this.current = null;
+    this.currentStartedAt = null;
+    this.playing = false;
+    this.paused = true;
+  }
+
   skipCurrent(): boolean {
     if (!this.current) return false;
     this.bus.broadcast({ kind: "alert:control", action: "clear_current" }, this.current.channel);

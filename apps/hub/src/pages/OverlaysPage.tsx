@@ -7,6 +7,7 @@ import {
   type ObsBrowserSourceStatus,
   type ObsSceneInfo,
   type OverlayInfo,
+  type OverlayPackExport,
   type OverlayPackSummary,
   type PreflightInfo,
 } from "../api";
@@ -43,6 +44,22 @@ function makeQuickPresets(canvas: ObsBrowserSourceCanvas) {
     { label: "Bottom left", x: marginX, y: canvas.height - sideHeight - marginY, width: sideWidth, height: sideHeight },
     { label: "Bottom right", x: canvas.width - sideWidth - marginX, y: canvas.height - sideHeight - marginY, width: sideWidth, height: sideHeight },
   ];
+}
+
+function safeExportFileName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "overlay-pack";
+}
+
+function downloadJson(name: string, data: unknown): void {
+  const blob = new Blob([`${JSON.stringify(data, null, 2)}\n`], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${safeExportFileName(name)}.btv-overlay-pack.json`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }
 
 export default function OverlaysPage() {
@@ -165,6 +182,27 @@ export default function OverlaysPage() {
       toast(err instanceof Error ? err.message : "Could not apply overlay pack");
     } finally {
       setApplyingPackId("");
+    }
+  };
+
+  const exportPack = async (pack: OverlayPackSummary) => {
+    try {
+      const payload = await api.exportOverlayPack(pack.id);
+      downloadJson(pack.name, payload);
+      toast(`Exported overlay pack: ${pack.name}`);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Could not export overlay pack");
+    }
+  };
+
+  const importPack = async (file: File) => {
+    try {
+      const payload = JSON.parse(await file.text()) as OverlayPackExport;
+      const res = await api.importOverlayPack(payload);
+      setPacks((current) => [res.pack, ...current.filter((pack) => pack.id !== res.pack.id)]);
+      toast(`Imported overlay pack: ${res.pack.name}`);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Could not import overlay pack");
     }
   };
 
@@ -366,6 +404,19 @@ export default function OverlaysPage() {
           <Button type="button" variant="primary" size="sm" onClick={() => void createPack()} disabled={savingPack}>
             {savingPack ? "Saving..." : "Save current as pack"}
           </Button>
+          <label className="ui-button ui-button--secondary ui-button--sm">
+            Import pack
+            <input
+              type="file"
+              accept=".json,.btv-overlay-pack.json,application/json"
+              hidden
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) void importPack(file);
+              }}
+            />
+          </label>
         </div>
         {packs.length ? (
           <div className="overlay-pack-grid">
@@ -388,6 +439,9 @@ export default function OverlaysPage() {
                     disabled={applyingPackId === pack.id}
                   >
                     {applyingPackId === pack.id ? "Applying..." : "Apply pack"}
+                  </button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => void exportPack(pack)}>
+                    Export
                   </button>
                   <button type="button" className="btn btn-secondary btn-sm" onClick={() => void deletePack(pack)}>
                     Delete

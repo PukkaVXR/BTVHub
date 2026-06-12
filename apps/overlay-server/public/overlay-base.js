@@ -1,7 +1,8 @@
 import { OverlayClient, clearMediaEffect, playSoundEffect, renderAlert, stopAllSounds } from "/js/overlay-client.js";
 
 const params = new URLSearchParams(location.search);
-const channels = (params.get("channels") || "*").split(",").filter(Boolean);
+const defaultChannels = "alerts,effects,chat,goal,ticker,eventList,nowPlaying";
+const channels = (params.get("channels") || defaultChannels).split(",").filter(Boolean);
 
 const client = new OverlayClient({
   channels,
