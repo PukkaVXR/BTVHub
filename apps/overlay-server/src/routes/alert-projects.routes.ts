@@ -1,4 +1,3 @@
-import type { AlertProject, StreamEventType } from "@btv/shared";
 import { AlertProjectSchema } from "@btv/shared";
 import {
   deleteAlertProject,
@@ -7,6 +6,7 @@ import {
   upsertAlertProject,
 } from "../db.js";
 import { broadcastVisualAlertTest } from "../visual-alert-test.js";
+import { parseBody, StreamEventTestBodySchema, UnknownRecordBodySchema } from "../schemas/request.schema.js";
 import type { RouteModule } from "./types.js";
 
 export const registerAlertProjectsRoutes: RouteModule = (app, ctx) => {
@@ -23,10 +23,12 @@ export const registerAlertProjectsRoutes: RouteModule = (app, ctx) => {
     const { id } = req.params as { id: string };
     const existing = getAlertProject(id);
     const now = new Date().toISOString();
+    const body = parseBody(reply, UnknownRecordBodySchema, req.body);
+    if (!body) return;
     const parsed = AlertProjectSchema.safeParse({
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
-      ...(req.body as Partial<AlertProject>),
+      ...body,
       id,
     });
     if (!parsed.success) {
@@ -47,7 +49,8 @@ export const registerAlertProjectsRoutes: RouteModule = (app, ctx) => {
     const project = getAlertProject(id);
     if (!project) return reply.status(404).send({ error: "Alert project not found" });
 
-    const body = req.body as { eventType?: StreamEventType; testPayload?: Record<string, unknown>; variationId?: string } | undefined;
+    const body = parseBody(reply, StreamEventTestBodySchema, req.body);
+    if (!body) return;
     const event = broadcastVisualAlertTest(ctx.bus, project, body?.eventType ?? project.eventType, body?.testPayload, body?.variationId);
 
     return { ok: true, event };

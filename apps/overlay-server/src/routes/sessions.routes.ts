@@ -7,6 +7,7 @@ import {
   stopCurrentStreamSession,
 } from "../db.js";
 import type { RouteModule } from "./types.js";
+import { parseBody, SessionStartBodySchema } from "../schemas/request.schema.js";
 
 function csvCell(value: unknown): string {
   const text = value == null ? "" : String(value);
@@ -149,8 +150,9 @@ export const registerSessionsRoutes: RouteModule = (app) => {
       .send(recap.markdown);
   });
 
-  app.post("/api/sessions/start", async (req) => {
-    const body = req.body as { title?: string };
+  app.post("/api/sessions/start", async (req, reply) => {
+    const body = parseBody(reply, SessionStartBodySchema, req.body);
+    if (!body) return;
     const session = startStreamSession(body.title);
     return {
       ok: true,

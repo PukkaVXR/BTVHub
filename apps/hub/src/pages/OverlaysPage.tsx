@@ -12,6 +12,8 @@ import {
   type PreflightInfo,
 } from "../api";
 import { useToast } from "../hooks/useToast";
+import { downloadJsonFile, safeDownloadName } from "../lib/browserDownloads";
+import { overlayUrl } from "../lib/serverUrls";
 import { Button, ButtonAnchor, CopyField, EmptyState, PageHeader, StatusPill } from "../ui";
 
 const CANVAS_WIDTH = 1920;
@@ -44,22 +46,6 @@ function makeQuickPresets(canvas: ObsBrowserSourceCanvas) {
     { label: "Bottom left", x: marginX, y: canvas.height - sideHeight - marginY, width: sideWidth, height: sideHeight },
     { label: "Bottom right", x: canvas.width - sideWidth - marginX, y: canvas.height - sideHeight - marginY, width: sideWidth, height: sideHeight },
   ];
-}
-
-function safeExportFileName(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "overlay-pack";
-}
-
-function downloadJson(name: string, data: unknown): void {
-  const blob = new Blob([`${JSON.stringify(data, null, 2)}\n`], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `${safeExportFileName(name)}.btv-overlay-pack.json`;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
 }
 
 export default function OverlaysPage() {
@@ -188,7 +174,7 @@ export default function OverlaysPage() {
   const exportPack = async (pack: OverlayPackSummary) => {
     try {
       const payload = await api.exportOverlayPack(pack.id);
-      downloadJson(pack.name, payload);
+      downloadJsonFile(`${safeDownloadName(pack.name, "overlay-pack")}.btv-overlay-pack.json`, payload);
       toast(`Exported overlay pack: ${pack.name}`);
     } catch (err) {
       toast(err instanceof Error ? err.message : "Could not export overlay pack");
@@ -354,7 +340,7 @@ export default function OverlaysPage() {
         }
       />
       <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 16 }}>
-        Live chat requires <code>http://127.0.0.1:4782/o/chat.html</code> and Twitch reconnect with{" "}
+        Live chat requires <code>{overlayUrl("/o/chat.html")}</code> and Twitch reconnect with{" "}
         <code>user:read:chat</code>.
       </p>
 
@@ -434,16 +420,16 @@ export default function OverlaysPage() {
                 <div className="actions" style={{ marginTop: 0 }}>
                   <button
                     type="button"
-                    className="btn btn-secondary btn-sm"
+                    className="ui-button ui-button--secondary ui-button--sm"
                     onClick={() => void applyPack(pack)}
                     disabled={applyingPackId === pack.id}
                   >
                     {applyingPackId === pack.id ? "Applying..." : "Apply pack"}
                   </button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => void exportPack(pack)}>
+                  <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => void exportPack(pack)}>
                     Export
                   </button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => void deletePack(pack)}>
+                  <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => void deletePack(pack)}>
                     Delete
                   </button>
                 </div>
@@ -470,13 +456,13 @@ export default function OverlaysPage() {
             <p>Drag sources around the mock OBS canvas. Resize from the corner, then save or apply directly to OBS.</p>
           </div>
           <div className="actions">
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => void applyLayouts()} disabled={applyingLayout || !obsScenes.length}>
+            <button type="button" className="ui-button ui-button--primary ui-button--sm" onClick={() => void applyLayouts()} disabled={applyingLayout || !obsScenes.length}>
               {applyingLayout ? "Applying..." : "Apply to OBS"}
             </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void saveLayouts()} disabled={savingLayout}>
+            <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => void saveLayouts()} disabled={savingLayout}>
               {savingLayout ? "Saving..." : "Save layout"}
             </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void resetLayouts()}>
+            <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => void resetLayouts()}>
               Reset defaults
             </button>
             <label className="overlay-layout-snap-toggle">
@@ -591,10 +577,10 @@ export default function OverlaysPage() {
 
                 <label>Nudge selected</label>
                 <div className="overlay-layout-nudge">
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => nudgeSelected(0, -10)}>Up</button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => nudgeSelected(-10, 0)}>Left</button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => nudgeSelected(10, 0)}>Right</button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => nudgeSelected(0, 10)}>Down</button>
+                  <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => nudgeSelected(0, -10)}>Up</button>
+                  <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => nudgeSelected(-10, 0)}>Left</button>
+                  <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => nudgeSelected(10, 0)}>Right</button>
+                  <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => nudgeSelected(0, 10)}>Down</button>
                 </div>
 
                 <label>Rotation</label>
@@ -668,7 +654,7 @@ export default function OverlaysPage() {
                 <label>Quick placement</label>
                 <div className="overlay-layout-presets">
                   {quickPresets.map((preset) => (
-                    <button key={preset.label} type="button" className="btn btn-secondary btn-sm" onClick={() => applyPreset(preset)}>
+                    <button key={preset.label} type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => applyPreset(preset)}>
                       {preset.label}
                     </button>
                   ))}

@@ -7,8 +7,7 @@ import {
 } from "./db.js";
 import type { MacroRunner } from "./macro-runner.js";
 import type { EffectRunner } from "./effect-runner.js";
-import { runLocalCommand } from "./command-runner.js";
-import { sendTwitchChatMessage } from "./twitch-service.js";
+import type { ActionExecutor, SharedAction } from "./action-executor.js";
 
 export type AutomationExecutor = (automation: AutomationConfig) => Promise<string>;
 
@@ -19,9 +18,9 @@ export class AutomationScheduler {
   private running = new Set<string>();
 
   constructor(
+    private readonly actions: ActionExecutor,
     private readonly macros: MacroRunner,
     private readonly effects: EffectRunner,
-    private readonly applySourceGroup: (id: string) => Promise<{ ok: boolean; message: string }>,
   ) {}
 
   startAll(): void {
@@ -116,42 +115,32 @@ export class AutomationScheduler {
 
   private async execute(automation: AutomationConfig): Promise<string> {
     const config = automation.actionConfig;
+    const action = this.toSharedAction(automation);
+    const result = await this.actions.execute(action, {
+      runMacro: (id) => this.macros.run(id),
+      fireEffect: (id) => this.effects.fireManual(id),
+    });
+    if (!result.ok) throw new Error(result.message);
+    if (automation.action === "effect") return `Effect ${String(config.effectId ?? "")} fired`;
+    return result.message;
+  }
+
+  private toSharedAction(automation: AutomationConfig): SharedAction {
+    const config = automation.actionConfig;
     switch (automation.action) {
-      case "macro": {
-        const id = String(config.macroId ?? "");
-        const result = await this.macros.run(id);
-        if (!result.ok) throw new Error(result.message);
-        return result.message;
-      }
-      case "effect": {
-        const id = String(config.effectId ?? "");
-        const ok = await this.effects.fireManual(id);
-        if (!ok) throw new Error("Effect missing, blocked, or failed");
-        return `Effect ${id} fired`;
-      }
-      case "source_group": {
-        const id = String(config.sourceGroupId ?? "");
-        const result = await this.applySourceGroup(id);
-        if (!result.ok) throw new Error(result.message);
-        return result.message;
-      }
-      case "command": {
-        return runLocalCommand({
+      case "macro": return { type: "macro", macroId: String(config.macroId ?? "") };
+      case "effect": return { type: "effect", effectId: String(config.effectId ?? "") };
+      case "source_group": return { type: "source_group", sourceGroupId: String(config.sourceGroupId ?? "") };
+      case "command":
+        return {
+          type: "command",
           command: String(config.command ?? ""),
           args: Array.isArray(config.args) ? config.args.map(String) : undefined,
           cwd: config.cwd ? String(config.cwd) : undefined,
           timeoutMs: Number(config.timeoutMs ?? 10_000),
-        });
-      }
-      case "twitch_chat": {
-        const message = String(config.message ?? "");
-        if (!message.trim()) throw new Error("Chat message is required");
-        const ok = await sendTwitchChatMessage(message);
-        if (!ok) throw new Error("Twitch chat was not sent");
-        return "Twitch chat sent";
-      }
-      default:
-        throw new Error("Unsupported automation action");
+        };
+      case "twitch_chat": return { type: "twitch_chat", message: String(config.message ?? "") };
+      default: throw new Error("Unsupported automation action");
     }
   }
 }

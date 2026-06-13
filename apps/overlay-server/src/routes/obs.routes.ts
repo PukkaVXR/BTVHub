@@ -14,17 +14,18 @@ import {
 import { getSetting, setSetting } from "../db.js";
 import { EXPECTED_OVERLAYS } from "../overlay-definitions.js";
 import { getOverlayOrigin } from "../server-urls.js";
-import type {
-  ObsBrowserSourceLayout,
-  ObsBrowserSourceLayoutApplyBody,
-  ObsBrowserSourceCanvas,
-  ObsBrowserSourceLayoutsBody,
-  ObsInputSettingsBody,
-  ObsSceneBody,
-  ObsSourceMotionBody,
-  ObsSourceVisibilityBody,
-  ObsTextBody,
+import {
+  ObsBrowserSourceLayoutApplyBodySchema,
+  ObsBrowserSourceLayoutsBodySchema,
+  ObsInputSettingsBodySchema,
+  ObsSceneBodySchema,
+  ObsSourceMotionBodySchema,
+  ObsSourceVisibilityBodySchema,
+  ObsTextBodySchema,
+  type ObsBrowserSourceLayout,
+  type ObsBrowserSourceCanvas,
 } from "../schemas/obs.schema.js";
+import { parseBody } from "../schemas/request.schema.js";
 import type { RouteModule } from "./types.js";
 
 const BROWSER_SOURCE_LAYOUTS_KEY = "obs_browser_source_layouts";
@@ -47,7 +48,8 @@ export const registerObsRoutes: RouteModule = (app) => {
   });
 
   app.post("/api/obs/browser-sources/ensure", async (req, reply) => {
-    const body = req.body as { sceneName?: string } | undefined;
+    const body = parseBody(reply, ObsSceneBodySchema, req.body);
+    if (!body) return;
     const result = await ensureObsBrowserSources(EXPECTED_OVERLAYS, getOverlayOrigin(), body?.sceneName);
     if (!result) {
       return reply.status(503).send(actionError("OBS_DISCONNECTED", "OBS Offline", "Could not create or update OBS browser sources"));
@@ -68,7 +70,8 @@ export const registerObsRoutes: RouteModule = (app) => {
   });
 
   app.put("/api/obs/browser-source-layouts", async (req, reply) => {
-    const body = req.body as ObsBrowserSourceLayoutsBody | undefined;
+    const body = parseBody(reply, ObsBrowserSourceLayoutsBodySchema, req.body);
+    if (!body) return;
     const canvas = normalizeBrowserSourceCanvas(body?.canvas);
     const layouts = normalizeBrowserSourceLayouts(body?.layouts, canvas);
     if (!layouts.length) {
@@ -84,7 +87,8 @@ export const registerObsRoutes: RouteModule = (app) => {
   });
 
   app.post("/api/obs/browser-source-layouts/apply", async (req, reply) => {
-    const body = req.body as ObsBrowserSourceLayoutApplyBody | undefined;
+    const body = parseBody(reply, ObsBrowserSourceLayoutApplyBodySchema, req.body);
+    if (!body) return;
     const existingState = getBrowserSourceLayoutState();
     const canvas = normalizeBrowserSourceCanvas(body?.canvas ?? existingState.canvas);
     const layouts = normalizeBrowserSourceLayouts(body?.layouts, canvas);
@@ -174,7 +178,9 @@ export const registerObsRoutes: RouteModule = (app) => {
   });
 
   app.post("/api/actions/obs/scene", async (req, reply) => {
-    const sceneName = (req.body as ObsSceneBody).sceneName?.trim();
+    const body = parseBody(reply, ObsSceneBodySchema, req.body);
+    if (!body) return;
+    const sceneName = body.sceneName?.trim();
     if (!sceneName) return reply.status(400).send(actionError("SCENE_REQUIRED", "No Scene", "sceneName is required"));
     const ok = await setObsScene(sceneName);
     return reply.status(ok ? 200 : 503).send({
@@ -190,7 +196,8 @@ export const registerObsRoutes: RouteModule = (app) => {
   });
 
   app.post("/api/actions/obs/source-visibility", async (req, reply) => {
-    const body = req.body as ObsSourceVisibilityBody;
+    const body = parseBody(reply, ObsSourceVisibilityBodySchema, req.body);
+    if (!body) return;
     const sceneName = body.sceneName?.trim();
     const sourceName = body.sourceName?.trim();
     if (!sceneName || !sourceName || typeof body.visible !== "boolean") {
@@ -210,7 +217,8 @@ export const registerObsRoutes: RouteModule = (app) => {
   });
 
   app.post("/api/actions/obs/source-motion", async (req, reply) => {
-    const body = req.body as ObsSourceMotionBody;
+    const body = parseBody(reply, ObsSourceMotionBodySchema, req.body);
+    if (!body) return;
     const sceneName = body.sceneName?.trim();
     const sourceName = body.sourceName?.trim();
     if (!sceneName || !sourceName) return reply.status(400).send(actionError("SOURCE_MOTION_REQUIRED", "Missing Source", "sceneName and sourceName are required"));
@@ -228,7 +236,8 @@ export const registerObsRoutes: RouteModule = (app) => {
   });
 
   app.post("/api/actions/obs/text", async (req, reply) => {
-    const body = req.body as ObsTextBody;
+    const body = parseBody(reply, ObsTextBodySchema, req.body);
+    if (!body) return;
     const inputName = body.inputName?.trim();
     if (!inputName || body.text == null) return reply.status(400).send(actionError("TEXT_INPUT_REQUIRED", "Missing Text", "inputName and text are required"));
     const ok = await setObsText(inputName, body.text);
@@ -236,7 +245,8 @@ export const registerObsRoutes: RouteModule = (app) => {
   });
 
   app.post("/api/actions/obs/input-settings", async (req, reply) => {
-    const body = req.body as ObsInputSettingsBody;
+    const body = parseBody(reply, ObsInputSettingsBodySchema, req.body);
+    if (!body) return;
     const inputName = body.inputName?.trim();
     if (!inputName || !body.inputSettings || typeof body.inputSettings !== "object") return reply.status(400).send(actionError("INPUT_SETTINGS_REQUIRED", "Missing Settings", "inputName and inputSettings are required"));
     const ok = await setObsInputSettings(inputName, body.inputSettings, body.overlay ?? true);

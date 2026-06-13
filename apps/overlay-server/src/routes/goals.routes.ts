@@ -1,11 +1,13 @@
 import { getGoal, getGoals, updateGoal } from "../db.js";
 import type { RouteModule } from "./types.js";
+import { GoalUpdateBodySchema, parseBody } from "../schemas/request.schema.js";
 
 export const registerGoalsRoutes: RouteModule = (app, ctx) => {
   app.get("/api/goals", async () => getGoals());
-  app.put("/api/goals/:id", async (req) => {
+  app.put("/api/goals/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const body = req.body as { current?: number; target?: number; label?: string };
+    const body = parseBody(reply, GoalUpdateBodySchema, req.body);
+    if (!body) return;
     const g = getGoal(id);
     if (!g) return { error: "Not found" };
     updateGoal(id, body.current ?? g.current_count, body.target ?? g.target_count, body.label);

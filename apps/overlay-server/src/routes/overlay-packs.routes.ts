@@ -13,6 +13,7 @@ import {
 } from "../db.js";
 import type { ObsBrowserSourceCanvas, ObsBrowserSourceLayout } from "../schemas/obs.schema.js";
 import type { RouteModule } from "./types.js";
+import { ImportPackBodySchema, OptionalTextBodySchema, parseBody } from "../schemas/request.schema.js";
 
 const OVERLAY_PACKS_KEY = "overlay_packs";
 const BROWSER_SOURCE_LAYOUTS_KEY = "obs_browser_source_layouts";
@@ -78,7 +79,8 @@ export const registerOverlayPacksRoutes: RouteModule = (app) => {
   });
 
   app.post("/api/overlay-packs", async (req, reply) => {
-    const body = req.body as { name?: string; description?: string } | undefined;
+    const body = parseBody(reply, OptionalTextBodySchema, req.body);
+    if (!body) return;
     const name = typeof body?.name === "string" ? body.name.trim() : "";
     if (!name) return reply.status(400).send({ error: "Pack name is required" });
 
@@ -124,7 +126,8 @@ export const registerOverlayPacksRoutes: RouteModule = (app) => {
   });
 
   app.post("/api/overlay-packs/import", async (req, reply) => {
-    const body = req.body as { pack?: OverlayPackExport | OverlayPack } | undefined;
+    const body = parseBody(reply, ImportPackBodySchema, req.body);
+    if (!body) return;
     const imported = normalizeImportedPack(body?.pack);
     if (!imported) return reply.status(400).send({ error: "Valid overlay pack export is required" });
 

@@ -33,6 +33,13 @@ import {
   handleTwitchCallback,
 } from "../twitch-service.js";
 import type { ServerContext } from "./types.js";
+import {
+  GiphyKeyBodySchema,
+  IntegrationCredentialsBodySchema,
+  OAuthHostBodySchema,
+  ObsIntegrationBodySchema,
+  parseBody,
+} from "../schemas/request.schema.js";
 
 export function registerIntegrationsRoutes(app: FastifyInstance, oauthApp: FastifyInstance, ctx: ServerContext): void {
   app.get("/api/integrations", async (_req, reply) => {
@@ -62,8 +69,9 @@ export function registerIntegrationsRoutes(app: FastifyInstance, oauthApp: Fasti
     }
   });
 
-  app.put("/api/integrations/oauth-host", async (req) => {
-    const body = req.body as { host: string };
+  app.put("/api/integrations/oauth-host", async (req, reply) => {
+    const body = parseBody(reply, OAuthHostBodySchema, req.body);
+    if (!body) return;
     setOAuthHost(body.host);
     return {
       ok: true,
@@ -73,24 +81,27 @@ export function registerIntegrationsRoutes(app: FastifyInstance, oauthApp: Fasti
     };
   });
 
-  app.put("/api/integrations/twitch", async (req) => {
-    const body = req.body as { clientId: string; clientSecret?: string };
+  app.put("/api/integrations/twitch", async (req, reply) => {
+    const body = parseBody(reply, IntegrationCredentialsBodySchema, req.body);
+    if (!body) return;
     setSetting("twitch_client_id", body.clientId);
     if (body.clientSecret?.trim()) setEncryptedSetting("twitch_client_secret", body.clientSecret);
     logSystem("twitch", "info", "Twitch credentials saved", { hasClientSecret: Boolean(body.clientSecret?.trim()) });
     return { ok: true, redirectUri: getTwitchRedirectUri() };
   });
 
-  app.put("/api/integrations/spotify", async (req) => {
-    const body = req.body as { clientId: string; clientSecret?: string };
+  app.put("/api/integrations/spotify", async (req, reply) => {
+    const body = parseBody(reply, IntegrationCredentialsBodySchema, req.body);
+    if (!body) return;
     setSetting("spotify_client_id", body.clientId);
     if (body.clientSecret?.trim()) setEncryptedSetting("spotify_client_secret", body.clientSecret);
     logSystem("spotify", "info", "Spotify credentials saved", { hasClientSecret: Boolean(body.clientSecret?.trim()) });
     return { ok: true };
   });
 
-  app.put("/api/integrations/obs", async (req) => {
-    const body = req.body as { host: string; port: number; password?: string };
+  app.put("/api/integrations/obs", async (req, reply) => {
+    const body = parseBody(reply, ObsIntegrationBodySchema, req.body);
+    if (!body) return;
     setSetting("obs_host", body.host);
     setSetting("obs_port", String(body.port));
     if (body.password?.trim()) setEncryptedSetting("obs_password", body.password);
@@ -103,8 +114,9 @@ export function registerIntegrationsRoutes(app: FastifyInstance, oauthApp: Fasti
     return { ok };
   });
 
-  app.put("/api/integrations/giphy", async (req) => {
-    const body = req.body as { apiKey?: string };
+  app.put("/api/integrations/giphy", async (req, reply) => {
+    const body = parseBody(reply, GiphyKeyBodySchema, req.body);
+    if (!body) return;
     if (body.apiKey?.trim()) {
       setEncryptedSetting("giphy_api_key", body.apiKey.trim());
       logSystem("giphy", "info", "GIPHY API key saved", { configured: true });

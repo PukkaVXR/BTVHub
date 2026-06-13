@@ -18,6 +18,8 @@ import {
   type ChatQuote,
 } from "./db.js";
 import { sendTwitchChatMessage } from "./twitch-service.js";
+import { parseChatCommandText } from "./chat-command-utils.js";
+import { renderTemplate } from "./template-utils.js";
 
 export interface ChatCommandResult {
   matched: boolean;
@@ -30,14 +32,9 @@ const lastCommandUse = new Map<string, number>();
 
 export async function runChatCommandFromEvent(event: StreamEvent): Promise<ChatCommandResult> {
   if (event.type !== "chat") return { matched: false, sent: false };
-  const message = event.message?.trim() ?? "";
-  if (!message.startsWith("!")) return { matched: false, sent: false };
-
-  const [commandToken] = message.split(/\s+/);
-  if (!commandToken) return { matched: false, sent: false };
-
-  const trigger = commandToken.toLowerCase();
-  const args = message.slice(commandToken.length).trim();
+  const parsed = parseChatCommandText(event.message ?? "");
+  if (!parsed) return { matched: false, sent: false };
+  const { command: trigger, args, token: commandToken } = parsed;
   const command = getChatCommandByTrigger(trigger);
   if (!command && trigger === "!points") return runPointsCommand(event);
   if (!command && trigger === "!quote") return runQuoteCommand(args);
@@ -303,10 +300,7 @@ function renderCommandResponse(
     nextCount: String(command.useCount + 1),
   };
 
-  return template.replace(/\{(user|displayName|login|command|trigger|args|count|nextCount)\}/gi, (match, key: string) => {
-    const value = replacements[key] ?? replacements[key.toLowerCase()];
-    return value ?? match;
-  });
+  return renderTemplate(template, replacements);
 }
 
 function getCooldownRemaining(command: ChatCommand): number {

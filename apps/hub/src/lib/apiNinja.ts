@@ -1,3 +1,5 @@
+import { downloadBlob, downloadJsonFile } from "./browserDownloads";
+
 export type ApiNinjaMethod = "GET" | "POST";
 
 export interface ApiNinjaButtonInput {
@@ -73,15 +75,7 @@ export function safeNinjaFileName(value: string): string {
 }
 
 export function downloadApiNinjaButton(input: ApiNinjaButtonInput): void {
-  const blob = new Blob([JSON.stringify(createApiNinjaButton(input))], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = safeNinjaFileName(input.title);
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
+  downloadJsonFile(safeNinjaFileName(input.title), createApiNinjaButton(input), false);
 }
 
 function uuid(): string {
@@ -465,13 +459,5 @@ export async function downloadStreamDeckAction(input: ApiNinjaButtonInput): Prom
   ];
 
   const zip = createZip(entries);
-  const blob = new Blob([toArrayBuffer(zip)], { type: "application/zip" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = streamDeckPackageFileName(input.title);
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
+  downloadBlob(streamDeckPackageFileName(input.title), new Blob([toArrayBuffer(zip)], { type: "application/zip" }));
 }

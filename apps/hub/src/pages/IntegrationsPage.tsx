@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, type IntegrationsInfo } from "../api";
 import { useToast } from "../hooks/useToast";
+import { overlayUrl } from "../lib/serverUrls";
 import {
   Button,
   ButtonAnchor,
@@ -397,7 +398,7 @@ export default function IntegrationsPage() {
             >
               Save credentials
             </Button>
-            <ButtonAnchor href={info?.spotify.authStartUrl ?? "http://127.0.0.1:4782/auth/spotify"} variant="primary" size="sm" target="_blank" rel="noreferrer">
+            <ButtonAnchor href={info?.spotify.authStartUrl ?? overlayUrl("/auth/spotify")} variant="primary" size="sm" target="_blank" rel="noreferrer">
               Connect Spotify
             </ButtonAnchor>
             {info?.spotify.connected ? (

@@ -6,6 +6,7 @@ import MediaPicker from "../components/MediaPicker";
 import { SaveIndicator } from "../hooks/SaveIndicator";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useToast } from "../hooks/useToast";
+import { resolveOverlayOrigin } from "../lib/serverUrls";
 import { Button, ButtonAnchor, Callout, Card, CardHeader, PageHeader, StatusPill } from "../ui";
 
 const TICKER_EVENT_TYPES = ["follow", "sub", "resub", "gift_sub", "cheer", "raid", "channel_points", "chat", "goal_milestone"];
@@ -177,7 +178,7 @@ export default function WidgetsPage() {
     }
   };
 
-  const overlayOrigin = window.location.origin.replace("4781", "4782");
+  const overlayOrigin = resolveOverlayOrigin();
 
   return (
     <>
@@ -307,7 +308,7 @@ export default function WidgetsPage() {
           <label>Overlay background image</label>
           <MediaPicker value={overlayTheme.backgroundImage.replace(/^\/assets\//, "")} onChange={(path) => updateTheme({ backgroundImage: path ? `/assets/${path}` : "" })} />
           {overlayTheme.backgroundImage && (
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => updateTheme({ backgroundImage: "" })}>
+            <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => updateTheme({ backgroundImage: "" })}>
               Remove background image
             </button>
           )}
@@ -322,7 +323,7 @@ export default function WidgetsPage() {
         </div>
 
         <div className="actions">
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setOverlayTheme(DEFAULT_OVERLAY_THEME)}>
+          <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => setOverlayTheme(DEFAULT_OVERLAY_THEME)}>
             Reset theme
           </button>
         </div>
@@ -467,7 +468,7 @@ export default function WidgetsPage() {
                     </label>
                     <button
                       type="button"
-                      className="btn btn-secondary btn-sm"
+                      className="ui-button ui-button--secondary ui-button--sm"
                       onClick={() => updateWidgetTheme(target.id, {
                         accentColor: undefined,
                         textColor: undefined,
@@ -494,7 +495,7 @@ export default function WidgetsPage() {
                       onChange={(path) => updateWidgetTheme(target.id, { backgroundImage: path ? `/assets/${path}` : undefined })}
                     />
                     {item.backgroundImage && (
-                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => updateWidgetTheme(target.id, { backgroundImage: undefined })}>
+                      <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => updateWidgetTheme(target.id, { backgroundImage: undefined })}>
                         Remove background image
                       </button>
                     )}

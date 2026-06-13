@@ -8,6 +8,7 @@ import {
   upsertChatQuote,
 } from "../db.js";
 import { chatQuoteFromBody, validateChatQuote } from "../schemas/chat-quote.schema.js";
+import { parseBody, UnknownRecordBodySchema } from "../schemas/request.schema.js";
 import type { RouteModule } from "./types.js";
 
 export const registerChatQuotesRoutes: RouteModule = (app) => {
@@ -22,7 +23,9 @@ export const registerChatQuotesRoutes: RouteModule = (app) => {
 
   app.put("/api/chat-quotes/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const quote = chatQuoteFromBody(id, req.body as ReturnType<typeof getChatQuotes>[number]);
+    const body = parseBody(reply, UnknownRecordBodySchema, req.body);
+    if (!body) return;
+    const quote = chatQuoteFromBody(id, body as unknown as ReturnType<typeof getChatQuotes>[number]);
     const error = validateChatQuote(quote);
     if (error) return reply.status(400).send({ ok: false, message: error });
     const existing = getChatQuoteByNumber(quote.quoteNumber);

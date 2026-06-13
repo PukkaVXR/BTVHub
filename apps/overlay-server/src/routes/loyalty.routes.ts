@@ -5,6 +5,7 @@ import {
   setLoyaltyViewerPoints,
 } from "../db.js";
 import type { RouteModule } from "./types.js";
+import { LoyaltyUpdateBodySchema, parseBody } from "../schemas/request.schema.js";
 
 export const registerLoyaltyRoutes: RouteModule = (app) => {
   app.get("/api/loyalty/viewers", async (req) => {
@@ -21,7 +22,8 @@ export const registerLoyaltyRoutes: RouteModule = (app) => {
 
   app.post("/api/loyalty/viewers/:id/points", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const body = req.body as { points?: unknown; delta?: unknown; mode?: unknown };
+    const body = parseBody(reply, LoyaltyUpdateBodySchema, req.body);
+    if (!body) return;
     const mode = body.mode === "set" ? "set" : "adjust";
     const value = Number(mode === "set" ? body.points : body.delta);
     if (!Number.isFinite(value)) return reply.status(400).send({ ok: false, message: "Point value is required." });

@@ -189,10 +189,13 @@ export default function AlertProjectsPage() {
   const createProject = async () => {
     const next = createStarterProject();
     setBusyProjectId(next.id);
+    setError("");
     try {
       await api.saveAlertProject(next);
       setProjects((current) => [next, ...current]);
       navigate(`/alerts/${encodeURIComponent(next.id)}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create alert project");
     } finally {
       setBusyProjectId("");
     }
@@ -201,10 +204,13 @@ export default function AlertProjectsPage() {
   const duplicateProject = async (project: AlertProject) => {
     const next = cloneProject(project);
     setBusyProjectId(project.id);
+    setError("");
     try {
       await api.saveAlertProject(next);
       setProjects((current) => [next, ...current]);
       navigate(`/alerts/${encodeURIComponent(next.id)}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not duplicate alert project");
     } finally {
       setBusyProjectId("");
     }
@@ -213,9 +219,12 @@ export default function AlertProjectsPage() {
   const deleteProject = async (project: AlertProject) => {
     if (!window.confirm(`Delete alert project "${project.name}"?`)) return;
     setBusyProjectId(project.id);
+    setError("");
     try {
       await api.deleteAlertProject(project.id);
       setProjects((current) => current.filter((item) => item.id !== project.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete alert project");
     } finally {
       setBusyProjectId("");
     }

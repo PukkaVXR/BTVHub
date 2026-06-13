@@ -1,11 +1,14 @@
-import type { Effect } from "@btv/shared";
+import { EffectSchema } from "@btv/shared";
 import { deleteEffect, getEffects, upsertEffect } from "../db.js";
 import type { RouteModule } from "./types.js";
+import { parseBody } from "../schemas/request.schema.js";
 
 export const registerEffectsRoutes: RouteModule = (app, ctx) => {
   app.get("/api/effects", async () => getEffects());
-  app.put("/api/effects/:id", async (req) => {
-    upsertEffect(req.body as Effect);
+  app.put("/api/effects/:id", async (req, reply) => {
+    const body = parseBody(reply, EffectSchema, req.body);
+    if (!body) return;
+    upsertEffect(body);
     return { ok: true };
   });
   app.delete("/api/effects/:id", async (req) => {

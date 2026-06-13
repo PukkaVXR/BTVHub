@@ -1,5 +1,6 @@
 import { getSetting, setSetting } from "../db.js";
 import type { RouteModule } from "./types.js";
+import { parseBody, UnknownRecordBodySchema } from "../schemas/request.schema.js";
 
 const OVERLAY_THEME_KEY = "overlay_theme";
 
@@ -72,8 +73,10 @@ const DEFAULT_THEME: OverlayThemeConfig = {
 export const registerOverlayThemeRoutes: RouteModule = (app) => {
   app.get("/api/overlay-theme", async () => readOverlayTheme());
 
-  app.put("/api/overlay-theme", async (req) => {
-    const next = normalizeOverlayTheme(req.body as Partial<OverlayThemeConfig> | undefined);
+  app.put("/api/overlay-theme", async (req, reply) => {
+    const body = parseBody(reply, UnknownRecordBodySchema, req.body);
+    if (!body) return;
+    const next = normalizeOverlayTheme(body as Partial<OverlayThemeConfig>);
     setSetting(OVERLAY_THEME_KEY, JSON.stringify(next));
     return { ok: true, theme: next };
   });

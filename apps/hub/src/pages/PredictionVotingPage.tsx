@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { api, type PredictionOption, type PredictionState } from "../api";
 import { useToast } from "../hooks/useToast";
+import { overlayUrl } from "../lib/serverUrls";
 import { Button, Card, CardHeader, CopyField, EmptyState, PageHeader, StatusPill } from "../ui";
 
-const OVERLAY_URL = "http://127.0.0.1:4782/o/prediction.html";
+const OVERLAY_URL = overlayUrl("/o/prediction.html");
 
 function clampVotes(value: number): number {
   return Math.max(0, Math.min(999999, Math.round(value)));

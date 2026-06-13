@@ -1,9 +1,10 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { api, type TournamentScoreboardState, type TournamentScoreboardTeam } from "../api";
 import { useToast } from "../hooks/useToast";
+import { overlayUrl } from "../lib/serverUrls";
 import { Button, Card, CardHeader, CopyField, EmptyState, PageHeader } from "../ui";
 
-const OVERLAY_URL = "http://127.0.0.1:4782/o/tournament-scoreboard.html";
+const OVERLAY_URL = overlayUrl("/o/tournament-scoreboard.html");
 
 function clampScore(value: number): number {
   return Math.max(0, Math.min(999, value));

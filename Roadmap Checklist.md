@@ -47,7 +47,7 @@ Goal: pause feature expansion long enough to harden the trust boundary, reliabil
 
 ### P2: Maintainability And Architecture
 
-- [ ] Split `apps/overlay-server/src/db.ts` into per-domain repository modules.
+- [x] Split `apps/overlay-server/src/db.ts` into per-domain repository modules.
   - [x] Extract automation persistence into `apps/overlay-server/src/repositories/automation.repository.ts`.
   - [x] Extract source group persistence into `apps/overlay-server/src/repositories/source-groups.repository.ts`.
   - [x] Extract activity and system log persistence into `apps/overlay-server/src/repositories/logs.repository.ts`.
@@ -64,16 +64,45 @@ Goal: pause feature expansion long enough to harden the trust boundary, reliabil
   - [x] Extract loyalty viewer persistence into `apps/overlay-server/src/repositories/loyalty.repository.ts`.
   - [x] Extract viewer queue persistence into `apps/overlay-server/src/repositories/viewer-queue.repository.ts`.
   - [x] Extract giveaway persistence into `apps/overlay-server/src/repositories/giveaways.repository.ts`.
-- [ ] Decompose `AlertEditorPage.tsx` into canvas, layers, assets, preview, persistence, and inspector modules.
-- [ ] Split large multi-feature pages such as `AutomationsPage`, `CommandsPage`, and `StreamDeckRequestBuilder`.
-- [ ] Extract a shared action executor for macros, automations, effects, and scheduled actions.
-- [ ] Consolidate duplicated template interpolation and command parsing helpers.
-- [ ] Add a data-fetching layer or shared fetch hooks to reduce duplicate polling and retry logic.
-- [ ] Add shared frontend helpers for overlay origin resolution and JSON downloads.
-- [ ] Add Zod schemas for remaining route bodies that still use unchecked `req.body` casts.
-- [ ] Continue UI system migration and retire legacy `.btn` usage.
-- [ ] Split `styles.css` into smaller feature/style-system files.
-- [ ] Add Vite manual chunks for large optional editor surfaces.
+  - [x] Extract mini-game run persistence into `apps/overlay-server/src/repositories/mini-games.repository.ts`.
+- [x] Decompose `AlertEditorPage.tsx` into canvas, layers, assets, preview, persistence, and inspector modules.
+  - [x] Extract preview rendering, media URL resolution, keyframe interpolation, selection handles, and the preview error boundary into `apps/hub/src/components/alerts/AlertPreview.tsx`.
+  - [x] Extract local asset browsing, uploads, media previews, and GIPHY discovery into `apps/hub/src/components/alerts/AlertAssetLibrary.tsx`.
+  - [x] Extract layer creation, selection, ordering, duplication, deletion, and project checks into `apps/hub/src/components/alerts/AlertLayersPanel.tsx`.
+  - [x] Extract the canvas workspace, fit-to-window behavior, preview controls, safe zones, and timeline into `apps/hub/src/components/alerts/AlertCanvasWorkspace.tsx`.
+  - [x] Extract OBS event testing, variation targeting, audio testing, and payload validation into `apps/hub/src/components/alerts/AlertTestInspector.tsx`.
+  - [x] Extract common layer transforms, alignment, animation, appearance, timing, and keyframe controls into `apps/hub/src/components/alerts/AlertLayerInspector.tsx`.
+  - [x] Extract text, shape, particle, browser, media, audio/reactive, and video controls into `apps/hub/src/components/alerts/AlertLayerTypeInspector.tsx`.
+  - [x] Extract project metadata, event, duration, canvas size, and canvas presets into `apps/hub/src/components/alerts/AlertProjectInspector.tsx`.
+  - [x] Extract project normalization, resource loading, save/test persistence, import validation, export downloads, and dirty signatures into `apps/hub/src/components/alerts/alertProjectPersistence.ts`.
+- [x] Split large multi-feature pages such as `AutomationsPage`, `CommandsPage`, and `StreamDeckRequestBuilder`.
+  - [x] Extract the scheduled automation editor and configured jobs table into `apps/hub/src/components/automations/ScheduledAutomationsPanel.tsx`.
+  - [x] Extract automation run history into `apps/hub/src/components/automations/AutomationRunHistory.tsx`.
+  - [x] Extract the event-rule navigator and rule summary formatting into `apps/hub/src/components/automations/EventRuleList.tsx`.
+  - [x] Extract the typed event-rule conditions builder into `apps/hub/src/components/automations/EventRuleConditionsEditor.tsx`.
+  - [x] Extract the event-rule trigger and chat-command selector into `apps/hub/src/components/automations/EventRuleTriggerEditor.tsx`.
+  - [x] Extract event-rule testing, save/run controls, results, and advanced payload editing into `apps/hub/src/components/automations/EventRuleTestControls.tsx`.
+  - [x] Extract the complete typed event-rule action builder into `apps/hub/src/components/automations/EventRuleActionsEditor.tsx`.
+  - [x] Extract the mini-game overview and recent results from `CommandsPage` into `apps/hub/src/components/commands/CommandsMiniGamesPanel.tsx`.
+  - [x] Extract the loyalty leaderboard and balance manager from `CommandsPage` into `apps/hub/src/components/commands/CommandsLoyaltyPanel.tsx`.
+  - [x] Extract giveaway management and raffle controls from `CommandsPage` into `apps/hub/src/components/commands/CommandsGiveawayPanel.tsx`.
+  - [x] Extract viewer queue management and manual entry controls from `CommandsPage` into `apps/hub/src/components/commands/CommandsViewerQueuePanel.tsx`.
+  - [x] Extract the quote book list and editor from `CommandsPage` into `apps/hub/src/components/commands/CommandsQuotesPanel.tsx`.
+  - [x] Extract chat timer scheduling, testing, and editing from `CommandsPage` into `apps/hub/src/components/commands/CommandsTimersPanel.tsx`.
+  - [x] Extract command navigation, editing, testing, and deletion from `CommandsPage` into `apps/hub/src/components/commands/CommandsManagerPanel.tsx`.
+  - [x] Extract generated request details, exports, clipboard status, and test results from `StreamDeckRequestBuilder` into `apps/hub/src/components/streamDeck/StreamDeckExportPanel.tsx`.
+  - [x] Extract Stream Deck action presets and grouped action navigation into `apps/hub/src/components/streamDeck/StreamDeckActionPicker.tsx` with shared builder contracts.
+  - [x] Extract macro, alert, emergency, OBS, motion, text, and status behaviour controls from `StreamDeckRequestBuilder` into `apps/hub/src/components/streamDeck/StreamDeckBehaviorConfigurator.tsx`.
+  - [x] Extract Stream Deck key preview, visual presets, text, background images, focal controls, colours, and effects into `apps/hub/src/components/streamDeck/StreamDeckKeyDesigner.tsx`.
+  - [x] Extract Stream Deck HTTP request generation, warnings, API Ninja configuration, and export payload mapping into `apps/hub/src/components/streamDeck/streamDeckRequestGenerator.ts`.
+- [x] Extract a shared action executor for macros, automations, effects, and scheduled actions.
+- [x] Consolidate duplicated template interpolation and command parsing helpers.
+- [x] Add a data-fetching layer or shared fetch hooks to reduce duplicate polling and retry logic.
+- [x] Add shared frontend helpers for overlay origin resolution and JSON downloads.
+- [x] Add Zod schemas for remaining route bodies that still use unchecked `req.body` casts.
+- [x] Continue UI system migration and retire legacy `.btn` usage.
+- [x] Split `styles.css` into smaller feature/style-system files.
+- [x] Add Vite manual chunks for large optional editor surfaces.
 
 ### P3: Engineering Process And Product Polish
 

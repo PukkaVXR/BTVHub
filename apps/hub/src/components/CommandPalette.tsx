@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useToast } from "../hooks/useToast";
 import { GLOBAL_HOTKEYS, matchesHotkey } from "../lib/hotkeys";
+import { overlayUrl } from "../lib/serverUrls";
 
 type CommandKind = "navigate" | "action";
 
@@ -15,13 +16,6 @@ interface Command {
   kind: CommandKind;
   path?: string;
   run?: () => Promise<void>;
-}
-
-function overlayOrigin(): string {
-  if (window.location.port === "4781") {
-    return window.location.origin.replace("4781", "4782");
-  }
-  return window.location.origin;
 }
 
 function fuzzyScore(command: Command, needle: string): number {
@@ -114,7 +108,7 @@ export function CommandPalette() {
         keywords: "copy obs browser source alerts url",
         kind: "action",
         run: async () => {
-          await navigator.clipboard.writeText(`${overlayOrigin().replace(/\/$/, "")}/o/alerts.html`);
+          await navigator.clipboard.writeText(overlayUrl("/o/alerts.html"));
           toast({ message: "Alerts browser source URL copied", tone: "success" });
         },
       },

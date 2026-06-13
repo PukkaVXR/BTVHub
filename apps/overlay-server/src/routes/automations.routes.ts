@@ -1,4 +1,4 @@
-import { createStreamEvent, type StreamEventType } from "@btv/shared";
+import { createStreamEvent } from "@btv/shared";
 import {
   deleteAutomation,
   deleteAutomationRule,
@@ -12,13 +12,16 @@ import {
   type AutomationConfig,
 } from "../db.js";
 import { automationFromBody, AutomationRuleSchema } from "../schemas/automation.schema.js";
+import { CoreEventDispatchBodySchema, parseBody, StreamEventTestBodySchema, UnknownRecordBodySchema } from "../schemas/request.schema.js";
 import type { RouteModule } from "./types.js";
 
 export const registerAutomationsRoutes: RouteModule = (app, ctx) => {
   app.get("/api/automations", async () => getAutomations());
-  app.put("/api/automations/:id", async (req) => {
+  app.put("/api/automations/:id", async (req, reply) => {
     const id = (req.params as { id: string }).id;
-    const automation = automationFromBody(id, req.body as Partial<AutomationConfig>, getAutomation(id));
+    const body = parseBody(reply, UnknownRecordBodySchema, req.body);
+    if (!body) return;
+    const automation = automationFromBody(id, body as Partial<AutomationConfig>, getAutomation(id));
     upsertAutomation(automation);
     ctx.automationScheduler.reschedule(id);
     return { ok: true, automation: getAutomation(id) };
@@ -52,6 +55,8 @@ export const registerAutomationsRoutes: RouteModule = (app, ctx) => {
     const id = (req.params as { id: string }).id;
     const existing = getAutomationRule(id);
     const now = new Date().toISOString();
+    const body = parseBody(reply, UnknownRecordBodySchema, req.body);
+    if (!body) return;
     const parsed = AutomationRuleSchema.safeParse({
       id,
       name: "Untitled event rule",
@@ -66,7 +71,7 @@ export const registerAutomationsRoutes: RouteModule = (app, ctx) => {
       lastMessage: existing?.lastMessage,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
-      ...(req.body as Record<string, unknown>),
+      ...body,
     });
     if (!parsed.success) return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid automation rule" });
     upsertAutomationRule(parsed.data);
@@ -89,13 +94,8 @@ export const registerAutomationsRoutes: RouteModule = (app, ctx) => {
     });
   });
   app.post("/api/automation-rules/:id/test", async (req, reply) => {
-    const body = req.body as {
-      type?: StreamEventType;
-      user?: { id?: string; login?: string; displayName?: string };
-      message?: string;
-      amount?: number;
-      payload?: Record<string, unknown>;
-    };
+    const body = parseBody(reply, StreamEventTestBodySchema, req.body);
+    if (!body) return;
     try {
       const event = createStreamEvent({
         source: "manual",
@@ -128,13 +128,8 @@ export const registerAutomationsRoutes: RouteModule = (app, ctx) => {
     }
   });
   app.post("/api/events/test", async (req, reply) => {
-    const body = req.body as {
-      type?: StreamEventType;
-      user?: { id?: string; login?: string; displayName?: string };
-      message?: string;
-      amount?: number;
-      payload?: Record<string, unknown>;
-    };
+    const body = parseBody(reply, StreamEventTestBodySchema, req.body);
+    if (!body) return;
     try {
       const event = createStreamEvent({
         source: "manual",
@@ -157,8 +152,9 @@ export const registerAutomationsRoutes: RouteModule = (app, ctx) => {
       return reply.status(400).send({ error: err instanceof Error ? err.message : "Test event failed" });
     }
   });
-  app.post("/api/events/dispatch", async (req) => {
-    const body = req.body as { type?: string; payload?: unknown; metadata?: Record<string, unknown> };
+  app.post("/api/events/dispatch", async (req, reply) => {
+    const body = parseBody(reply, CoreEventDispatchBodySchema, req.body);
+    if (!body) return;
     const event = {
       id: crypto.randomUUID(),
       type: body.type?.trim() || "dashboard.manual",

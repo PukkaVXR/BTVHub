@@ -214,16 +214,16 @@ export default function WebhooksPage() {
             />
           </div>
           <div className="actions" style={{ marginBottom: 12 }}>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setActionConfigJson(JSON.stringify(configTemplate("alert"), null, 2))}>
+            <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => setActionConfigJson(JSON.stringify(configTemplate("alert"), null, 2))}>
               Alert config
             </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setActionConfigJson(JSON.stringify(configTemplate("goal_increment"), null, 2))}>
+            <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => setActionConfigJson(JSON.stringify(configTemplate("goal_increment"), null, 2))}>
               Goal config
             </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setActionConfigJson(JSON.stringify(configTemplate("effect"), null, 2))}>
+            <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => setActionConfigJson(JSON.stringify(configTemplate("effect"), null, 2))}>
               Effect config
             </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setActionConfigJson(JSON.stringify(configTemplate("macro"), null, 2))}>
+            <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => setActionConfigJson(JSON.stringify(configTemplate("macro"), null, 2))}>
               Macro config
             </button>
           </div>

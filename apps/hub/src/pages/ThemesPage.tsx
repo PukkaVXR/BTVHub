@@ -236,16 +236,16 @@ export default function ThemesPage() {
             </option>
           ))}
         </select>
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => void saveTheme()} disabled={!selected || saving}>
+        <button type="button" className="ui-button ui-button--primary ui-button--sm" onClick={() => void saveTheme()} disabled={!selected || saving}>
           {saving ? "Saving…" : "Save theme"}
         </button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={createNew}>
+        <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={createNew}>
           New theme
         </button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={duplicateTheme} disabled={!selected}>
+        <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={duplicateTheme} disabled={!selected}>
           Duplicate
         </button>
-        <button type="button" className="btn btn-danger btn-sm" onClick={() => void removeTheme()} disabled={!selected}>
+        <button type="button" className="ui-button ui-button--danger ui-button--sm" onClick={() => void removeTheme()} disabled={!selected}>
           Delete
         </button>
       </div>
@@ -263,14 +263,14 @@ export default function ThemesPage() {
             <div className="actions" style={{ marginBottom: 0 }}>
               <button
                 type="button"
-                className={`btn btn-sm ${pageTab === "design" ? "btn-primary" : "btn-secondary"}`}
+                className={`ui-button ui-button--sm ${pageTab === "design" ? "ui-button--primary" : "ui-button--secondary"}`}
                 onClick={() => setPageTab("design")}
               >
                 Design
               </button>
               <button
                 type="button"
-                className={`btn btn-sm ${pageTab === "advanced" ? "btn-primary" : "btn-secondary"}`}
+                className={`ui-button ui-button--sm ${pageTab === "advanced" ? "ui-button--primary" : "ui-button--secondary"}`}
                 onClick={() => setPageTab("advanced")}
               >
                 Advanced
@@ -429,7 +429,7 @@ export default function ThemesPage() {
                       <button
                         key={t}
                         type="button"
-                        className={`btn btn-sm ${codeTab === t ? "btn-primary" : "btn-secondary"}`}
+                        className={`ui-button ui-button--sm ${codeTab === t ? "ui-button--primary" : "ui-button--secondary"}`}
                         onClick={() => setCodeTab(t)}
                       >
                         {t.toUpperCase()}
@@ -463,7 +463,7 @@ export default function ThemesPage() {
                   <button
                     key={t}
                     type="button"
-                    className={`btn btn-sm ${previewType === t ? "btn-primary" : "btn-secondary"}`}
+                    className={`ui-button ui-button--sm ${previewType === t ? "ui-button--primary" : "ui-button--secondary"}`}
                     onClick={() => setPreviewType(t)}
                   >
                     {t}

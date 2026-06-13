@@ -1,6 +1,7 @@
 import { deleteChatCommand, getChatCommand, getChatCommandByTrigger, getChatCommands, upsertChatCommand } from "../db.js";
 import { chatCommandFromBody, validateChatCommand } from "../schemas/chat-command.schema.js";
 import { sendTwitchChatMessage } from "../twitch-service.js";
+import { parseBody, UnknownRecordBodySchema } from "../schemas/request.schema.js";
 import type { RouteModule } from "./types.js";
 
 export const registerChatCommandsRoutes: RouteModule = (app) => {
@@ -8,7 +9,9 @@ export const registerChatCommandsRoutes: RouteModule = (app) => {
 
   app.put("/api/chat-commands/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const command = chatCommandFromBody(id, req.body as ReturnType<typeof getChatCommands>[number]);
+    const body = parseBody(reply, UnknownRecordBodySchema, req.body);
+    if (!body) return;
+    const command = chatCommandFromBody(id, body as unknown as ReturnType<typeof getChatCommands>[number]);
     const error = validateChatCommand(command);
     if (error) return reply.status(400).send({ ok: false, message: error });
     for (const trigger of [command.command, ...command.aliases]) {

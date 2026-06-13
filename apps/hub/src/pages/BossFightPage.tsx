@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { api, type BossFightState } from "../api";
 import { useToast } from "../hooks/useToast";
+import { overlayUrl } from "../lib/serverUrls";
 import { Button, Card, CardHeader, CopyField, EmptyState, PageHeader, StatusPill } from "../ui";
 
-const OVERLAY_URL = "http://127.0.0.1:4782/o/boss-fight.html";
+const OVERLAY_URL = overlayUrl("/o/boss-fight.html");
 const QUICK_AMOUNTS = [10, 25, 50, 100];
 
 function clampNumber(value: number, min: number, max: number): number {

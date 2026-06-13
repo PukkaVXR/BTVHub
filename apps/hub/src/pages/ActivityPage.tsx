@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { BtvEvent, StreamEvent, StreamEventType } from "@btv/shared";
 import { api, type StreamSession, type StreamSessionDetail, type SystemLogEntry } from "../api";
 import { useToast } from "../hooks/useToast";
+import { usePollingQuery } from "../hooks/usePollingQuery";
 import { Button, ButtonAnchor, ButtonLink, Card, CardHeader, EmptyState, PageHeader, StatusPill } from "../ui";
 
 type ActivityItem = { id: string; event: StreamEvent; at: string };
@@ -85,31 +86,32 @@ function eventTone(event: StreamEvent): "success" | "warning" | "danger" | "info
 
 export default function ActivityPage() {
   const toast = useToast();
-  const [items, setItems] = useState<ActivityItem[]>([]);
-  const [coreEvents, setCoreEvents] = useState<BtvEvent[]>([]);
-  const [logs, setLogs] = useState<SystemLogEntry[]>([]);
-  const [sessions, setSessions] = useState<StreamSession[]>([]);
   const [selected, setSelected] = useState<StreamSessionDetail | null>(null);
   const [activityFilter, setActivityFilter] = useState<(typeof ACTIVITY_FILTERS)[number]["id"]>("all");
-
-  const load = () => {
-    void Promise.all([api.activity(), api.sessions(), api.logs(), api.coreEvents()]).then(([activity, sessionList, logList, eventList]) => {
-      setItems(activity);
-      setSessions(sessionList.sessions);
-      setLogs(logList);
-      setCoreEvents(eventList);
-      const selectedId = selected?.summary.session?.id;
-      if (selectedId) {
-        void api.sessionDetail(selectedId).then(setSelected);
-      }
-    });
-  };
+  const { data, refresh } = usePollingQuery({
+    query: async () => {
+      const [items, sessionList, logs, coreEvents] = await Promise.all([
+        api.activity(),
+        api.sessions(),
+        api.logs(),
+        api.coreEvents(),
+      ]);
+      return { items, sessions: sessionList.sessions, logs, coreEvents };
+    },
+    initialData: {
+      items: [] as ActivityItem[],
+      sessions: [] as StreamSession[],
+      logs: [] as SystemLogEntry[],
+      coreEvents: [] as BtvEvent[],
+    },
+    intervalMs: 5_000,
+  });
+  const { items, sessions, logs, coreEvents } = data;
 
   useEffect(() => {
-    load();
-    const t = setInterval(load, 5000);
-    return () => clearInterval(t);
-  }, []);
+    const selectedId = selected?.summary.session?.id;
+    if (selectedId) void api.sessionDetail(selectedId).then(setSelected);
+  }, [data, selected?.summary.session?.id]);
 
   const selectSession = async (id: string) => {
     setSelected(await api.sessionDetail(id));
@@ -118,7 +120,7 @@ export default function ActivityPage() {
   const replayActivityAlert = async (id: string) => {
     const res = await api.replayActivityAlert(id);
     toast(res.message);
-    load();
+    void refresh();
   };
 
   const testSimilarEvent = async (event: StreamEvent) => {
@@ -130,7 +132,7 @@ export default function ActivityPage() {
       payload: event.payload,
     });
     toast(`Test ${res.event.type} event sent`);
-    load();
+    void refresh();
   };
 
   const filteredItems = items.filter((item) => {

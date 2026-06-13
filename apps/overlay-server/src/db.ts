@@ -14,6 +14,7 @@ import { createSettingsRepository } from "./repositories/settings.repository.js"
 import { createLogsRepository } from "./repositories/logs.repository.js";
 import { createLoyaltyRepository } from "./repositories/loyalty.repository.js";
 import { createMacrosRepository } from "./repositories/macros.repository.js";
+import { createMiniGamesRepository } from "./repositories/mini-games.repository.js";
 import { createSourceGroupsRepository } from "./repositories/source-groups.repository.js";
 import { createStreamSessionsRepository } from "./repositories/stream-sessions.repository.js";
 import { createViewerQueueRepository } from "./repositories/viewer-queue.repository.js";
@@ -30,6 +31,7 @@ export type { GoalRow } from "./repositories/goals.repository.js";
 export type { ActivityLogRow, SystemLogEntry, SystemLogLevel } from "./repositories/logs.repository.js";
 export type { LoyaltyViewer } from "./repositories/loyalty.repository.js";
 export type { MacroConfig, MacroStep } from "./repositories/macros.repository.js";
+export type { MiniGameRun } from "./repositories/mini-games.repository.js";
 export type { SourceGroup, SourceGroupSource } from "./repositories/source-groups.repository.js";
 export type {
   SceneSpanRow,
@@ -562,69 +564,6 @@ function seedDefaults(): void {
   }
 }
 
-export interface MiniGameRun {
-  id: string;
-  game: string;
-  userId: string;
-  login?: string;
-  displayName: string;
-  wager: number;
-  outcome: "win" | "lose" | "tie" | "play";
-  pointsDelta: number;
-  result: Record<string, unknown>;
-  createdAt: string;
-}
-
-function rowToMiniGameRun(row: Record<string, unknown>): MiniGameRun {
-  const outcome = String(row.outcome ?? "play");
-  return {
-    id: String(row.id),
-    game: String(row.game),
-    userId: String(row.user_id),
-    login: row.login ? String(row.login) : undefined,
-    displayName: String(row.display_name),
-    wager: Number(row.wager ?? 0),
-    outcome: outcome === "win" || outcome === "lose" || outcome === "tie" ? outcome : "play",
-    pointsDelta: Number(row.points_delta ?? 0),
-    result: parseRecord(row.result_json),
-    createdAt: String(row.created_at),
-  };
-}
-
-export function getMiniGameRuns(limit = 50): MiniGameRun[] {
-  return (db
-    .prepare("SELECT * FROM mini_game_runs ORDER BY created_at DESC LIMIT ?")
-    .all(Math.min(200, Math.max(1, Math.floor(limit)))) as Array<Record<string, unknown>>).map(rowToMiniGameRun);
-}
-
-export function recordMiniGameRun(input: Omit<MiniGameRun, "id" | "createdAt">): MiniGameRun {
-  return withTransaction(() => {
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
-    db.prepare(
-      `INSERT INTO mini_game_runs
-        (id, game, user_id, login, display_name, wager, outcome, points_delta, result_json, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(
-      id,
-      input.game,
-      input.userId,
-      input.login ?? null,
-      input.displayName,
-      Math.max(0, Math.floor(input.wager)),
-      input.outcome,
-      Math.trunc(input.pointsDelta),
-      JSON.stringify(input.result ?? {}),
-      now,
-    );
-    db.prepare(
-      `DELETE FROM mini_game_runs
-       WHERE id NOT IN (SELECT id FROM mini_game_runs ORDER BY created_at DESC LIMIT 200)`,
-    ).run();
-    return getMiniGameRuns(1)[0]!;
-  });
-}
-
 function parseRecord(raw: unknown): Record<string, unknown> {
   if (!raw) return {};
   try {
@@ -680,6 +619,11 @@ const viewerQueueRepository = createViewerQueueRepository({
 const giveawaysRepository = createGiveawaysRepository({
   getDb: () => db,
   withTransaction,
+});
+const miniGamesRepository = createMiniGamesRepository({
+  getDb: () => db,
+  withTransaction,
+  parseRecord,
 });
 const automationRepository = createAutomationRepository({
   getDb: () => db,
@@ -822,4 +766,6 @@ export const enterGiveaway = giveawaysRepository.enterGiveaway;
 export const removeGiveawayEntry = giveawaysRepository.removeGiveawayEntry;
 export const clearGiveawayEntries = giveawaysRepository.clearGiveawayEntries;
 export const pickGiveawayWinner = giveawaysRepository.pickGiveawayWinner;
+export const getMiniGameRuns = miniGamesRepository.getMiniGameRuns;
+export const recordMiniGameRun = miniGamesRepository.recordMiniGameRun;
 

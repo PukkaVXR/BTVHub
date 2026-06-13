@@ -6,17 +6,14 @@ import {
   removeViewerQueueEntry,
 } from "../db.js";
 import type { RouteModule } from "./types.js";
+import { parseBody, ViewerIdentityBodySchema } from "../schemas/request.schema.js";
 
 export const registerViewerQueueRoutes: RouteModule = (app) => {
   app.get("/api/viewer-queue", async () => ({ entries: getViewerQueueEntries() }));
 
   app.post("/api/viewer-queue", async (req, reply) => {
-    const body = req.body as {
-      userId?: unknown;
-      login?: unknown;
-      displayName?: unknown;
-      note?: unknown;
-    };
+    const body = parseBody(reply, ViewerIdentityBodySchema, req.body);
+    if (!body) return;
     const displayName = String(body.displayName ?? "").trim();
     const login = String(body.login ?? "").trim() || undefined;
     const userId = String(body.userId ?? login ?? displayName).trim();

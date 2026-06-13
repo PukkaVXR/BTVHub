@@ -1,5 +1,6 @@
 import { getSetting, setSetting } from "../db.js";
 import type { RouteModule } from "./types.js";
+import { parseBody, PredictionUpdateBodySchema } from "../schemas/request.schema.js";
 
 interface PredictionOption {
   id: string;
@@ -90,7 +91,10 @@ function writePrediction(input: Partial<PredictionState>): PredictionState {
 export const registerPredictionsRoutes: RouteModule = (app) => {
   app.get("/api/predictions", async () => readPrediction());
 
-  app.put("/api/predictions", async (req) => writePrediction(req.body as Partial<PredictionState>));
+  app.put("/api/predictions", async (req, reply) => {
+    const body = parseBody(reply, PredictionUpdateBodySchema, req.body);
+    return body ? writePrediction(body) : undefined;
+  });
 
   app.post("/api/predictions/reset", async () => writePrediction(defaultPrediction()));
 

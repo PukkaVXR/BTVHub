@@ -21,6 +21,39 @@
     "bluegradientstars.jpg": {
       "source": "upload",
       "importedAt": "2026-05-25T10:52:57.435Z"
+    },
+    "giphy-sticker-N6YnsVGgNbobbXbfgw-Sticker_Wow_Sticker.gif": {
+      "source": "giphy",
+      "sourceType": "sticker",
+      "sourceId": "N6YnsVGgNbobbXbfgw",
+      "sourceUrl": "https://giphy.com/stickers/animals-cats-roar-N6YnsVGgNbobbXbfgw",
+      "title": "Sticker Wow Sticker",
+      "username": "RobinAdlung",
+      "importedAt": "2026-06-13T19:47:58.928Z"
+    },
+    "giphy-sticker-1qbnuokj8RqJ2k1FzD-Make_It_Rain_Dance_Sticker_by_Big_Beat_Records.gif": {
+      "source": "giphy",
+      "sourceType": "sticker",
+      "sourceId": "1qbnuokj8RqJ2k1FzD",
+      "sourceUrl": "https://giphy.com/stickers/wearebigbeat-dance-1qbnuokj8RqJ2k1FzD",
+      "title": "Make It Rain Dance Sticker by Big Beat Records",
+      "username": "wearebigbeat",
+      "importedAt": "2026-06-13T19:48:08.124Z"
+    },
+    "giphy-sticker-hr9MtGIrfCFPd0eylK-Happy_Birthday_Party_Sticker_by_Camjaysmith.gif": {
+      "source": "giphy",
+      "sourceType": "sticker",
+      "sourceId": "hr9MtGIrfCFPd0eylK",
+      "sourceUrl": "https://giphy.com/stickers/Cameron-Smith-cameron-smith-cam-camjaysmith-hr9MtGIrfCFPd0eylK",
+      "title": "Happy Birthday Party Sticker by Camjaysmith",
+      "username": "Cameron-Smith",
+      "importedAt": "2026-06-13T23:14:01.690Z"
+    }
+  },
+  "sounds": {
+    "thank-you-for-your-patronage.mp3": {
+      "source": "upload",
+      "importedAt": "2026-06-13T23:18:05.731Z"
     }
   }
 }

@@ -10,13 +10,15 @@ import {
   removeGiveawayEntry,
 } from "../db.js";
 import { sendTwitchChatMessage } from "../twitch-service.js";
+import { GiveawayOpenBodySchema, parseBody, ViewerIdentityBodySchema } from "../schemas/request.schema.js";
 import type { RouteModule } from "./types.js";
 
 export const registerGiveawaysRoutes: RouteModule = (app) => {
   app.get("/api/giveaways", async () => ({ giveaways: getGiveaways(), active: getActiveGiveaway() }));
 
-  app.post("/api/giveaways/open", async (req) => {
-    const body = req.body as { name?: unknown; keyword?: unknown };
+  app.post("/api/giveaways/open", async (req, reply) => {
+    const body = parseBody(reply, GiveawayOpenBodySchema, req.body);
+    if (!body) return;
     const giveaway = openGiveaway({
       name: String(body.name ?? "").trim() || "Stream giveaway",
       keyword: String(body.keyword ?? "").trim() || "!enter",
@@ -32,7 +34,8 @@ export const registerGiveawaysRoutes: RouteModule = (app) => {
 
   app.post("/api/giveaways/:id/entries", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const body = req.body as { userId?: unknown; login?: unknown; displayName?: unknown };
+    const body = parseBody(reply, ViewerIdentityBodySchema, req.body);
+    if (!body) return;
     const displayName = String(body.displayName ?? "").trim();
     const login = String(body.login ?? "").trim() || undefined;
     const userId = String(body.userId ?? login ?? displayName).trim();

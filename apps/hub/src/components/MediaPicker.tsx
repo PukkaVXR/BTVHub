@@ -110,23 +110,23 @@ export default function MediaPicker({ value, onChange }: MediaPickerProps) {
           onChange={(e) => onChange(toMediaAssetPath(e.target.value))}
           placeholder="media/clip.mp4"
         />
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setOpen((o) => !o)}>
+        <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => setOpen((o) => !o)}>
           {open ? "Hide" : "Browse"}
         </button>
         <button
           type="button"
-          className="btn btn-secondary btn-sm"
+          className="ui-button ui-button--secondary ui-button--sm"
           onClick={() => fileRef.current?.click()}
         >
           Upload
         </button>
         {selected && (
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPreview(selected)}>
+          <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => setPreview(selected)}>
             Preview
           </button>
         )}
         {normalizedValue && (
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => onChange("")}>
+          <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => onChange("")}>
             Clear
           </button>
         )}
@@ -208,10 +208,10 @@ export default function MediaPicker({ value, onChange }: MediaPickerProps) {
                       <span>{asset.kind} - {formatBytes(asset.size)}</span>
                     </button>
                     <div className="media-picker-card-actions">
-                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPreview(asset)}>
+                      <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => setPreview(asset)}>
                         View
                       </button>
-                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => void remove(asset)}>
+                      <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => void remove(asset)}>
                         Delete
                       </button>
                     </div>
@@ -231,7 +231,7 @@ export default function MediaPicker({ value, onChange }: MediaPickerProps) {
                 <strong id="media-picker-preview-title">{preview.name}</strong>
                 <span>{preview.kind} - {formatBytes(preview.size)}</span>
               </div>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPreview(null)}>
+              <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => setPreview(null)}>
                 Close
               </button>
             </div>

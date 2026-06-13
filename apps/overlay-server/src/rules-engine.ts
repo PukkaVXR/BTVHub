@@ -14,6 +14,7 @@ import { runChatCommandFromEvent } from "./chat-command-runner.js";
 import type { EffectRunner } from "./effect-runner.js";
 import type { EventAutomationEngine } from "./event-automation-engine.js";
 import type { CoreEventBus } from "./core-event-bus.js";
+import { parseChatCommandText } from "./chat-command-utils.js";
 
 const GOAL_EVENT_MAP: Partial<Record<StreamEventType, string>> = {
   follow: "follow",
@@ -251,18 +252,15 @@ function readChatColor(event: StreamEvent): string | undefined {
 
 function withChatCommandPayload(event: StreamEvent): StreamEvent {
   if (event.type !== "chat") return event;
-  const message = event.message?.trim() ?? "";
-  if (!message.startsWith("!")) return event;
-  const [commandToken] = message.split(/\s+/);
-  if (!commandToken) return event;
-  const command = commandToken.toLowerCase();
+  const parsed = parseChatCommandText(event.message ?? "");
+  if (!parsed) return event;
   return {
     ...event,
     payload: {
       ...event.payload,
       isCommand: true,
-      command,
-      args: message.slice(commandToken.length).trim(),
+      command: parsed.command,
+      args: parsed.args,
     },
   };
 }

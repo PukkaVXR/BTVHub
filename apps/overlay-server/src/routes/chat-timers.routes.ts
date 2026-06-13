@@ -1,6 +1,7 @@
 import { deleteChatTimer, getChatTimer, getChatTimers, upsertChatTimer } from "../db.js";
 import { sendChatTimer } from "../chat-timer-scheduler.js";
 import { chatTimerFromBody, validateChatTimer } from "../schemas/chat-timer.schema.js";
+import { parseBody, UnknownRecordBodySchema } from "../schemas/request.schema.js";
 import type { RouteModule } from "./types.js";
 
 export const registerChatTimersRoutes: RouteModule = (app) => {
@@ -8,7 +9,9 @@ export const registerChatTimersRoutes: RouteModule = (app) => {
 
   app.put("/api/chat-timers/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const timer = chatTimerFromBody(id, req.body as ReturnType<typeof getChatTimers>[number]);
+    const body = parseBody(reply, UnknownRecordBodySchema, req.body);
+    if (!body) return;
+    const timer = chatTimerFromBody(id, body as unknown as ReturnType<typeof getChatTimers>[number]);
     const error = validateChatTimer(timer);
     if (error) return reply.status(400).send({ ok: false, message: error });
     upsertChatTimer(timer);

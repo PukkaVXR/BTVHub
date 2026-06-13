@@ -1,12 +1,35 @@
-import { Component, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, ErrorInfo, PointerEvent as ReactPointerEvent, ReactNode } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AlertProjectSchema } from "@btv/shared";
 import type { AlertChaosModifier, AlertKeyframe, AlertLayer, AlertLayerAnimation, AlertProject, AlertVariation, StreamEventType } from "@btv/shared";
 import { api, type GiphyAssetType, type GiphyResult, type MediaAssetInfo, type SoundAssetInfo } from "../api";
+import { AlertAssetLibrary, formatAssetBytes, type AlertAssetKind } from "../components/alerts/AlertAssetLibrary";
+import { AlertCanvasWorkspace, type PreviewBackground, type PreviewZoom } from "../components/alerts/AlertCanvasWorkspace";
+import { AlertLayersPanel } from "../components/alerts/AlertLayersPanel";
+import { AlertLayerInspector, type AlertKeyframeProperty } from "../components/alerts/AlertLayerInspector";
+import { AlertLayerTypeInspector } from "../components/alerts/AlertLayerTypeInspector";
+import { AlertProjectInspector } from "../components/alerts/AlertProjectInspector";
+import {
+  alertProjectSignature,
+  downloadAlertProject,
+  importAlertProject as importAlertProjectFile,
+  loadAlertEditorResources,
+  normalizeAlertProject,
+  persistAlertProject,
+  persistAndTestAlertProject,
+} from "../components/alerts/alertProjectPersistence";
+import { AlertTestInspector } from "../components/alerts/AlertTestInspector";
+import {
+  PreviewLayer,
+  resolvePreviewAssetUrl,
+  type ResizeHandle,
+  type TestPayload,
+} from "../components/alerts/AlertPreview";
 import { AlertEditorBreadcrumbs, AlertEditorToolbar } from "../components/alerts/AlertEditorToolbar";
 import { useRegisterSaveStatus } from "../context/SaveStatusContext";
 import { useToast } from "../hooks/useToast";
+import { resolveOverlayOrigin } from "../lib/serverUrls";
 import { PageHeader } from "../ui";
 
 const EVENT_TYPES: StreamEventType[] = ["follow", "sub", "resub", "gift_sub", "cheer", "raid", "channel_points"];
@@ -14,8 +37,6 @@ const CANVAS_PRESETS = [
   { label: "1080p", width: 1920, height: 1080 },
   { label: "720p", width: 1280, height: 720 },
 ];
-const BLEND_MODES = ["normal", "screen", "multiply", "overlay", "lighten", "darken", "color-dodge", "difference"] as const;
-const KEYFRAME_PROPERTIES = ["opacity", "position", "scale", "rotation"] as const;
 const CHAOS_MODIFIERS: Array<{ id: AlertChaosModifier; label: string }> = [
   { id: "shake", label: "Shake" },
   { id: "flash", label: "Flash" },
@@ -35,54 +56,8 @@ const DEFAULT_TEST_PAYLOAD = `{
     "streak": 3
   }
 }`;
-const ANIMATION_PRESETS: AlertLayerAnimation["preset"][] = [
-  "none",
-  "fade-in",
-  "pop-in",
-  "slide-in",
-  "bounce-in",
-  "elastic-in",
-  "spin-in",
-  "screen-slam",
-  "glitch-reveal",
-  "pulse",
-  "float",
-  "wiggle",
-  "rgb-split",
-  "vhs-jitter",
-  "bass-shake",
-  "glow-pulse",
-  "fade-out",
-  "pop-out",
-  "slide-out",
-  "glitch-out",
-  "explode-out",
-];
 const LOOPING_ANIMATION_PRESETS: AlertLayerAnimation["preset"][] = ["pulse", "float", "wiggle", "glow-pulse", "rgb-split", "vhs-jitter", "bass-shake"];
 const EXIT_ANIMATION_PRESETS: AlertLayerAnimation["preset"][] = ["fade-out", "pop-out", "slide-out", "glitch-out", "explode-out"];
-const ANIMATION_PRESET_LABELS: Record<AlertLayerAnimation["preset"], string> = {
-  "none": "None",
-  "fade-in": "Fade in",
-  "pop-in": "Pop in",
-  "slide-in": "Slide in",
-  "bounce-in": "Bounce in",
-  "elastic-in": "Elastic in",
-  "spin-in": "Spin in",
-  "screen-slam": "Screen slam",
-  "glitch-reveal": "Glitch reveal",
-  "pulse": "Pulse",
-  "float": "Float",
-  "wiggle": "Wiggle",
-  "rgb-split": "RGB split",
-  "vhs-jitter": "VHS jitter",
-  "bass-shake": "Bass shake",
-  "glow-pulse": "Glow pulse",
-  "fade-out": "Fade out",
-  "pop-out": "Pop out",
-  "slide-out": "Slide out",
-  "glitch-out": "Glitch out",
-  "explode-out": "Explode out",
-};
 
 type TemplateId =
   | "clean-follow"
@@ -101,7 +76,6 @@ type ProjectHistoryStep = {
   history: ProjectHistory;
   selectedLayerId: string;
 };
-type PreviewZoom = "fit" | 0.25 | 0.5 | 1;
 type AlertProjectWarning = { level: "warning" | "error"; message: string };
 type TemplateInfo = { id: TemplateId; name: string; description: string };
 type AlertProjectDraft = Partial<Omit<AlertProject, "id" | "createdAt" | "updatedAt">> & Pick<AlertProject, "name" | "eventType" | "durationMs" | "canvas" | "layers">;
@@ -139,15 +113,6 @@ function stepAlertProjectHistory(
   };
 }
 
-type TestPayload = {
-  user?: string;
-  login?: string;
-  amount?: number;
-  message?: string;
-  variables?: Record<string, unknown>;
-  payload?: Record<string, unknown>;
-};
-type LayerStyle = CSSProperties & { "--btv-intensity"?: string };
 type LayerOf<T extends AlertLayer["type"]> = T extends "image" | "gif" | "video"
   ? Extract<AlertLayer, { type: "image" | "gif" | "video" }>
   : Extract<AlertLayer, { type: T }>;
@@ -171,7 +136,6 @@ const DEFAULT_CHAOS: AlertProject["chaos"] = {
   modifiers: ["shake", "flash", "hue_shift", "scale_punch"],
   legendaryBoost: 0,
 };
-type ResizeHandle = "nw" | "ne" | "sw" | "se";
 type CanvasDragState =
   | { kind: "move"; layerId: string; offsetX: number; offsetY: number }
   | {
@@ -571,294 +535,6 @@ function createLayer<T extends AlertLayer["type"]>(type: T): LayerOf<T> {
   } as unknown as LayerOf<T>;
 }
 
-function payloadPath(payload: Record<string, unknown> | undefined, path: string): string {
-  let value: unknown = payload;
-  for (const key of path.split(".")) {
-    if (!value || typeof value !== "object") return "";
-    value = (value as Record<string, unknown>)[key];
-  }
-  return value == null ? "" : String(value);
-}
-
-function renderTemplate(text: string, eventType: StreamEventType, testPayload: TestPayload): string {
-  return text
-    .replaceAll("{user}", testPayload.user ?? "TestUser")
-    .replaceAll("{login}", testPayload.login ?? "testuser")
-    .replaceAll("{event}", eventType)
-    .replaceAll("{amount}", String(testPayload.amount ?? (eventType === "cheer" ? 100 : 1)))
-    .replaceAll("{message}", testPayload.message ?? "Test visual alert from hub")
-    .replace(/\{var:([^}]+)\}/g, (_, key: string) => payloadPath(testPayload.variables, key.trim()))
-    .replace(/\{payload\.([^}]+)\}/g, (_, path: string) => payloadPath(testPayload.payload, path));
-}
-
-function cssFilter(layer: AlertLayer): string | undefined {
-  const filter = layer.filter;
-  if (!filter) return undefined;
-  const parts = [
-    `brightness(${filter.brightness ?? 1})`,
-    `contrast(${filter.contrast ?? 1})`,
-    `saturate(${filter.saturation ?? 1})`,
-  ];
-  if (filter.blur) parts.push(`blur(${filter.blur}px)`);
-  if (filter.hueRotate) parts.push(`hue-rotate(${filter.hueRotate}deg)`);
-  if (filter.glow) parts.push(`drop-shadow(0 0 ${filter.glow}px ${filter.glowColor ?? "rgba(91, 140, 255, 0.9)"})`);
-  return parts.join(" ");
-}
-
-function numericKeyframeValue(value: unknown, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
-}
-
-function layerAtPlayhead(layer: AlertLayer, playheadMs: number): AlertLayer {
-  if (!layer.keyframes.length) return layer;
-  const frames = [...layer.keyframes].sort((a, b) => a.atMs - b.atMs);
-  const before = [...frames].reverse().find((frame) => frame.atMs <= playheadMs);
-  const after = frames.find((frame) => frame.atMs >= playheadMs && frame.id !== before?.id);
-  const readFrame = (frame: AlertKeyframe | undefined, key: string, fallback: number) => numericKeyframeValue(frame?.properties[key], fallback);
-
-  if (!before && !after) return layer;
-  if (before && !after) {
-    return {
-      ...layer,
-      x: readFrame(before, "x", layer.x),
-      y: readFrame(before, "y", layer.y),
-      opacity: readFrame(before, "opacity", layer.opacity),
-      scale: readFrame(before, "scale", layer.scale),
-      rotation: readFrame(before, "rotation", layer.rotation),
-    } as AlertLayer;
-  }
-
-  if (!before && after) {
-    return {
-      ...layer,
-      x: readFrame(after, "x", layer.x),
-      y: readFrame(after, "y", layer.y),
-      opacity: readFrame(after, "opacity", layer.opacity),
-      scale: readFrame(after, "scale", layer.scale),
-      rotation: readFrame(after, "rotation", layer.rotation),
-    } as AlertLayer;
-  }
-
-  const span = Math.max(1, after!.atMs - before!.atMs);
-  const t = Math.max(0, Math.min(1, (playheadMs - before!.atMs) / span));
-  return {
-    ...layer,
-    x: lerp(readFrame(before, "x", layer.x), readFrame(after, "x", layer.x), t),
-    y: lerp(readFrame(before, "y", layer.y), readFrame(after, "y", layer.y), t),
-    opacity: lerp(readFrame(before, "opacity", layer.opacity), readFrame(after, "opacity", layer.opacity), t),
-    scale: lerp(readFrame(before, "scale", layer.scale), readFrame(after, "scale", layer.scale), t),
-    rotation: lerp(readFrame(before, "rotation", layer.rotation), readFrame(after, "rotation", layer.rotation), t),
-  } as AlertLayer;
-}
-
-function layerStyle(layer: AlertLayer, playheadMs?: number): LayerStyle {
-  const displayLayer = playheadMs == null ? layer : layerAtPlayhead(layer, playheadMs);
-  const animation = layer.animation?.preset && layer.animation.preset !== "none"
-    ? `${layer.animation.preset} ${layer.animation.durationMs}ms ${cssEasing(layer.animation.easing)} ${layer.animation.delayMs}ms ${layer.animation.loop ? "infinite" : "both"}`
-    : undefined;
-  return {
-    position: "absolute",
-    left: displayLayer.x,
-    top: displayLayer.y,
-    width: displayLayer.width,
-    height: displayLayer.height,
-    opacity: displayLayer.opacity,
-    transform: `rotate(${displayLayer.rotation}deg) scale(${displayLayer.scale})`,
-    transformOrigin: "center",
-    mixBlendMode: layer.blendMode as CSSProperties["mixBlendMode"],
-    filter: cssFilter(layer),
-    display: layer.visible ? "flex" : "none",
-    alignItems: "center",
-    justifyContent: "center",
-    pointerEvents: "auto",
-    cursor: layer.locked ? "not-allowed" : "move",
-    animation,
-    "--btv-intensity": String(layer.animation?.intensity ?? 1),
-  } satisfies LayerStyle;
-}
-
-function cssEasing(easing?: AlertLayerAnimation["easing"]): string {
-  if (easing === "linear") return "linear";
-  if (easing === "ease-in") return "ease-in";
-  if (easing === "ease-in-out") return "ease-in-out";
-  if (easing === "bounce") return "cubic-bezier(.2,1.6,.35,1)";
-  if (easing === "elastic") return "cubic-bezier(.2,1.8,.35,1)";
-  return "ease-out";
-}
-
-function resolvePreviewAssetUrl(assetUrl: string, overlayOrigin: string): string {
-  if (!assetUrl) return "";
-  if (/^(https?:|data:|blob:)/i.test(assetUrl)) return assetUrl;
-  if (assetUrl.startsWith("/")) return `${overlayOrigin.replace(/\/$/, "")}${assetUrl}`;
-  return assetUrl;
-}
-
-function SelectionHandles({
-  disabled,
-  onResizePointerDown,
-  onRotatePointerDown,
-}: {
-  disabled: boolean;
-  onResizePointerDown: (handle: ResizeHandle, event: ReactPointerEvent<HTMLSpanElement>) => void;
-  onRotatePointerDown: (event: ReactPointerEvent<HTMLSpanElement>) => void;
-}) {
-  if (disabled) return null;
-  return (
-    <>
-      <span className="alert-rotate-handle" onPointerDown={onRotatePointerDown} />
-      {(["nw", "ne", "sw", "se"] as ResizeHandle[]).map((handle) => (
-        <span
-          key={handle}
-          className={`alert-resize-handle ${handle}`}
-          onPointerDown={(event) => onResizePointerDown(handle, event)}
-        />
-      ))}
-    </>
-  );
-}
-
-class AlertPreviewErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean; message: string }> {
-  state = { failed: false, message: "" };
-
-  static getDerivedStateFromError(error: unknown) {
-    return { failed: true, message: error instanceof Error ? error.message : "Preview render failed" };
-  }
-
-  componentDidCatch(error: unknown, info: ErrorInfo) {
-    console.error("Alert preview render error:", error, info.componentStack);
-  }
-
-  render() {
-    if (this.state.failed) {
-      return (
-        <div className="alert-preview-error">
-          <strong>Preview render failed</strong>
-          <span>{this.state.message}</span>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
-function PreviewLayer({
-  layer,
-  eventType,
-  testPayload,
-  selected,
-  playheadMs,
-  overlayOrigin,
-  onPointerDown,
-  onResizePointerDown,
-  onRotatePointerDown,
-}: {
-  layer: AlertLayer;
-  eventType: StreamEventType;
-  testPayload: TestPayload;
-  selected: boolean;
-  playheadMs?: number;
-  overlayOrigin: string;
-  onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
-  onResizePointerDown: (handle: ResizeHandle, event: ReactPointerEvent<HTMLSpanElement>) => void;
-  onRotatePointerDown: (event: ReactPointerEvent<HTMLSpanElement>) => void;
-}) {
-  const mediaUrl = layer.type === "video" || layer.type === "image" || layer.type === "gif"
-    ? resolvePreviewAssetUrl(layer.assetUrl, overlayOrigin)
-    : "";
-  const selectionStyle: CSSProperties = selected
-    ? { outline: "3px solid rgba(91, 140, 255, 0.95)", outlineOffset: 4 }
-    : {};
-
-  if (layer.type === "text") {
-    return (
-      <div
-        onPointerDown={onPointerDown}
-        style={{
-          ...layerStyle(layer, playheadMs),
-          ...selectionStyle,
-          color: layer.color,
-          fontFamily: layer.fontFamily,
-          fontSize: layer.fontSize,
-          fontWeight: layer.fontWeight,
-          textAlign: layer.align,
-          WebkitTextStroke: layer.strokeWidth ? `${layer.strokeWidth}px ${layer.strokeColor ?? "#000"}` : undefined,
-          textShadow: layer.shadow,
-          lineHeight: 1.05,
-          whiteSpace: "pre-wrap",
-        }}
-      >
-        {renderTemplate(layer.text, eventType, testPayload)}
-        {selected && <SelectionHandles disabled={layer.locked} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} />}
-      </div>
-    );
-  }
-
-  if (layer.type === "shape") {
-    return (
-      <div
-        onPointerDown={onPointerDown}
-        style={{
-          ...layerStyle(layer, playheadMs),
-          ...selectionStyle,
-          background: layer.fill,
-          border: `${layer.borderWidth}px solid ${layer.borderColor}`,
-          borderRadius: layer.shape === "ellipse" ? "50%" : layer.radius,
-        }}
-      >
-        {selected && <SelectionHandles disabled={layer.locked} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} />}
-      </div>
-    );
-  }
-
-  if (layer.type === "audio") return null;
-
-  if (layer.type === "particle") {
-    return (
-      <div onPointerDown={onPointerDown} style={{ ...layerStyle(layer, playheadMs), ...selectionStyle }}>
-        <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", color: layer.color, border: `2px dashed ${layer.color}`, borderRadius: 12 }}>
-          {layer.particle} particles
-        </div>
-        {selected && <SelectionHandles disabled={layer.locked} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} />}
-      </div>
-    );
-  }
-
-  if (layer.type === "browser") {
-    return (
-      <div onPointerDown={onPointerDown} style={{ ...layerStyle(layer, playheadMs), ...selectionStyle }}>
-        <iframe
-          title={layer.name}
-          sandbox={layer.sandbox ? "allow-same-origin" : undefined}
-          srcDoc={`<style>${layer.css}</style>${layer.html}`}
-          style={{ width: "100%", height: "100%", border: 0, pointerEvents: "none", background: "transparent" }}
-        />
-        {selected && <SelectionHandles disabled={layer.locked} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} />}
-      </div>
-    );
-  }
-
-  return (
-    <div onPointerDown={onPointerDown} style={{ ...layerStyle(layer, playheadMs), ...selectionStyle }}>
-      {layer.assetUrl ? (
-        layer.type === "video" ? (
-          <video src={mediaUrl} muted={layer.muted} loop={layer.loop} autoPlay style={{ width: "100%", height: "100%", objectFit: layer.fit }} />
-        ) : (
-          <img src={mediaUrl} alt="" style={{ width: "100%", height: "100%", objectFit: layer.fit }} />
-        )
-      ) : (
-        <div style={{ width: "100%", height: "100%", border: "2px dashed rgba(255,255,255,0.35)", borderRadius: 8, display: "grid", placeItems: "center", color: "#dbe6ff" }}>
-          Add asset URL
-        </div>
-      )}
-      {selected && <SelectionHandles disabled={layer.locked} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} />}
-    </div>
-  );
-}
-
 function TemplatePreview({
   templateId,
   overlayOrigin,
@@ -909,7 +585,7 @@ function TemplatePreview({
           ))}
         </div>
       </div>
-      <button type="button" className="btn btn-primary btn-sm" onClick={onApply}>
+      <button type="button" className="ui-button ui-button--primary ui-button--sm" onClick={onApply}>
         Use this template
       </button>
     </div>
@@ -928,10 +604,6 @@ function angleFromCenter(point: { x: number; y: number }, centerX: number, cente
   return Math.atan2(point.y - centerY, point.x - centerX) * (180 / Math.PI);
 }
 
-function projectSignature(project: AlertProject | null): string {
-  return project ? JSON.stringify(project) : "";
-}
-
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName.toLowerCase();
@@ -948,31 +620,6 @@ function fileToBase64(file: File): Promise<string> {
     reader.onerror = () => reject(reader.error ?? new Error("Failed to read file"));
     reader.readAsDataURL(file);
   });
-}
-
-function safeFileName(name: string): string {
-  return name.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/^_+|_+$/g, "") || "alert-project";
-}
-
-function formatBytes(size: number): string {
-  if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-  if (size >= 1024) return `${Math.round(size / 1024)} KB`;
-  return `${size} B`;
-}
-
-function assetAttribution(asset: MediaAssetInfo | SoundAssetInfo): string {
-  const metadata = asset.metadata;
-  if (!metadata?.source) return "";
-  if (metadata.source === "giphy") {
-    const kind = metadata.sourceType === "sticker" ? "GIPHY sticker" : "GIPHY GIF";
-    return metadata.username ? `${kind} by ${metadata.username}` : kind;
-  }
-  return "Uploaded locally";
-}
-
-function pct(value: number, total: number): string {
-  if (total <= 0) return "0%";
-  return `${Math.max(0, Math.min(100, (value / total) * 100))}%`;
 }
 
 function templateInfo(id: TemplateId): TemplateInfo {
@@ -1001,7 +648,7 @@ function persistLocalTemplates(templates: LocalTemplate[]): void {
 
 function cloneProjectAsNew(project: AlertProject, name = project.name): AlertProject {
   const now = nowIso();
-  const normalized = withTimeline(project);
+  const normalized = normalizeAlertProject(project);
   return {
     ...normalized,
     id: newId("alert"),
@@ -1021,29 +668,6 @@ function resetProjectToTemplate(project: AlertProject, template: TemplateId): Al
     createdAt: project.createdAt,
     updatedAt: nowIso(),
     tags: [...new Set([...(defaults.tags ?? []), ...(project.tags ?? []), `template:${template}`])],
-  };
-}
-
-function withTimeline(project: AlertProject): AlertProject {
-  return {
-    ...project,
-    timeline: project.timeline ?? {
-      durationMs: project.durationMs,
-      fps: 60,
-      snapMs: 100,
-      zoom: 1,
-    },
-    chaos: project.chaos ?? DEFAULT_CHAOS,
-    safeMode: project.safeMode ?? false,
-    canvas: project.canvas ?? {
-      width: 1920,
-      height: 1080,
-      background: "transparent",
-      backgroundColor: "transparent",
-    },
-    layers: project.layers ?? [],
-    variations: project.variations ?? [],
-    tags: project.tags ?? [],
   };
 }
 
@@ -1113,7 +737,7 @@ function analyzeProject(project: AlertProject, media: MediaAssetInfo[], sounds: 
     }
     const maxSize = layer.type === "audio" ? 12 * 1024 * 1024 : layer.type === "video" ? 40 * 1024 * 1024 : 15 * 1024 * 1024;
     if (asset.size > maxSize) {
-      warnings.push({ level: "warning", message: `${layer.name} is large (${formatBytes(asset.size)}). Consider trimming or compressing it.` });
+      warnings.push({ level: "warning", message: `${layer.name} is large (${formatAssetBytes(asset.size)}). Consider trimming or compressing it.` });
     }
   }
 
@@ -1131,6 +755,7 @@ function analyzeProject(project: AlertProject, media: MediaAssetInfo[], sounds: 
 export default function AlertEditorPage() {
   const [searchParams] = useSearchParams();
   const { id: routeProjectId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<AlertProject[]>([]);
   const [project, setProject] = useState<AlertProject | null>(null);
   const [selectedLayerId, setSelectedLayerId] = useState<string>("");
@@ -1138,9 +763,8 @@ export default function AlertEditorPage() {
   const [playheadMs, setPlayheadMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [showSafeZones, setShowSafeZones] = useState(true);
-  const [previewBackground, setPreviewBackground] = useState<"checkerboard" | "dark" | "transparent">("checkerboard");
+  const [previewBackground, setPreviewBackground] = useState<PreviewBackground>("checkerboard");
   const [previewZoom, setPreviewZoom] = useState<PreviewZoom>("fit");
-  const [previewFitScale, setPreviewFitScale] = useState(0.34);
   const [inspectorTab, setInspectorTab] = useState<"properties" | "test">("properties");
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [templatePreviewId, setTemplatePreviewId] = useState<TemplateId>("clean-follow");
@@ -1153,14 +777,13 @@ export default function AlertEditorPage() {
   const [giphyLoading, setGiphyLoading] = useState(false);
   const [assetUploading, setAssetUploading] = useState(false);
   const [assetSearch, setAssetSearch] = useState("");
-  const [assetKind, setAssetKind] = useState<"all" | "image" | "gif" | "video" | "audio">("all");
+  const [assetKind, setAssetKind] = useState<AlertAssetKind>("all");
   const [mediaAssets, setMediaAssets] = useState<MediaAssetInfo[]>([]);
   const [soundAssets, setSoundAssets] = useState<SoundAssetInfo[]>([]);
   const [saving, setSaving] = useState(false);
-  const [overlayOrigin, setOverlayOrigin] = useState("http://127.0.0.1:4782");
+  const [overlayOrigin, setOverlayOrigin] = useState(resolveOverlayOrigin);
   const [savedSignature, setSavedSignature] = useState("");
   const [history, setHistory] = useState<ProjectHistory>({ past: [], future: [] });
-  const previewShellRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const templateDialogPanelRef = useRef<HTMLElement>(null);
   const dragRef = useRef<CanvasDragState | null>(null);
@@ -1173,9 +796,8 @@ export default function AlertEditorPage() {
     [project, selectedLayerId],
   );
 
-  const dirty = useMemo(() => projectSignature(project) !== savedSignature, [project, savedSignature]);
+  const dirty = useMemo(() => alertProjectSignature(project) !== savedSignature, [project, savedSignature]);
   useRegisterSaveStatus("visual-alert-editor", "Alert editor", saving ? "saving" : dirty ? "dirty" : "saved");
-  const previewScale = previewZoom === "fit" ? previewFitScale : previewZoom;
   const activeCanvasPreset = useMemo(() => {
     if (!project) return "";
     const preset = CANVAS_PRESETS.find((item) => item.width === project.canvas.width && item.height === project.canvas.height);
@@ -1230,14 +852,17 @@ export default function AlertEditorPage() {
   }, [assetKind, assetSearch, soundAssets]);
 
   const selectProject = (next: AlertProject | null) => {
-    const normalized = next ? withTimeline(next) : null;
+    const normalized = next ? normalizeAlertProject(next) : null;
     setProject(normalized);
     setSelectedLayerId(normalized?.layers[0]?.id ?? "");
     setSelectedVariationId(normalized?.variations[0]?.id ?? "");
     setPlayheadMs(0);
     setPlaying(false);
     setHistory({ past: [], future: [] });
-    setSavedSignature(projectSignature(normalized));
+    setSavedSignature(alertProjectSignature(normalized));
+    if (normalized && normalized.id !== routeProjectId) {
+      navigate(`/alerts/${encodeURIComponent(normalized.id)}`);
+    }
   };
 
   const commitProject = (next: AlertProject, options: { recordHistory?: boolean } = {}) => {
@@ -1245,26 +870,30 @@ export default function AlertEditorPage() {
     if (recordHistory && project && project.id === next.id) {
       setHistory((prev) => ({ past: [...prev.past.slice(-49), project], future: [] }));
     }
-    setProject(withTimeline(next));
+    setProject(normalizeAlertProject(next));
   };
 
   const load = () => {
-    void Promise.all([api.alertProjects(), api.listMedia(), api.listSounds()]).then(([items, media, sounds]) => {
-      setProjects(items);
-      setMediaAssets(media.media);
-      setSoundAssets(sounds.sounds);
-      setProject((prev) => {
-        const requested = routeProjectId ?? searchParams.get("id");
-        const next = (requested ? items.find((item) => item.id === requested) : null) ?? prev ?? items[0] ?? null;
-        const normalized = next ? withTimeline(next) : null;
-        if (!prev) {
-          setSelectedLayerId(normalized?.layers[0]?.id ?? "");
-          setSelectedVariationId(normalized?.variations[0]?.id ?? "");
-          setSavedSignature(projectSignature(normalized));
-        }
-        return normalized;
+    void loadAlertEditorResources()
+      .then(({ projects: items, media, sounds }) => {
+        setProjects(items);
+        setMediaAssets(media);
+        setSoundAssets(sounds);
+        setProject((prev) => {
+          const requested = routeProjectId ?? searchParams.get("id");
+          const next = (requested ? items.find((item) => item.id === requested) : null) ?? prev ?? items[0] ?? null;
+          const normalized = next ? normalizeAlertProject(next) : null;
+          if (!prev) {
+            setSelectedLayerId(normalized?.layers[0]?.id ?? "");
+            setSelectedVariationId(normalized?.variations[0]?.id ?? "");
+            setSavedSignature(alertProjectSignature(normalized));
+          }
+          return normalized;
+        });
+      })
+      .catch((err) => {
+        toast(err instanceof Error ? err.message : "Alert editor resources could not be loaded");
       });
-    });
   };
 
   useEffect(load, []);
@@ -1309,23 +938,6 @@ export default function AlertEditorPage() {
   }, [dirty]);
 
   useEffect(() => {
-    if (!project || !previewShellRef.current) return;
-    const shell = previewShellRef.current;
-    const updateFitScale = () => {
-      const rect = shell.getBoundingClientRect();
-      const padding = 24;
-      const widthScale = Math.max(0.05, (rect.width - padding) / project.canvas.width);
-      const heightScale = Math.max(0.05, (rect.height - padding) / project.canvas.height);
-      setPreviewFitScale(Math.min(1, widthScale, heightScale));
-    };
-
-    updateFitScale();
-    const observer = new ResizeObserver(updateFitScale);
-    observer.observe(shell);
-    return () => observer.disconnect();
-  }, [project?.canvas.width, project?.canvas.height]);
-
-  useEffect(() => {
     if (!playing || !project) return;
     const startedAt = Date.now() - playheadMs;
     const timer = setInterval(() => {
@@ -1351,20 +963,9 @@ export default function AlertEditorPage() {
     if (!project) return;
     setSaving(true);
     try {
-      const timeline = project.timeline ?? {
-        durationMs: project.durationMs,
-        fps: 60,
-        snapMs: 100,
-        zoom: 1,
-      };
-      const next = withTimeline({
-        ...project,
-        timeline: { durationMs: project.durationMs, fps: timeline.fps, snapMs: timeline.snapMs, zoom: timeline.zoom },
-        updatedAt: nowIso(),
-      });
-      await api.saveAlertProject(next);
+      const next = await persistAlertProject(project);
       setProject(next);
-      setSavedSignature(projectSignature(next));
+      setSavedSignature(alertProjectSignature(next));
       toast("Alert project saved");
       load();
     } catch (err) {
@@ -1378,12 +979,9 @@ export default function AlertEditorPage() {
     if (!project) return;
     setSaving(true);
     try {
-      const parsedPayload = JSON.parse(testPayloadJson) as Record<string, unknown>;
-      const next = { ...project, eventType, updatedAt: nowIso() };
-      await api.saveAlertProject(next);
+      const next = await persistAndTestAlertProject(project, eventType, testPayloadJson, variationId);
       setProject(next);
-      setSavedSignature(projectSignature(next));
-      await api.testAlertProject(next.id, eventType, parsedPayload, variationId);
+      setSavedSignature(alertProjectSignature(next));
       setPlayheadMs(0);
       setPlaying(true);
       toast(`Test ${eventType}${variationId ? " variation" : ""} sent to OBS alert source`);
@@ -1398,20 +996,14 @@ export default function AlertEditorPage() {
   const createNew = () => {
     const next = createProject();
     setProjects((prev) => [next, ...prev]);
-    setProject(next);
-    setSelectedLayerId(next.layers[0]?.id ?? "");
-    setPlayheadMs(0);
-    setHistory({ past: [], future: [] });
+    selectProject(next);
     setSavedSignature("");
   };
 
   const createFromTemplate = (template: TemplateId) => {
     const next = createTemplateProject(template);
     setProjects((prev) => [next, ...prev]);
-    setProject(next);
-    setSelectedLayerId(next.layers[0]?.id ?? "");
-    setPlayheadMs(0);
-    setHistory({ past: [], future: [] });
+    selectProject(next);
     setSavedSignature("");
   };
 
@@ -1452,11 +1044,7 @@ export default function AlertEditorPage() {
   const createFromLocalTemplate = (template: LocalTemplate) => {
     const next = cloneProjectAsNew(template.project, template.name);
     setProjects((prev) => [next, ...prev]);
-    setProject(next);
-    setSelectedLayerId(next.layers[0]?.id ?? "");
-    setPlayheadMs(0);
-    setPlaying(false);
-    setHistory({ past: [], future: [] });
+    selectProject(next);
     setSavedSignature("");
   };
 
@@ -1503,10 +1091,7 @@ export default function AlertEditorPage() {
       updatedAt: now,
     };
     setProjects((prev) => [next, ...prev]);
-    setProject(next);
-    setSelectedLayerId(next.layers[0]?.id ?? "");
-    setPlayheadMs(0);
-    setHistory({ past: [], future: [] });
+    selectProject(next);
     setSavedSignature("");
   };
 
@@ -1516,35 +1101,20 @@ export default function AlertEditorPage() {
     toast("Alert project deleted");
     setProject(null);
     setSelectedLayerId("");
+    navigate("/alerts");
     load();
   };
 
   const exportProject = () => {
     if (!project) return;
-    const blob = new Blob([JSON.stringify(project, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${safeFileName(project.name)}.btv-alert.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    downloadAlertProject(project);
   };
 
   const importProject = async (file: File) => {
     try {
-      const raw = JSON.parse(await file.text()) as Partial<AlertProject>;
-      const now = nowIso();
-      const parsed = AlertProjectSchema.safeParse({
-        ...raw,
-        id: newId("alert"),
-        name: raw.name ? `${raw.name} import` : "Imported alert",
-        createdAt: now,
-        updatedAt: now,
-      });
-      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Invalid alert project JSON");
-      await api.saveAlertProject(parsed.data);
-      setProjects((prev) => [parsed.data, ...prev]);
-      selectProject(parsed.data);
+      const imported = await importAlertProjectFile(file, newId("alert"));
+      setProjects((prev) => [imported, ...prev]);
+      selectProject(imported);
       toast("Alert project imported");
       load();
     } catch (err) {
@@ -1770,7 +1340,7 @@ export default function AlertEditorPage() {
     } as Partial<AlertLayer>);
   };
 
-  const addKeyframe = (property: typeof KEYFRAME_PROPERTIES[number]) => {
+  const addKeyframe = (property: AlertKeyframeProperty) => {
     if (!selectedLayer) return;
     const properties: Record<string, unknown> = {};
     if (property === "opacity") properties.opacity = selectedLayer.opacity;
@@ -1853,7 +1423,7 @@ export default function AlertEditorPage() {
 
   const updateTimeline = (patch: Partial<NonNullable<AlertProject["timeline"]>>) => {
     if (!project) return;
-    const current = project.timeline ?? withTimeline(project).timeline!;
+    const current = project.timeline ?? normalizeAlertProject(project).timeline!;
     const timeline = { ...current, ...patch };
     commitProject({
       ...project,
@@ -1865,13 +1435,13 @@ export default function AlertEditorPage() {
 
   const updateChaos = (patch: Partial<AlertProject["chaos"]>) => {
     if (!project) return;
-    const current = withTimeline(project).chaos;
+    const current = normalizeAlertProject(project).chaos;
     commitProject({ ...project, chaos: { ...current, ...patch }, updatedAt: nowIso() });
   };
 
   const toggleChaosModifier = (modifier: AlertChaosModifier) => {
     if (!project) return;
-    const current = withTimeline(project).chaos;
+    const current = normalizeAlertProject(project).chaos;
     const modifiers = current.modifiers.includes(modifier)
       ? current.modifiers.filter((item) => item !== modifier)
       : [...current.modifiers, modifier];
@@ -2244,11 +1814,11 @@ export default function AlertEditorPage() {
             onApply={() => createFromTemplate(templatePreviewId)}
           />
           <div className="actions" style={{ marginBottom: 0 }}>
-            <button type="button" className="btn btn-primary btn-sm" onClick={createNew}>Blank alert</button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void createSamplePack()} disabled={saving}>
+            <button type="button" className="ui-button ui-button--primary ui-button--sm" onClick={createNew}>Blank alert</button>
+            <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => void createSamplePack()} disabled={saving}>
               Add sample pack
             </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void copyObsAlertUrl()}>Copy OBS URL</button>
+            <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => void copyObsAlertUrl()}>Copy OBS URL</button>
           </div>
         </section>
       )}
@@ -2288,7 +1858,7 @@ export default function AlertEditorPage() {
                 <h2 id="alert-template-dialog-title">Template Gallery</h2>
                 <p className="subtitle">Preview cinematic starting points at a larger size before applying them.</p>
               </div>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateDialogOpen(false)}>Close</button>
+              <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => setTemplateDialogOpen(false)}>Close</button>
             </div>
             <div className="alert-template-dialog__body">
               <div className="alert-template-dialog__list">
@@ -2318,7 +1888,7 @@ export default function AlertEditorPage() {
                 {project && (
                   <button
                     type="button"
-                    className="btn btn-secondary btn-sm"
+                    className="ui-button ui-button--secondary ui-button--sm"
                     onClick={() => {
                       resetCurrentToTemplate(templatePreviewId);
                       setTemplateDialogOpen(false);
@@ -2357,15 +1927,15 @@ export default function AlertEditorPage() {
                 <li>Keep custom CSS transparent and leave the source active while testing.</li>
               </ol>
               <div className="actions" style={{ marginBottom: 0 }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => void copyObsAlertUrl()}>Copy OBS URL</button>
-                <Link className="btn btn-secondary btn-sm" to="/overlays">All overlay URLs</Link>
-                <Link className="btn btn-secondary btn-sm" to="/">Dashboard checks</Link>
+                <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => void copyObsAlertUrl()}>Copy OBS URL</button>
+                <Link className="ui-button ui-button--secondary ui-button--sm" to="/overlays">All overlay URLs</Link>
+                <Link className="ui-button ui-button--secondary ui-button--sm" to="/">Dashboard checks</Link>
               </div>
             </div>
             <div>
               <h2>Transparent Source Troubleshooting</h2>
               <ul>
-                <li>If OBS shows black, verify the Browser Source URL starts with <code>http://127.0.0.1:4782</code>.</li>
+                <li>If OBS shows black, verify the Browser Source URL starts with <code>{overlayOrigin}</code>.</li>
                 <li>If tests do nothing, open Dashboard and run browser-source repair.</li>
                 <li>If media is missing, check Project Checks for broken local asset paths.</li>
               </ul>
@@ -2385,10 +1955,10 @@ export default function AlertEditorPage() {
                 </select>
               </div>
               <div className="actions" style={{ marginBottom: 10 }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateDialogOpen(true)}>
+                <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => setTemplateDialogOpen(true)}>
                   Browse template gallery
                 </button>
-                <button type="button" className="btn btn-primary btn-sm" onClick={() => createFromTemplate(templatePreviewId)}>
+                <button type="button" className="ui-button ui-button--primary ui-button--sm" onClick={() => createFromTemplate(templatePreviewId)}>
                   Create from selected
                 </button>
               </div>
@@ -2413,7 +1983,7 @@ export default function AlertEditorPage() {
                 onApply={() => createFromTemplate(templatePreviewId)}
               />
               <div className="actions" style={{ marginTop: -6 }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => resetCurrentToTemplate(templatePreviewId)}>
+                <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => resetCurrentToTemplate(templatePreviewId)}>
                   Reset current to template
                 </button>
               </div>
@@ -2437,10 +2007,10 @@ export default function AlertEditorPage() {
                     </div>
                     {selectedLocalTemplate && (
                       <div className="actions" style={{ marginBottom: 0 }}>
-                        <button type="button" className="btn btn-primary btn-sm" onClick={() => createFromLocalTemplate(selectedLocalTemplate)}>
+                        <button type="button" className="ui-button ui-button--primary ui-button--sm" onClick={() => createFromLocalTemplate(selectedLocalTemplate)}>
                           Use local template
                         </button>
-                        <button type="button" className="btn btn-danger btn-sm" onClick={() => deleteLocalTemplate(selectedLocalTemplate.id)}>
+                        <button type="button" className="ui-button ui-button--danger ui-button--sm" onClick={() => deleteLocalTemplate(selectedLocalTemplate.id)}>
                           Delete template
                         </button>
                       </div>
@@ -2470,7 +2040,7 @@ export default function AlertEditorPage() {
             <details className="alert-variation-panel alert-compact-section">
               <summary>Variations</summary>
               <div className="alert-editor-panel-title">
-                <button type="button" className="btn btn-secondary btn-sm" onClick={addVariationFromCurrent}>Capture current</button>
+                <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={addVariationFromCurrent}>Capture current</button>
               </div>
               {project.variations.length ? (
                 <>
@@ -2504,9 +2074,9 @@ export default function AlertEditorPage() {
                         <div><label>Channel point title</label><input value={selectedVariation.condition.channelPointTitle ?? ""} onChange={(e) => updateVariation(selectedVariation.id, { condition: { ...selectedVariation.condition, channelPointTitle: e.target.value || undefined } })} /></div>
                       </div>
                       <div className="actions" style={{ marginBottom: 0 }}>
-                        <button type="button" className="btn btn-primary btn-sm" onClick={() => void testProjectInObs(selectedVariation.condition.eventType ?? project.eventType, selectedVariation.id)}>Test selected variation</button>
-                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => duplicateVariation(selectedVariation)}>Duplicate variation</button>
-                        <button type="button" className="btn btn-danger btn-sm" onClick={() => deleteVariation(selectedVariation.id)}>Delete variation</button>
+                        <button type="button" className="ui-button ui-button--primary ui-button--sm" onClick={() => void testProjectInObs(selectedVariation.condition.eventType ?? project.eventType, selectedVariation.id)}>Test selected variation</button>
+                        <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => duplicateVariation(selectedVariation)}>Duplicate variation</button>
+                        <button type="button" className="ui-button ui-button--danger ui-button--sm" onClick={() => deleteVariation(selectedVariation.id)}>Delete variation</button>
                       </div>
                     </div>
                   )}
@@ -2602,315 +2172,70 @@ export default function AlertEditorPage() {
                 </div>
               </div>
             </div>
-            <h2 style={{ marginTop: 16 }}>Layers</h2>
-            {projectWarnings.length > 0 && (
-              <section className="alert-health-panel">
-                <h3>Project checks</h3>
-                {projectWarnings.slice(0, 5).map((warning, index) => (
-                  <p key={`${warning.message}-${index}`} className={warning.level}>
-                    {warning.message}
-                  </p>
-                ))}
-                {projectWarnings.length > 5 && (
-                  <p className="warning">{projectWarnings.length - 5} more issue(s) hidden.</p>
-                )}
-              </section>
-            )}
-            <div className="actions" style={{ marginBottom: 12 }}>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => addLayer("text")}>Text</button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => addLayer("shape")}>Shape</button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => addLayer("image")}>Image</button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => addLayer("gif")}>GIF</button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => addLayer("video")}>Video</button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => addLayer("audio")}>Audio</button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => addLayer("particle")}>Particles</button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => addLayer("browser")}>HTML</button>
-            </div>
-            <div className="layer-list">
-              {project.layers.map((layer) => (
-                <button
-                  key={layer.id}
-                  type="button"
-                  className={`layer-row${selectedLayer?.id === layer.id ? " active" : ""}`}
-                  onClick={() => setSelectedLayerId(layer.id)}
-                  title="Select this layer to edit its timeline, visual, and media properties."
-                >
-                  <span>{layer.visible ? "Shown" : "Hidden"}</span>
-                  <strong>{layer.name}</strong>
-                  <em>{layer.type}</em>
-                </button>
-              ))}
-            </div>
-            <div className="actions">
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => moveLayer(-1)} disabled={!selectedLayer} title="Move selected layer earlier in the stack.">Up</button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => moveLayer(1)} disabled={!selectedLayer} title="Move selected layer later in the stack.">Down</button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={duplicateLayer} disabled={!selectedLayer} title="Duplicate selected layer. Shortcut: Ctrl+D.">Duplicate</button>
-              <button type="button" className="btn btn-danger btn-sm" onClick={deleteLayer} disabled={!selectedLayer} title="Delete selected layer. Shortcut: Delete.">Delete layer</button>
-            </div>
+            <AlertLayersPanel
+              layers={project.layers}
+              selectedLayerId={selectedLayerId}
+              warnings={projectWarnings}
+              onAddLayer={addLayer}
+              onSelectLayer={setSelectedLayerId}
+              onMoveLayer={moveLayer}
+              onDuplicateLayer={duplicateLayer}
+              onDeleteLayer={deleteLayer}
+            />
 
-            <details className="alert-compact-section">
-              <summary>Assets</summary>
-              <div className="grid" style={{ gridTemplateColumns: "1fr 120px" }}>
-                <div>
-                  <label>Search local assets</label>
-                  <input value={assetSearch} onChange={(e) => setAssetSearch(e.target.value)} placeholder="filename..." />
-                </div>
-                <div>
-                  <label>Type</label>
-                  <select value={assetKind} onChange={(e) => setAssetKind(e.target.value as typeof assetKind)}>
-                    <option value="all">All</option>
-                    <option value="image">Images</option>
-                    <option value="gif">GIFs</option>
-                    <option value="video">Videos</option>
-                    <option value="audio">Audio</option>
-                  </select>
-                </div>
-              </div>
-              <div className="actions" style={{ marginTop: 0, marginBottom: 12 }}>
-                <label className="btn btn-secondary btn-sm">
-                  Upload media
-                  <input
-                    type="file"
-                    accept="image/*,video/*,.gif,.png,.jpg,.jpeg,.webp,.mp4,.webm,.mov"
-                    style={{ display: "none" }}
-                    disabled={assetUploading}
-                    onChange={(e) => {
-                      const file = e.currentTarget.files?.[0];
-                      e.currentTarget.value = "";
-                      if (file) void uploadLibraryAsset(file, "media");
-                    }}
-                  />
-                </label>
-                <label className="btn btn-secondary btn-sm">
-                  Upload sound
-                  <input
-                    type="file"
-                    accept="audio/*,.mp3,.wav,.ogg,.m4a,.webm"
-                    style={{ display: "none" }}
-                    disabled={assetUploading}
-                    onChange={(e) => {
-                      const file = e.currentTarget.files?.[0];
-                      e.currentTarget.value = "";
-                      if (file) void uploadLibraryAsset(file, "sound");
-                    }}
-                  />
-                </label>
-              </div>
-              <div className="asset-library-grid">
-                {filteredMediaAssets.map((asset) => (
-                  <div key={asset.url} className="asset-card">
-                    <button type="button" onClick={() => applyMediaAsset(asset)} title={`Use ${asset.name}`}>
-                      {asset.kind === "video" ? (
-                        <video src={resolvePreviewAssetUrl(asset.url, overlayOrigin)} muted />
-                      ) : (
-                        <img src={resolvePreviewAssetUrl(asset.url, overlayOrigin)} alt="" />
-                      )}
-                      <strong>{asset.name}</strong>
-                      <span>{asset.kind} - {formatBytes(asset.size)}</span>
-                      {assetAttribution(asset) && <span>{assetAttribution(asset)}</span>}
-                    </button>
-                    <button type="button" className="asset-delete" onClick={() => void deleteLibraryAsset(asset, "media")}>Delete</button>
-                  </div>
-                ))}
-                {filteredSoundAssets.map((asset) => (
-                  <div key={asset.url} className="asset-card audio">
-                    <button type="button" onClick={() => applySoundAsset(asset)} title={`Use ${asset.name}`}>
-                      <strong>{asset.name}</strong>
-                      <span>audio - {formatBytes(asset.size)}</span>
-                      {assetAttribution(asset) && <span>{assetAttribution(asset)}</span>}
-                    </button>
-                    <button type="button" className="asset-delete" onClick={() => void deleteLibraryAsset(asset, "sound")}>Delete</button>
-                  </div>
-                ))}
-              </div>
-              {!filteredMediaAssets.length && !filteredSoundAssets.length && (
-                <p className="subtitle">No local assets match this filter.</p>
-              )}
-            </details>
-
-            <details className="alert-compact-section">
-              <summary>GIPHY</summary>
-              <div className="segmented" style={{ marginBottom: 12 }}>
-                <button
-                  type="button"
-                  className={giphyAssetType === "gif" ? "active" : ""}
-                  onClick={() => {
-                    setGiphyAssetType("gif");
-                    setGiphyResults([]);
-                  }}
-                >
-                  GIFs
-                </button>
-                <button
-                  type="button"
-                  className={giphyAssetType === "sticker" ? "active" : ""}
-                  onClick={() => {
-                    setGiphyAssetType("sticker");
-                    setGiphyResults([]);
-                  }}
-                >
-                  Stickers
-                </button>
-              </div>
-              <div className="form-row">
-                <label>Search {giphyAssetType === "sticker" ? "stickers" : "GIFs"}</label>
-                <input
-                  value={giphyQuery}
-                  onChange={(e) => setGiphyQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void searchGiphy();
-                  }}
-                  placeholder={giphyAssetType === "sticker" ? "sparkle, hype, emote..." : "hype, raid, explosion..."}
-                />
-              </div>
-              <div className="actions" style={{ marginTop: 0, marginBottom: 12 }}>
-                <button type="button" className="btn btn-primary btn-sm" onClick={() => void searchGiphy()} disabled={giphyLoading}>
-                  {giphyLoading ? "Searching..." : "Search"}
-                </button>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => void searchGiphy("")} disabled={giphyLoading}>
-                  Trending {giphyAssetType === "sticker" ? "stickers" : "GIFs"}
-                </button>
-              </div>
-              <div className="giphy-grid">
-                {giphyResults.map((gif) => (
-                  <button key={gif.id} type="button" className="giphy-card" onClick={() => void importGif(gif)} title={gif.title}>
-                    <img src={gif.previewUrl} alt={gif.title} />
-                    <span>{gif.title || (gif.type === "sticker" ? "Import sticker" : "Import GIF")}</span>
-                  </button>
-                ))}
-              </div>
-            </details>
+            <AlertAssetLibrary
+              assetSearch={assetSearch}
+              assetKind={assetKind}
+              assetUploading={assetUploading}
+              mediaAssets={filteredMediaAssets}
+              soundAssets={filteredSoundAssets}
+              overlayOrigin={overlayOrigin}
+              giphyAssetType={giphyAssetType}
+              giphyQuery={giphyQuery}
+              giphyResults={giphyResults}
+              giphyLoading={giphyLoading}
+              onAssetSearchChange={setAssetSearch}
+              onAssetKindChange={setAssetKind}
+              onUpload={(file, kind) => void uploadLibraryAsset(file, kind)}
+              onApplyMedia={applyMediaAsset}
+              onApplySound={applySoundAsset}
+              onDelete={(asset, kind) => void deleteLibraryAsset(asset, kind)}
+              onGiphyAssetTypeChange={(type) => {
+                setGiphyAssetType(type);
+                setGiphyResults([]);
+              }}
+              onGiphyQueryChange={setGiphyQuery}
+              onGiphySearch={(query) => void searchGiphy(query)}
+              onGiphyImport={(asset) => void importGif(asset)}
+            />
           </section>
 
-          <section className="card alert-preview-card">
-            <div className="alert-editor-panel-title">
-              <h2>Live Preview</h2>
-              <div className="actions" style={{ marginTop: 0 }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPlaying((v) => !v)}>
-                  {playing ? "Pause" : "Play"}
-                </button>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={restartPreview}>Restart</button>
-              </div>
-            </div>
-            <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 12 }}>
-              <div>
-                <label>Preview background</label>
-                <select value={previewBackground} onChange={(e) => setPreviewBackground(e.target.value as typeof previewBackground)}>
-                  <option value="checkerboard">Checkerboard</option>
-                  <option value="dark">Dark</option>
-                  <option value="transparent">Transparent</option>
-                </select>
-              </div>
-              <label style={{ alignSelf: "center", marginTop: 16 }}>
-                <input type="checkbox" checked={showSafeZones} onChange={(e) => setShowSafeZones(e.target.checked)} /> Safe zones
-              </label>
-            </div>
-            <div className="alert-preview-tools">
-              <span>{project.canvas.width}x{project.canvas.height}</span>
-              <div className="segmented">
-                <button type="button" className={previewZoom === "fit" ? "active" : ""} onClick={() => setPreviewZoom("fit")} title="Fit the full alert canvas into the preview area.">Fit</button>
-                <button type="button" className={previewZoom === 0.25 ? "active" : ""} onClick={() => setPreviewZoom(0.25)} title="Preview at 25% scale.">25%</button>
-                <button type="button" className={previewZoom === 0.5 ? "active" : ""} onClick={() => setPreviewZoom(0.5)} title="Preview at 50% scale.">50%</button>
-                <button type="button" className={previewZoom === 1 ? "active" : ""} onClick={() => setPreviewZoom(1)} title="Preview at full canvas scale.">100%</button>
-              </div>
-            </div>
-            <div className="alert-preview-shell" ref={previewShellRef}>
-              <div
-                ref={canvasRef}
-                className={`alert-preview-canvas ${previewBackground === "checkerboard" ? "checkerboard" : ""} ${previewBackground === "dark" ? "dark" : ""}`}
-                onPointerDown={(event) => {
-                  if (event.target === event.currentTarget) setSelectedLayerId("");
-                }}
-                onPointerMove={dragLayer}
-                onPointerUp={stopDrag}
-                onPointerCancel={stopDrag}
-                style={{
-                  width: project.canvas.width,
-                  height: project.canvas.height,
-                  background: project.canvas.background === "solid" ? project.canvas.backgroundColor : undefined,
-                  transform: `scale(${previewScale})`,
-                }}
-              >
-                <AlertPreviewErrorBoundary>
-                  {showSafeZones && <div className="alert-safe-zone" />}
-                  {project.layers.filter(visibleAtPlayhead).map((layer) => (
-                    <PreviewLayer
-                      key={layer.id}
-                      layer={layer}
-                      eventType={project.eventType}
-                      testPayload={previewTestPayload}
-                      selected={selectedLayer?.id === layer.id}
-                      playheadMs={playheadMs}
-                      overlayOrigin={overlayOrigin}
-                      onPointerDown={(event) => startDrag(layer, event)}
-                      onResizePointerDown={(handle, event) => startResize(layer, handle, event)}
-                      onRotatePointerDown={(event) => startRotate(layer, event)}
-                    />
-                  ))}
-                </AlertPreviewErrorBoundary>
-              </div>
-            </div>
-            <div className="alert-timeline">
-              <div className="alert-timeline-header">
-                <span>{Math.round(playheadMs)}ms</span>
-                <input
-                  title="Scrub the alert timeline preview."
-                  type="range"
-                  min={0}
-                  max={project.durationMs}
-                  value={playheadMs}
-                  onChange={(e) => {
-                    setPlaying(false);
-                    setPlayheadMs(Number(e.target.value));
-                  }}
-                />
-                <span>{project.durationMs}ms</span>
-                <label className="timeline-zoom-control">
-                  Zoom
-                  <input
-                    type="range"
-                    min={0.5}
-                    max={4}
-                    step={0.25}
-                    value={project.timeline?.zoom ?? 1}
-                    onChange={(e) => updateTimeline({ zoom: Number(e.target.value) })}
-                  />
-                </label>
-              </div>
-              <div className="alert-timeline-tracks" style={{ minWidth: `${Math.round((project.timeline?.zoom ?? 1) * 100)}%` }}>
-                {project.layers.map((layer) => {
-                  const left = pct(layer.startMs, project.durationMs);
-                  const width = pct(layer.endMs - layer.startMs, project.durationMs);
-                  const layerDuration = Math.max(1, layer.endMs - layer.startMs);
-                  return (
-                    <button
-                      key={layer.id}
-                      type="button"
-                      className={`alert-timeline-track${selectedLayer?.id === layer.id ? " active" : ""}${layer.type === "audio" ? " audio" : ""}`}
-                      onClick={() => setSelectedLayerId(layer.id)}
-                      title="Layer timing. Edit Start and End in Properties."
-                    >
-                      <span>{layer.name}</span>
-                      <i style={{ left, width }} />
-                      {layer.type === "audio" && (
-                        <b
-                          className="alert-audio-bar"
-                          style={{
-                            left,
-                            width,
-                            "--offset": pct(layer.startOffsetMs ?? 0, layerDuration),
-                            "--fade-in": pct(layer.fadeInMs ?? 0, layerDuration),
-                            "--fade-out": pct(layer.fadeOutMs ?? 0, layerDuration),
-                          } as CSSProperties}
-                        />
-                      )}
-                    </button>
-                  );
-                })}
-                <b className="alert-playhead" style={{ left: `${(playheadMs / project.durationMs) * 100}%` }} />
-              </div>
-            </div>
-          </section>
+          <AlertCanvasWorkspace
+            project={project}
+            visibleLayers={project.layers.filter(visibleAtPlayhead)}
+            selectedLayerId={selectedLayerId}
+            playheadMs={playheadMs}
+            playing={playing}
+            showSafeZones={showSafeZones}
+            previewBackground={previewBackground}
+            previewZoom={previewZoom}
+            testPayload={previewTestPayload}
+            overlayOrigin={overlayOrigin}
+            canvasRef={canvasRef}
+            onPlayingChange={setPlaying}
+            onRestart={restartPreview}
+            onSafeZonesChange={setShowSafeZones}
+            onBackgroundChange={setPreviewBackground}
+            onZoomChange={setPreviewZoom}
+            onSelectLayer={setSelectedLayerId}
+            onPlayheadChange={setPlayheadMs}
+            onTimelineZoomChange={(zoom) => updateTimeline({ zoom })}
+            onCanvasPointerMove={dragLayer}
+            onCanvasPointerEnd={stopDrag}
+            onLayerPointerDown={startDrag}
+            onLayerResizePointerDown={startResize}
+            onLayerRotatePointerDown={startRotate}
+          />
 
           <section className="card alert-editor-side-panel alert-inspector-panel">
             <div className="alert-inspector-tabs">
@@ -2921,483 +2246,55 @@ export default function AlertEditorPage() {
               </div>
             </div>
             {inspectorTab === "test" ? (
-              <div className="alert-test-panel">
-                <details open className="alert-inspector-section">
-                  <summary>Test Event</summary>
-                  <p className="subtitle">Fire this project into OBS using the selected payload. Invalid JSON disables the test buttons.</p>
-                  <div className="alert-routing-test-grid">
-                    {EVENT_TYPES.map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        className={`btn btn-sm ${project.eventType === type ? "btn-primary" : "btn-secondary"}`}
-                        onClick={() => void testProjectInObs(type)}
-                        disabled={saving || Boolean(testPayloadError)}
-                      >
-                        Test {type}
-                      </button>
-                    ))}
-                  </div>
-                </details>
-                <details open className="alert-inspector-section">
-                  <summary>Variation, Chaos & Audio</summary>
-                  <div className="alert-test-flow-grid">
-                    <div>
-                      <label>Variation</label>
-                      <select value={selectedVariationId} onChange={(e) => setSelectedVariationId(e.target.value)}>
-                        <option value="">Base project</option>
-                        {project.variations.map((variation) => (
-                          <option key={variation.id} value={variation.id}>
-                            {variation.name}{variation.enabled ? "" : " (disabled)"}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => void testProjectInObs(selectedVariation?.condition.eventType ?? project.eventType, selectedVariation?.id)}
-                      disabled={saving || Boolean(testPayloadError) || !selectedVariation}
-                    >
-                      Test selected variation
-                    </button>
-                    <span className={`alert-test-state ${project.chaos.enabled ? "enabled" : ""}`}>
-                      Chaos {project.chaos.enabled ? `on (${Math.round(project.chaos.intensity * 100)}%)` : "off"}
-                    </span>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => {
-                        if (testAudioLayer) setSelectedLayerId(testAudioLayer.id);
-                        testAudioLayerPlayback(testAudioLayer);
-                      }}
-                      disabled={!testAudioLayer?.assetUrl || Boolean(testAudioLayer?.muted)}
-                    >
-                      Test audio layer
-                    </button>
-                  </div>
-                  <p className="subtitle">
-                    {testAudioLayer
-                      ? `Audio target: ${testAudioLayer.name}${testAudioLayer.muted ? " (muted)" : ""}`
-                      : "Add an audio layer to test sound playback from this panel."}
-                  </p>
-                </details>
-                <details open className="alert-inspector-section">
-                  <summary>Payload JSON</summary>
-                  <div className="form-row">
-                    <textarea
-                      rows={12}
-                      value={testPayloadJson}
-                      onChange={(e) => setTestPayloadJson(e.target.value)}
-                      spellCheck={false}
-                    />
-                    <p className={testPayloadError ? "form-error" : "subtitle"}>
-                      {testPayloadError
-                        ? `Invalid JSON: ${testPayloadError}`
-                        : (
-                          <>
-                            Template variables: <code>{"{user}"}</code>, <code>{"{login}"}</code>, <code>{"{event}"}</code>, <code>{"{amount}"}</code>, <code>{"{message}"}</code>, <code>{"{payload.rewardTitle}"}</code>.
-                          </>
-                        )}
-                    </p>
-                  </div>
-                </details>
-              </div>
+              <AlertTestInspector
+                project={project}
+                eventTypes={EVENT_TYPES}
+                selectedVariationId={selectedVariationId}
+                selectedVariation={selectedVariation}
+                audioLayer={testAudioLayer}
+                payloadJson={testPayloadJson}
+                payloadError={testPayloadError}
+                saving={saving}
+                onTestEvent={(eventType, variationId) => void testProjectInObs(eventType, variationId)}
+                onVariationChange={setSelectedVariationId}
+                onTestAudio={(layer) => {
+                  setSelectedLayerId(layer.id);
+                  testAudioLayerPlayback(layer);
+                }}
+                onPayloadJsonChange={setTestPayloadJson}
+              />
             ) : selectedLayer ? (
               <>
-                <details open className="alert-inspector-section">
-                  <summary>Layer</summary>
-                  <div className="form-row">
-                    <label title="Name shown in the layer stack and timeline.">Layer name</label>
-                    <input value={selectedLayer.name} onChange={(e) => updateSelected({ name: e.target.value })} />
-                  </div>
-                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                    <label><input type="checkbox" checked={selectedLayer.visible} onChange={(e) => updateSelected({ visible: e.target.checked })} /> Visible</label>
-                    <label><input type="checkbox" checked={selectedLayer.locked} onChange={(e) => updateSelected({ locked: e.target.checked })} /> Locked</label>
-                  </div>
-                </details>
-                <details open className="alert-inspector-section">
-                  <summary>Transform</summary>
-                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                  <div><label>X</label><input type="number" value={selectedLayer.x} onChange={(e) => updateSelected({ x: Number(e.target.value) })} /></div>
-                  <div><label>Y</label><input type="number" value={selectedLayer.y} onChange={(e) => updateSelected({ y: Number(e.target.value) })} /></div>
-                  <div><label>Width</label><input type="number" value={selectedLayer.width} onChange={(e) => updateSelected({ width: Number(e.target.value) })} /></div>
-                  <div><label>Height</label><input type="number" value={selectedLayer.height} onChange={(e) => updateSelected({ height: Number(e.target.value) })} /></div>
-                  <div><label>Rotation</label><input type="number" value={selectedLayer.rotation} onChange={(e) => updateSelected({ rotation: Number(e.target.value) })} /></div>
-                  <div><label>Scale</label><input type="number" step="0.05" value={selectedLayer.scale} onChange={(e) => updateSelected({ scale: Number(e.target.value) })} /></div>
-                  </div>
-                  <div className="actions" style={{ marginBottom: 0 }}>
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("left")}>Left</button>
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("center")}>Center</button>
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("right")}>Right</button>
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("top")}>Top</button>
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("middle")}>Middle</button>
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => alignSelected("bottom")}>Bottom</button>
-                  </div>
-                </details>
-                <details className="alert-inspector-section">
-                  <summary>Animation</summary>
-                <div className="form-row">
-                  <label>Animation preset</label>
-                  <select
-                    value={selectedLayer.animation?.preset ?? "none"}
-                    onChange={(e) => applyAnimationPreset(e.target.value as AlertLayerAnimation["preset"])}
-                  >
-                    {ANIMATION_PRESETS.map((preset) => (
-                      <option key={preset} value={preset}>{ANIMATION_PRESET_LABELS[preset]}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="animation-preset-gallery">
-                  {ANIMATION_PRESETS.filter((preset) => preset !== "none").map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      className={selectedLayer.animation?.preset === preset ? "active" : ""}
-                      onClick={() => applyAnimationPreset(preset)}
-                      title={`Apply ${ANIMATION_PRESET_LABELS[preset]}`}
-                    >
-                      <span className={`animation-preset-swatch preset-${preset}`} />
-                      <strong>{ANIMATION_PRESET_LABELS[preset]}</strong>
-                    </button>
-                  ))}
-                </div>
-                {selectedLayer.animation && selectedLayer.animation.preset !== "none" && (
-                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                    <div>
-                      <label>Anim delay (ms)</label>
-                      <input
-                        type="number"
-                        value={selectedLayer.animation.delayMs}
-                        onChange={(e) => updateSelected({ animation: { ...selectedLayer.animation!, delayMs: Number(e.target.value) } } as Partial<AlertLayer>)}
-                      />
-                    </div>
-                    <div>
-                      <label>Anim duration (ms)</label>
-                      <input
-                        type="number"
-                        value={selectedLayer.animation.durationMs}
-                        onChange={(e) => updateSelected({ animation: { ...selectedLayer.animation!, durationMs: Number(e.target.value) } } as Partial<AlertLayer>)}
-                      />
-                    </div>
-                    <div>
-                      <label>Intensity</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min={0}
-                        max={5}
-                        value={selectedLayer.animation.intensity}
-                        onChange={(e) => updateSelected({ animation: { ...selectedLayer.animation!, intensity: Number(e.target.value) } } as Partial<AlertLayer>)}
-                      />
-                    </div>
-                    <label style={{ alignSelf: "center", marginTop: 16 }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedLayer.animation.loop}
-                        onChange={(e) => updateSelected({ animation: { ...selectedLayer.animation!, loop: e.target.checked } } as Partial<AlertLayer>)}
-                      />{" "}
-                      Loop
-                    </label>
-                  </div>
-                )}
-                </details>
-                <details className="alert-inspector-section">
-                  <summary>Appearance</summary>
-                  <div className="form-row">
-                    <label>Opacity ({selectedLayer.opacity})</label>
-                    <input type="range" min={0} max={1} step={0.05} value={selectedLayer.opacity} onChange={(e) => updateSelected({ opacity: Number(e.target.value) })} />
-                  </div>
-                  <div className="form-row">
-                    <label>Blend mode</label>
-                    <select value={selectedLayer.blendMode} onChange={(e) => updateSelected({ blendMode: e.target.value })}>
-                      {BLEND_MODES.map((mode) => (
-                        <option key={mode} value={mode}>{mode}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                  <div>
-                    <label>Glow</label>
-                    <input type="number" min={0} max={120} value={selectedLayer.filter?.glow ?? 0} onChange={(e) => updateSelectedFilter({ glow: Number(e.target.value) })} />
-                  </div>
-                  <div>
-                    <label>Glow color</label>
-                    <input value={selectedLayer.filter?.glowColor ?? "rgba(91, 140, 255, 0.9)"} onChange={(e) => updateSelectedFilter({ glowColor: e.target.value })} />
-                  </div>
-                  <div>
-                    <label>Blur</label>
-                    <input type="number" min={0} max={80} value={selectedLayer.filter?.blur ?? 0} onChange={(e) => updateSelectedFilter({ blur: Number(e.target.value) })} />
-                  </div>
-                  <div>
-                    <label>Hue rotate</label>
-                    <input type="number" min={-360} max={360} value={selectedLayer.filter?.hueRotate ?? 0} onChange={(e) => updateSelectedFilter({ hueRotate: Number(e.target.value) })} />
-                  </div>
-                  <div>
-                    <label>Brightness</label>
-                    <input type="number" min={0} max={3} step={0.05} value={selectedLayer.filter?.brightness ?? 1} onChange={(e) => updateSelectedFilter({ brightness: Number(e.target.value) })} />
-                  </div>
-                  <div>
-                    <label>Contrast</label>
-                    <input type="number" min={0} max={3} step={0.05} value={selectedLayer.filter?.contrast ?? 1} onChange={(e) => updateSelectedFilter({ contrast: Number(e.target.value) })} />
-                  </div>
-                  <div>
-                    <label>Saturation</label>
-                    <input type="number" min={0} max={3} step={0.05} value={selectedLayer.filter?.saturation ?? 1} onChange={(e) => updateSelectedFilter({ saturation: Number(e.target.value) })} />
-                  </div>
-                  </div>
-                </details>
-                <details open className="alert-inspector-section">
-                  <summary>Timing</summary>
-                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                    <div><label title="When this layer appears during the alert.">Start (ms)</label><input type="number" value={selectedLayer.startMs} onChange={(e) => updateSelected({ startMs: Number(e.target.value) })} /></div>
-                    <div><label title="When this layer disappears during the alert.">End (ms)</label><input type="number" value={selectedLayer.endMs} onChange={(e) => updateSelected({ endMs: Number(e.target.value) })} /></div>
-                  </div>
-                  <div className="alert-keyframe-panel">
-                    <h3>Keyframes</h3>
-                  <div className="actions" style={{ marginBottom: 10 }}>
-                    {KEYFRAME_PROPERTIES.map((property) => (
-                      <button key={property} type="button" className="btn btn-secondary btn-sm" onClick={() => addKeyframe(property)}>
-                        Add {property}
-                      </button>
-                    ))}
-                  </div>
-                  {selectedLayer.keyframes.length ? (
-                    <div className="keyframe-list">
-                      {selectedLayer.keyframes.map((frame) => (
-                        <div key={frame.id} className="keyframe-row">
-                          <input
-                            type="number"
-                            min={0}
-                            max={project.durationMs}
-                            value={frame.atMs}
-                            title="Keyframe time in milliseconds."
-                            onChange={(e) => updateKeyframe(frame.id, { atMs: Number(e.target.value) })}
-                          />
-                          <select value={frame.easing} onChange={(e) => updateKeyframe(frame.id, { easing: e.target.value as AlertKeyframe["easing"] })}>
-                            <option value="linear">linear</option>
-                            <option value="ease-in">ease-in</option>
-                            <option value="ease-out">ease-out</option>
-                            <option value="ease-in-out">ease-in-out</option>
-                            <option value="bounce">bounce</option>
-                            <option value="elastic">elastic</option>
-                          </select>
-                          <span>{Object.keys(frame.properties).join(", ") || "empty"}</span>
-                          <button type="button" className="btn btn-danger btn-sm" onClick={() => deleteKeyframe(frame.id)}>Delete</button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="subtitle">Move the playhead, adjust the layer, then add a keyframe for the property you want to animate.</p>
-                  )}
-                  </div>
-                </details>
+                <AlertLayerInspector
+                  layer={selectedLayer}
+                  projectDurationMs={project.durationMs}
+                  onUpdate={updateSelected}
+                  onUpdateFilter={updateSelectedFilter}
+                  onAlign={alignSelected}
+                  onApplyAnimation={applyAnimationPreset}
+                  onAddKeyframe={addKeyframe}
+                  onUpdateKeyframe={updateKeyframe}
+                  onDeleteKeyframe={deleteKeyframe}
+                />
 
-                {selectedLayer.type === "text" && (
-                  <details open className="alert-inspector-section">
-                    <summary>Text</summary>
-                    <div className="form-row"><label>Text</label><textarea rows={3} value={selectedLayer.text} onChange={(e) => updateSelected({ text: e.target.value } as Partial<AlertLayer>)} /></div>
-                    <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                      <div><label>Font size</label><input type="number" value={selectedLayer.fontSize} onChange={(e) => updateSelected({ fontSize: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                      <div><label>Weight</label><input type="number" value={selectedLayer.fontWeight} onChange={(e) => updateSelected({ fontWeight: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                      <div><label>Color</label><input type="color" value={selectedLayer.color} onChange={(e) => updateSelected({ color: e.target.value } as Partial<AlertLayer>)} /></div>
-                      <div><label>Align</label><select value={selectedLayer.align} onChange={(e) => updateSelected({ align: e.target.value } as Partial<AlertLayer>)}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></div>
-                      <div><label>Text shadow</label><input value={selectedLayer.shadow ?? ""} onChange={(e) => updateSelected({ shadow: e.target.value } as Partial<AlertLayer>)} placeholder="0 0 18px #5b8cff" /></div>
-                      <div><label>Stroke width</label><input type="number" min={0} max={24} value={selectedLayer.strokeWidth} onChange={(e) => updateSelected({ strokeWidth: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                      <div><label>Stroke color</label><input value={selectedLayer.strokeColor ?? "#000000"} onChange={(e) => updateSelected({ strokeColor: e.target.value } as Partial<AlertLayer>)} /></div>
-                    </div>
-                  </details>
-                )}
-
-                {selectedLayer.type === "shape" && (
-                  <details open className="alert-inspector-section">
-                    <summary>Shape</summary>
-                    <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                      <div><label>Fill</label><input value={selectedLayer.fill} onChange={(e) => updateSelected({ fill: e.target.value } as Partial<AlertLayer>)} /></div>
-                      <div><label>Radius</label><input type="number" value={selectedLayer.radius} onChange={(e) => updateSelected({ radius: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                      <div><label>Shape</label><select value={selectedLayer.shape} onChange={(e) => updateSelected({ shape: e.target.value } as Partial<AlertLayer>)}><option value="rectangle">Rectangle</option><option value="ellipse">Ellipse</option></select></div>
-                    </div>
-                  </details>
-                )}
-
-                {selectedLayer.type === "particle" && (
-                  <details open className="alert-inspector-section">
-                    <summary>Particle</summary>
-                    <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                      <div><label>Particle type</label><select value={selectedLayer.particle} onChange={(e) => updateSelected({ particle: e.target.value } as Partial<AlertLayer>)}><option value="confetti">Confetti</option><option value="spark">Spark</option><option value="burst">Burst</option><option value="embers">Embers</option><option value="snow">Snow</option></select></div>
-                      <div><label>Count</label><input type="number" min={1} max={1000} value={selectedLayer.count} onChange={(e) => updateSelected({ count: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                      <div><label>Color</label><input type="color" value={selectedLayer.color} onChange={(e) => updateSelected({ color: e.target.value } as Partial<AlertLayer>)} /></div>
-                      <div><label>Spread</label><input type="number" min={0} max={360} value={selectedLayer.spread} onChange={(e) => updateSelected({ spread: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                      <div><label>Speed</label><input type="number" min={0} max={10} step={0.1} value={selectedLayer.speed} onChange={(e) => updateSelected({ speed: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                    </div>
-                  </details>
-                )}
-
-                {selectedLayer.type === "browser" && (
-                  <details open className="alert-inspector-section alert-advanced-panel">
-                    <summary>Browser</summary>
-                    <h3>Advanced Code</h3>
-                    <p className="subtitle">Custom browser layers are sandboxed by default. JavaScript is disabled unless you turn off the sandbox, and Safe mode disables it during playback.</p>
-                    <div className="form-row"><label>HTML</label><textarea rows={4} value={selectedLayer.html} onChange={(e) => updateSelected({ html: e.target.value } as Partial<AlertLayer>)} /></div>
-                    <div className="form-row"><label>CSS</label><textarea rows={4} value={selectedLayer.css} onChange={(e) => updateSelected({ css: e.target.value } as Partial<AlertLayer>)} /></div>
-                    <div className="form-row"><label>JavaScript hook</label><textarea rows={3} value={selectedLayer.js} onChange={(e) => updateSelected({ js: e.target.value } as Partial<AlertLayer>)} /></div>
-                    <label><input type="checkbox" checked={selectedLayer.sandbox} onChange={(e) => updateSelected({ sandbox: e.target.checked } as Partial<AlertLayer>)} /> Sandbox iframe</label>
-                    <details>
-                      <summary>Event payload and lifecycle notes</summary>
-                      <p className="subtitle">Text layers support <code>{"{user}"}</code>, <code>{"{login}"}</code>, <code>{"{event}"}</code>, <code>{"{amount}"}</code>, <code>{"{message}"}</code>, <code>{"{var:hype}"}</code>, and <code>{"{payload.rewardTitle}"}</code>. Browser layer JavaScript runs inside the iframe when sandbox scripts are allowed; keep setup code self-contained.</p>
-                    </details>
-                  </details>
-                )}
-
-                {(selectedLayer.type === "image" || selectedLayer.type === "gif" || selectedLayer.type === "video" || selectedLayer.type === "audio") && (
-                  <>
-                    <details open className="alert-inspector-section">
-                      <summary>Media</summary>
-                      <div className="form-row"><label>Asset URL</label><input value={selectedLayer.assetUrl} onChange={(e) => updateSelected({ assetUrl: e.target.value } as Partial<AlertLayer>)} /></div>
-                      {(selectedLayer.type === "audio" || selectedLayer.type === "video") && (
-                        <div className="form-row">
-                          <label>{selectedLayer.type === "audio" ? "Upload audio" : "Upload video"}</label>
-                          <input
-                            type="file"
-                            accept={selectedLayer.type === "audio" ? "audio/*,.mp3,.wav,.ogg,.m4a,.webm" : "video/*,.mp4,.webm,.mov"}
-                            disabled={assetUploading}
-                            onChange={(e) => {
-                              const file = e.currentTarget.files?.[0];
-                              e.currentTarget.value = "";
-                              if (file) void uploadSelectedAsset(file);
-                            }}
-                          />
-                          {assetUploading && <p className="subtitle">Uploading asset...</p>}
-                        </div>
-                      )}
-                      {selectedLayer.type !== "audio" && (
-                        <div className="form-row"><label>Fit</label><select value={selectedLayer.fit} onChange={(e) => updateSelected({ fit: e.target.value } as Partial<AlertLayer>)}><option value="contain">Contain</option><option value="cover">Cover</option><option value="fill">Fill</option></select></div>
-                      )}
-                    </details>
-                    {selectedLayer.type === "audio" && (
-                      <>
-                        <details open className="alert-inspector-section">
-                          <summary>Audio</summary>
-                          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                            <div><label>Volume</label><input type="number" min={0} max={1} step={0.05} value={selectedLayer.volume} onChange={(e) => updateSelected({ volume: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                            <div><label>Start offset (ms)</label><input type="number" min={0} value={selectedLayer.startOffsetMs ?? 0} onChange={(e) => updateSelected({ startOffsetMs: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                            <div><label>Fade in (ms)</label><input type="number" min={0} value={selectedLayer.fadeInMs ?? 0} onChange={(e) => updateSelected({ fadeInMs: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                            <div><label>Fade out (ms)</label><input type="number" min={0} value={selectedLayer.fadeOutMs ?? 0} onChange={(e) => updateSelected({ fadeOutMs: Number(e.target.value) } as Partial<AlertLayer>)} /></div>
-                            <label style={{ alignSelf: "center", marginTop: 16 }}><input type="checkbox" checked={selectedLayer.loop} onChange={(e) => updateSelected({ loop: e.target.checked } as Partial<AlertLayer>)} /> Loop</label>
-                            <label style={{ alignSelf: "center", marginTop: 0 }}><input type="checkbox" checked={selectedLayer.muted} onChange={(e) => updateSelected({ muted: e.target.checked } as Partial<AlertLayer>)} /> Muted</label>
-                          </div>
-                          <div className="actions" style={{ marginTop: 0, marginBottom: 0 }}>
-                            <button type="button" className="btn btn-secondary btn-sm" onClick={testSelectedAudio} disabled={!selectedLayer.assetUrl || selectedLayer.muted}>
-                              Test sound
-                            </button>
-                            <button type="button" className="btn btn-secondary btn-sm" onClick={stopTestAudio}>
-                              Stop sound
-                            </button>
-                          </div>
-                        </details>
-                        <details className="alert-inspector-section">
-                          <summary>Reactive</summary>
-                          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                            <label style={{ alignSelf: "center", marginTop: 16 }}>
-                              <input
-                                type="checkbox"
-                                checked={selectedLayer.reactive?.enabled ?? false}
-                                onChange={(e) => updateSelected({ reactive: { ...(selectedLayer.reactive ?? { mode: "none", sensitivity: 1 }), enabled: e.target.checked } } as Partial<AlertLayer>)}
-                              /> Reactive
-                            </label>
-                            <div>
-                              <label>Mode</label>
-                              <select
-                                value={selectedLayer.reactive?.mode ?? "none"}
-                                onChange={(e) => updateSelected({ reactive: { ...(selectedLayer.reactive ?? { enabled: false, sensitivity: 1 }), mode: e.target.value as "none" | "amplitude" | "bass" } } as Partial<AlertLayer>)}
-                              >
-                                <option value="none">None</option>
-                                <option value="amplitude">Amplitude</option>
-                                <option value="bass">Bass</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label>Sensitivity</label>
-                              <input
-                                type="number"
-                                min={0}
-                                max={5}
-                                step={0.1}
-                                value={selectedLayer.reactive?.sensitivity ?? 1}
-                                onChange={(e) => updateSelected({ reactive: { ...(selectedLayer.reactive ?? { enabled: false, mode: "none" }), sensitivity: Number(e.target.value) } } as Partial<AlertLayer>)}
-                              />
-                            </div>
-                          </div>
-                        </details>
-                      </>
-                    )}
-                    {selectedLayer.type === "video" && (
-                      <details open className="alert-inspector-section">
-                        <summary>Playback</summary>
-                        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                          <label><input type="checkbox" checked={selectedLayer.loop} onChange={(e) => updateSelected({ loop: e.target.checked } as Partial<AlertLayer>)} /> Loop</label>
-                          <label><input type="checkbox" checked={selectedLayer.muted} onChange={(e) => updateSelected({ muted: e.target.checked } as Partial<AlertLayer>)} /> Muted</label>
-                        </div>
-                      </details>
-                    )}
-                  </>
-                )}
+                <AlertLayerTypeInspector
+                  layer={selectedLayer}
+                  assetUploading={assetUploading}
+                  onUpdate={updateSelected}
+                  onUploadAsset={(file) => void uploadSelectedAsset(file)}
+                  onTestAudio={testSelectedAudio}
+                  onStopAudio={stopTestAudio}
+                />
               </>
             ) : (
-              <div className="alert-inspector-empty">
-                <p className="subtitle">No layer selected. Select a layer to edit it, or tune the project canvas here.</p>
-                <details open className="alert-inspector-section">
-                  <summary>Project</summary>
-                  <div className="form-row">
-                    <label>Name</label>
-                    <input value={project.name} onChange={(e) => commitProject({ ...project, name: e.target.value, updatedAt: nowIso() })} />
-                  </div>
-                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                    <div>
-                      <label>Event type</label>
-                      <select value={project.eventType} onChange={(e) => commitProject({ ...project, eventType: e.target.value as StreamEventType, updatedAt: nowIso() })}>
-                        {EVENT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label>Duration (ms)</label>
-                      <input type="number" min={500} max={60000} value={project.durationMs} onChange={(e) => commitProject({ ...project, durationMs: Number(e.target.value), updatedAt: nowIso() })} />
-                    </div>
-                  </div>
-                </details>
-                <details open className="alert-inspector-section">
-                  <summary>Canvas</summary>
-                  <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                    <div>
-                      <label>Width</label>
-                      <input
-                        type="number"
-                        min={320}
-                        value={project.canvas.width}
-                        onChange={(e) => commitProject({ ...project, canvas: { ...project.canvas, width: Number(e.target.value) }, updatedAt: nowIso() })}
-                      />
-                    </div>
-                    <div>
-                      <label>Height</label>
-                      <input
-                        type="number"
-                        min={180}
-                        value={project.canvas.height}
-                        onChange={(e) => commitProject({ ...project, canvas: { ...project.canvas, height: Number(e.target.value) }, updatedAt: nowIso() })}
-                      />
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <label>Canvas preset</label>
-                    <select value={activeCanvasPreset} onChange={(e) => applyCanvasPreset(e.target.value)}>
-                      {CANVAS_PRESETS.map((preset) => (
-                        <option key={preset.label} value={`${preset.width}x${preset.height}`}>{preset.label} ({preset.width}x{preset.height})</option>
-                      ))}
-                      <option value="custom">Custom</option>
-                    </select>
-                  </div>
-                </details>
-              </div>
+              <AlertProjectInspector
+                project={project}
+                eventTypes={EVENT_TYPES}
+                canvasPresets={CANVAS_PRESETS}
+                activeCanvasPreset={activeCanvasPreset}
+                onUpdate={commitProject}
+                onApplyCanvasPreset={applyCanvasPreset}
+              />
             )}
           </section>
         </div>

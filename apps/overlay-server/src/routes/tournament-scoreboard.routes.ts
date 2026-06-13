@@ -1,4 +1,5 @@
 import { getSetting, setSetting } from "../db.js";
+import { parseBody, TournamentScoreboardUpdateBodySchema } from "../schemas/request.schema.js";
 import type { RouteModule } from "./types.js";
 
 interface TournamentScoreboardTeam {
@@ -82,7 +83,10 @@ function writeScoreboard(input: Partial<TournamentScoreboardState>): TournamentS
 export const registerTournamentScoreboardRoutes: RouteModule = (app) => {
   app.get("/api/tournament-scoreboard", async () => readScoreboard());
 
-  app.put("/api/tournament-scoreboard", async (req) => writeScoreboard(req.body as Partial<TournamentScoreboardState>));
+  app.put("/api/tournament-scoreboard", async (req, reply) => {
+    const body = parseBody(reply, TournamentScoreboardUpdateBodySchema, req.body);
+    return body ? writeScoreboard(body) : undefined;
+  });
 
   app.post("/api/tournament-scoreboard/reset", async () => {
     const current = readScoreboard();

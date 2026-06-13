@@ -1,4 +1,5 @@
 import { getSetting, setSetting } from "../db.js";
+import { AmountBodySchema, BossFightUpdateBodySchema, parseBody } from "../schemas/request.schema.js";
 import type { RouteModule } from "./types.js";
 
 interface BossFightState {
@@ -84,12 +85,17 @@ function writeBossFight(input: Partial<BossFightState>): BossFightState {
 export const registerBossFightRoutes: RouteModule = (app) => {
   app.get("/api/boss-fight", async () => readBossFight());
 
-  app.put("/api/boss-fight", async (req) => writeBossFight(req.body as Partial<BossFightState>));
+  app.put("/api/boss-fight", async (req, reply) => {
+    const body = parseBody(reply, BossFightUpdateBodySchema, req.body);
+    return body ? writeBossFight(body) : undefined;
+  });
 
   app.post("/api/boss-fight/reset", async () => writeBossFight(defaultBossFight()));
 
-  app.post("/api/boss-fight/damage", async (req) => {
-    const { amount } = req.body as { amount?: number };
+  app.post("/api/boss-fight/damage", async (req, reply) => {
+    const body = parseBody(reply, AmountBodySchema.partial(), req.body);
+    if (!body) return;
+    const { amount } = body;
     const state = readBossFight();
     const damage = clampNumber(amount, 0, 0, 999999);
     const shieldDamage = Math.min(state.shield, damage);
@@ -101,8 +107,10 @@ export const registerBossFightRoutes: RouteModule = (app) => {
     });
   });
 
-  app.post("/api/boss-fight/heal", async (req) => {
-    const { amount } = req.body as { amount?: number };
+  app.post("/api/boss-fight/heal", async (req, reply) => {
+    const body = parseBody(reply, AmountBodySchema.partial(), req.body);
+    if (!body) return;
+    const { amount } = body;
     const state = readBossFight();
     return writeBossFight({
       ...state,

@@ -1,5 +1,6 @@
 import { deleteMacro, getMacro, getMacros, upsertMacro } from "../db.js";
 import { macroFromBody } from "../schemas/macro.schema.js";
+import { parseBody, UnknownRecordBodySchema } from "../schemas/request.schema.js";
 import type { RouteModule } from "./types.js";
 
 function escapeHtml(value: string): string {
@@ -13,9 +14,11 @@ function escapeHtml(value: string): string {
 
 export const registerMacrosRoutes: RouteModule = (app, ctx) => {
   app.get("/api/macros", async () => getMacros());
-  app.put("/api/macros/:id", async (req) => {
+  app.put("/api/macros/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
-    upsertMacro(macroFromBody(id, req.body as ReturnType<typeof getMacros>[number]));
+    const body = parseBody(reply, UnknownRecordBodySchema, req.body);
+    if (!body) return;
+    upsertMacro(macroFromBody(id, body as unknown as ReturnType<typeof getMacros>[number]));
     return { ok: true };
   });
   app.delete("/api/macros/:id", async (req) => {

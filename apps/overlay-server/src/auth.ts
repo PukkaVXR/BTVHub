@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { timingSafeEqual } from "node:crypto";
+import { HUB_PORT, OAUTH_HTTPS_PORT, OVERLAY_PORT } from "@btv/shared";
 import { getEncryptedSetting, setEncryptedSetting } from "./db.js";
 import { getHubOrigin, getOAuthOrigin, getOverlayOrigin } from "./server-urls.js";
 
@@ -30,13 +31,31 @@ export function getAllowedOrigins(): string[] {
   return [getHubOrigin(), getOverlayOrigin(), getOAuthOrigin()];
 }
 
+function isLoopbackHostname(hostname: string): boolean {
+  const normalized = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1";
+}
+
+function isLocalOrigin(origin: string, protocol: "http:" | "https:", port: number): boolean {
+  try {
+    const url = new URL(origin);
+    return url.protocol === protocol && Number(url.port) === port && isLoopbackHostname(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export function isAllowedOrigin(origin: string | undefined): boolean {
   if (!origin) return true;
-  return getAllowedOrigins().includes(origin);
+  return getAllowedOrigins().includes(origin) ||
+    isLocalOrigin(origin, "http:", HUB_PORT) ||
+    isLocalOrigin(origin, "http:", OVERLAY_PORT) ||
+    isLocalOrigin(origin, "https:", OAUTH_HTTPS_PORT);
 }
 
 export function isTrustedHubOrigin(origin: string | undefined): boolean {
-  return origin === getHubOrigin();
+  return typeof origin === "string" &&
+    (origin === getHubOrigin() || isLocalOrigin(origin, "http:", HUB_PORT));
 }
 
 export function isValidApiToken(value: unknown): boolean {

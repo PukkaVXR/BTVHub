@@ -1,13 +1,7 @@
 import type { ChatCommand } from "../db.js";
+import { normalizeChatCommand } from "../chat-command-utils.js";
 
 const PERMISSIONS: ChatCommand["permission"][] = ["everyone", "subscriber", "vip", "moderator", "broadcaster"];
-
-function normalizeCommand(value: unknown): string {
-  const raw = String(value ?? "").trim().replace(/\s+/g, " ");
-  if (!raw) return "";
-  const command = raw.startsWith("!") ? raw : `!${raw}`;
-  return command.split(" ")[0]!.toLowerCase();
-}
 
 function normalizeAliases(value: unknown, command: string): string[] {
   const rawAliases = Array.isArray(value)
@@ -15,7 +9,7 @@ function normalizeAliases(value: unknown, command: string): string[] {
     : String(value ?? "")
       .split(/[,\n]/)
       .map((alias) => alias.trim());
-  return Array.from(new Set(rawAliases.map(normalizeCommand).filter((alias) => alias && alias !== command)));
+  return Array.from(new Set(rawAliases.map(normalizeChatCommand).filter((alias) => alias && alias !== command)));
 }
 
 function normalizeResponses(value: unknown, fallback: unknown): string[] {
@@ -30,7 +24,7 @@ function normalizeResponses(value: unknown, fallback: unknown): string[] {
 
 export function chatCommandFromBody(id: string, body: Partial<ChatCommand>): ChatCommand {
   const now = new Date().toISOString();
-  const command = normalizeCommand(body.command);
+  const command = normalizeChatCommand(body.command);
   const responses = normalizeResponses(body.responses, body.response);
   return {
     id,

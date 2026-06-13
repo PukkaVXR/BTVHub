@@ -1,16 +1,8 @@
 import { emitTestAlertSuccess } from "./lib/testAlertMilestone";
+import { resolveApiBase } from "./lib/serverUrls";
 
 const API = resolveApiBase();
 let apiTokenPromise: Promise<string> | null = null;
-
-function resolveApiBase(): string {
-  const configured = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_BTV_API_BASE;
-  if (configured?.trim()) return configured.trim().replace(/\/$/, "");
-  if (typeof window !== "undefined" && window.location.port === "4781") {
-    return `${window.location.protocol}//${window.location.hostname}:4782/api`;
-  }
-  return "/api";
-}
 
 export async function getLocalApiToken(): Promise<string> {
   if (!apiTokenPromise) {

@@ -1,36 +1,13 @@
 import { createStreamEvent, type StreamEvent } from "@btv/shared";
 import { getAlertProject, getEffects, getSetting, getTheme } from "./db.js";
 import type { OverlayBus } from "./bus.js";
-import { runLocalCommand } from "./command-runner.js";
-import { sendTwitchChatMessage } from "./twitch-service.js";
 import { resolveAlertProjectVariation } from "./alert-variations.js";
 import { withAutomationVariables } from "./alert-template-vars.js";
+import type { ActionExecutor } from "./action-executor.js";
+import { matchChatCommand } from "./chat-command-utils.js";
+import { renderTemplate } from "./template-utils.js";
 
 type EffectType = "visual" | "soundboard" | "obs_scene" | "obs_transform" | "chat_message" | "alert" | "media" | "run_command";
-
-function matchChatCommand(
-  text: string,
-  command: string,
-  matchMode: string,
-): { matched: boolean; args: string } {
-  const msg = text.trim();
-  const cmd = command.trim().toLowerCase();
-  if (!cmd) return { matched: false, args: "" };
-
-  if (matchMode === "exact") {
-    const parts = msg.split(/\s+/);
-    if (parts[0]?.toLowerCase() !== cmd) return { matched: false, args: "" };
-    return { matched: true, args: parts.slice(1).join(" ") };
-  }
-  if (matchMode === "contains") {
-    const idx = msg.toLowerCase().indexOf(cmd);
-    if (idx < 0) return { matched: false, args: "" };
-    return { matched: true, args: msg.slice(idx + cmd.length).trim() };
-  }
-  // startsWith (default)
-  if (!msg.toLowerCase().startsWith(cmd)) return { matched: false, args: "" };
-  return { matched: true, args: msg.slice(cmd.length).trim() };
-}
 
 function hasBadge(event: StreamEvent, roles: string[]): boolean {
   const badges = (event.payload.badges as Array<{ set_id: string }> | undefined) ?? [];
@@ -38,11 +15,13 @@ function hasBadge(event: StreamEvent, roles: string[]): boolean {
 }
 
 function interpolate(template: string, event: StreamEvent, args: string): string {
-  return template
-    .replace(/\{user\}/gi, event.user?.displayName ?? "Someone")
-    .replace(/\{login\}/gi, event.user?.login ?? "viewer")
-    .replace(/\{args\}/gi, args)
-    .replace(/\{command\}/gi, String(event.payload.command ?? ""));
+  return renderTemplate(template, {
+    user: event.user?.displayName ?? "Someone",
+    displayName: event.user?.displayName ?? "Someone",
+    login: event.user?.login ?? "viewer",
+    args,
+    command: String(event.payload.command ?? ""),
+  });
 }
 
 export class EffectRunner {
@@ -50,7 +29,10 @@ export class EffectRunner {
   private globalLast = 0;
   private readonly globalCooldownMs = 2000;
 
-  constructor(private readonly bus: OverlayBus) {}
+  constructor(
+    private readonly bus: OverlayBus,
+    private readonly actions: ActionExecutor,
+  ) {}
 
   async tryTriggerFromEvent(event: StreamEvent): Promise<void> {
     if (event.type === "channel_points" && getSetting("channel_point_actions_disabled") === "1") return;
@@ -228,32 +210,34 @@ export class EffectRunner {
     );
 
     if (type === "obs_scene" && config.sceneName) {
-      const { setObsScene } = await import("./obs-client.js");
-      return setObsScene(String(config.sceneName));
+      return (await this.actions.execute({ type: "obs_scene", sceneName: String(config.sceneName) })).ok;
     }
 
     if (type === "obs_transform") {
-      const { runObsSourceMotion } = await import("./obs-client.js");
-      return runObsSourceMotion({
+      return (await this.actions.execute({
+        type: "obs_source_motion",
         ...config,
         sceneName: String(config.sceneName ?? ""),
         sourceName: String(config.sourceName ?? ""),
         mode: (config.mode as "set" | "dvd" | "path" | undefined) ?? "dvd",
-      });
+      })).ok;
     }
 
     if (type === "run_command") {
-      await runLocalCommand({
+      const result = await this.actions.execute({
+        type: "command",
         command: String(config.command ?? ""),
         args: Array.isArray(config.args) ? config.args.map(String) : undefined,
         cwd: config.cwd ? String(config.cwd) : undefined,
         timeoutMs: Number(config.timeoutMs ?? 10_000),
       });
+      if (!result.ok) return false;
       if (config.successChatMessage) {
         const msg = event
           ? interpolate(String(config.successChatMessage), event, commandArgs)
           : String(config.successChatMessage);
-        await sendTwitchChatMessage(msg);
+        const chatResult = await this.actions.execute({ type: "twitch_chat", message: msg });
+        if (!chatResult.ok) return false;
       }
       return true;
     }

@@ -7,12 +7,14 @@ import {
 } from "../db.js";
 import { getObsSourceTransform, writableObsTransformSnapshot } from "../obs-client.js";
 import type { RouteModule } from "./types.js";
+import { parseBody, SourceNamesBodySchema, UnknownRecordBodySchema } from "../schemas/request.schema.js";
 
 export const registerSourceGroupsRoutes: RouteModule = (app, ctx) => {
   app.get("/api/source-groups", async () => getSourceGroups());
-  app.put("/api/source-groups/:id", async (req) => {
+  app.put("/api/source-groups/:id", async (req, reply) => {
     const id = (req.params as { id: string }).id;
-    const body = req.body as Partial<SourceGroup>;
+    const body = parseBody(reply, UnknownRecordBodySchema, req.body) as Partial<SourceGroup> | undefined;
+    if (!body) return;
     const group: SourceGroup = {
       id,
       name: body.name?.trim() || "Untitled activity",
@@ -31,7 +33,8 @@ export const registerSourceGroupsRoutes: RouteModule = (app, ctx) => {
     const id = (req.params as { id: string }).id;
     const group = getSourceGroup(id);
     if (!group) return reply.status(404).send({ ok: false, message: "Activity layout not found" });
-    const body = req.body as { sourceNames?: string[] };
+    const body = parseBody(reply, SourceNamesBodySchema, req.body);
+    if (!body) return;
     const selected = new Set(body.sourceNames?.length ? body.sourceNames : group.sources.map((s) => s.sourceName));
     const sources = await Promise.all(
       [...selected].map(async (sourceName) => {

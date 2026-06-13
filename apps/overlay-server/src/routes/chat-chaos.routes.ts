@@ -1,4 +1,5 @@
 import { getSetting, setSetting } from "../db.js";
+import { AmountBodySchema, ChatChaosUpdateBodySchema, parseBody } from "../schemas/request.schema.js";
 import type { RouteModule } from "./types.js";
 
 type ChaosStatus = "calm" | "building" | "chaotic" | "meltdown";
@@ -86,8 +87,10 @@ function statusForLevel(state: ChatChaosState): ChaosStatus {
 export const registerChatChaosRoutes: RouteModule = (app) => {
   app.get("/api/chat-chaos", async () => ({ ...readChaos(), status: statusForLevel(readChaos()) }));
 
-  app.put("/api/chat-chaos", async (req) => {
-    const saved = writeChaos(req.body as Partial<ChatChaosState>);
+  app.put("/api/chat-chaos", async (req, reply) => {
+    const body = parseBody(reply, ChatChaosUpdateBodySchema, req.body);
+    if (!body) return;
+    const saved = writeChaos(body);
     return { ...saved, status: statusForLevel(saved) };
   });
 
@@ -96,8 +99,10 @@ export const registerChatChaosRoutes: RouteModule = (app) => {
     return { ...saved, status: statusForLevel(saved) };
   });
 
-  app.post("/api/chat-chaos/adjust", async (req) => {
-    const { amount } = req.body as { amount?: number };
+  app.post("/api/chat-chaos/adjust", async (req, reply) => {
+    const body = parseBody(reply, AmountBodySchema.partial(), req.body);
+    if (!body) return;
+    const { amount } = body;
     const current = readChaos();
     const saved = writeChaos({ ...current, level: current.level + clampNumber(amount, 0, -9999, 9999) });
     return { ...saved, status: statusForLevel(saved) };

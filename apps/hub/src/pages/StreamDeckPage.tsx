@@ -2,9 +2,10 @@ import { useState, type CSSProperties } from "react";
 import { StreamDeckRequestBuilder } from "../components/streamDeck";
 import { useAppHealth } from "../context/AppHealthContext";
 import { downloadApiNinjaButton, downloadStreamDeckAction } from "../lib/apiNinja";
+import { resolveOverlayOrigin } from "../lib/serverUrls";
 import { Button, ButtonAnchor, ButtonLink, Card, CardHeader, CopyField, EmptyState, PageHeader } from "../ui";
 
-const STREAM_DECK_BASE_URL = "http://127.0.0.1:4782";
+const STREAM_DECK_BASE_URL = resolveOverlayOrigin();
 
 const STREAM_DECK_ACTIONS = [
   { label: "Run macro", method: "POST", path: "/api/actions/macro/:macroId" },

@@ -135,12 +135,12 @@ export default function SoundPicker({ value, onChange, placeholder }: SoundPicke
           onChange={(e) => onChange(toSoundAssetPath(e.target.value))}
           placeholder={placeholder ?? "sounds/alert.mp3"}
         />
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setOpen((o) => !o)}>
+        <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => setOpen((o) => !o)}>
           {open ? "Hide" : "Browse"}
         </button>
         <button
           type="button"
-          className="btn btn-secondary btn-sm"
+          className="ui-button ui-button--secondary ui-button--sm"
           onClick={() => fileRef.current?.click()}
         >
           Upload
@@ -149,17 +149,17 @@ export default function SoundPicker({ value, onChange, placeholder }: SoundPicke
           <>
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="ui-button ui-button--secondary ui-button--sm"
               onClick={() => play(selected?.url ?? selectedUrl)}
             >
               Preview
             </button>
             {playingUrl && (
-              <button type="button" className="btn btn-secondary btn-sm" onClick={stop}>
+              <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={stop}>
                 Stop
               </button>
             )}
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => onChange("")}>
+            <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => onChange("")}>
               Clear
             </button>
           </>
@@ -219,14 +219,14 @@ export default function SoundPicker({ value, onChange, placeholder }: SoundPicke
                     </button>
                     <button
                       type="button"
-                      className="btn btn-secondary btn-sm"
+                      className="ui-button ui-button--secondary ui-button--sm"
                       onClick={() => (playing ? stop() : play(sound.url))}
                     >
                       {playing ? "Stop" : "Play"}
                     </button>
                     <button
                       type="button"
-                      className="btn btn-secondary btn-sm"
+                      className="ui-button ui-button--secondary ui-button--sm"
                       onClick={() => void remove(sound)}
                     >
                       Delete

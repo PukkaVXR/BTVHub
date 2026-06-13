@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { normalizeChatCommand } from "../chat-command-utils.js";
 
 export interface GiveawayEntry {
   id: string;
@@ -27,9 +28,8 @@ interface GiveawaysRepositoryDeps {
 }
 
 function normalizeGiveawayKeyword(keyword: unknown): string {
-  const raw = String(keyword ?? "!enter").trim().split(/\s+/)[0] ?? "!enter";
-  const prefixed = raw.startsWith("!") ? raw : `!${raw}`;
-  return /^![a-z0-9][a-z0-9_-]*$/i.test(prefixed) ? prefixed.toLowerCase() : "!enter";
+  const normalized = normalizeChatCommand(keyword ?? "!enter");
+  return /^![a-z0-9][a-z0-9_-]*$/i.test(normalized) ? normalized : "!enter";
 }
 
 function rowToGiveawayEntry(row: Record<string, unknown>): GiveawayEntry {

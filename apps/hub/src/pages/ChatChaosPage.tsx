@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { api, type ChatChaosState } from "../api";
 import { useToast } from "../hooks/useToast";
+import { overlayUrl } from "../lib/serverUrls";
 import { Button, Card, CardHeader, CopyField, EmptyState, PageHeader, StatusPill } from "../ui";
 
-const OVERLAY_URL = "http://127.0.0.1:4782/o/chat-chaos.html";
+const OVERLAY_URL = overlayUrl("/o/chat-chaos.html");
 const QUICK_AMOUNTS = [5, 10, 25, 50];
 
 function clampNumber(value: number, min: number, max: number): number {

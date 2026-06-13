@@ -1,45 +1,70 @@
-export interface ObsSceneBody {
-  sceneName?: string;
-}
+import { z } from "@btv/shared";
 
-export interface ObsSourceVisibilityBody {
-  sceneName?: string;
-  sourceName?: string;
-  visible?: boolean;
-}
+export const ObsSceneBodySchema = z.object({ sceneName: z.string().optional() });
+export type ObsSceneBody = z.output<typeof ObsSceneBodySchema>;
 
-export interface ObsTextBody {
-  inputName?: string;
-  text?: string;
-}
+export const ObsSourceVisibilityBodySchema = z.object({
+  sceneName: z.string().optional(),
+  sourceName: z.string().optional(),
+  visible: z.boolean().optional(),
+});
+export type ObsSourceVisibilityBody = z.output<typeof ObsSourceVisibilityBodySchema>;
 
-export interface ObsInputSettingsBody {
-  inputName?: string;
-  inputSettings?: Record<string, unknown>;
-  overlay?: boolean;
-}
+export const ObsTextBodySchema = z.object({ inputName: z.string().optional(), text: z.string().optional() });
+export type ObsTextBody = z.output<typeof ObsTextBodySchema>;
 
-export interface ObsSourceMotionBody {
-  sceneName?: string;
-  sourceName?: string;
-  mode?: "set" | "dvd" | "path";
-  durationMs?: number;
-  fps?: number;
-  visible?: boolean;
-  restore?: boolean;
-  boundsWidth?: number;
-  boundsHeight?: number;
-  speedX?: number;
-  speedY?: number;
-  x?: number;
-  y?: number;
-  scale?: number;
-  width?: number;
-  height?: number;
-  path?: Array<{ x: number; y: number; scale?: number }>;
-}
+export const ObsInputSettingsBodySchema = z.object({
+  inputName: z.string().optional(),
+  inputSettings: z.record(z.unknown()).optional(),
+  overlay: z.boolean().optional(),
+});
+export type ObsInputSettingsBody = z.output<typeof ObsInputSettingsBodySchema>;
+
+export const ObsSourceMotionBodySchema = z.object({
+  sceneName: z.string().optional(),
+  sourceName: z.string().optional(),
+  mode: z.enum(["set", "dvd", "path"]).optional(),
+  durationMs: z.coerce.number().optional(),
+  fps: z.coerce.number().optional(),
+  visible: z.boolean().optional(),
+  restore: z.boolean().optional(),
+  boundsWidth: z.coerce.number().optional(),
+  boundsHeight: z.coerce.number().optional(),
+  speedX: z.coerce.number().optional(),
+  speedY: z.coerce.number().optional(),
+  x: z.coerce.number().optional(),
+  y: z.coerce.number().optional(),
+  scale: z.coerce.number().optional(),
+  width: z.coerce.number().optional(),
+  height: z.coerce.number().optional(),
+  path: z.array(z.object({ x: z.coerce.number(), y: z.coerce.number(), scale: z.coerce.number().optional() })).optional(),
+});
+export type ObsSourceMotionBody = z.output<typeof ObsSourceMotionBodySchema>;
 
 export type ObsBrowserSourceShape = "rectangle" | "rounded" | "circle";
+
+export const ObsBrowserSourceCanvasSchema = z.object({
+  width: z.coerce.number(),
+  height: z.coerce.number(),
+});
+
+export const ObsBrowserSourceLayoutSchema = z.object({
+  id: z.string(),
+  x: z.coerce.number(),
+  y: z.coerce.number(),
+  width: z.coerce.number(),
+  height: z.coerce.number(),
+  rotation: z.coerce.number(),
+  shape: z.enum(["rectangle", "rounded", "circle"]),
+  borderRadius: z.coerce.number(),
+  cropTop: z.coerce.number(),
+  cropRight: z.coerce.number(),
+  cropBottom: z.coerce.number(),
+  cropLeft: z.coerce.number(),
+  opacity: z.coerce.number(),
+  visible: z.boolean(),
+  locked: z.boolean(),
+});
 
 export interface ObsBrowserSourceLayout {
   id: string;
@@ -64,11 +89,11 @@ export interface ObsBrowserSourceCanvas {
   height: number;
 }
 
-export interface ObsBrowserSourceLayoutsBody {
-  canvas?: ObsBrowserSourceCanvas;
-  layouts?: ObsBrowserSourceLayout[];
-}
+export const ObsBrowserSourceLayoutsBodySchema = z.object({
+  canvas: ObsBrowserSourceCanvasSchema.optional(),
+  layouts: z.array(ObsBrowserSourceLayoutSchema).optional(),
+});
+export type ObsBrowserSourceLayoutsBody = z.output<typeof ObsBrowserSourceLayoutsBodySchema>;
 
-export interface ObsBrowserSourceLayoutApplyBody extends ObsBrowserSourceLayoutsBody {
-  sceneName?: string;
-}
+export const ObsBrowserSourceLayoutApplyBodySchema = ObsBrowserSourceLayoutsBodySchema.extend({ sceneName: z.string().optional() });
+export type ObsBrowserSourceLayoutApplyBody = z.output<typeof ObsBrowserSourceLayoutApplyBodySchema>;

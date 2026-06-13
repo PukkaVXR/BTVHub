@@ -7,6 +7,7 @@ import { api } from "../api";
 import { SaveIndicator } from "../hooks/SaveIndicator";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useToast } from "../hooks/useToast";
+import { overlayUrl } from "../lib/serverUrls";
 import { Button, ButtonLink, Callout, Card, CardHeader, PageHeader, StatusPill } from "../ui";
 
 const EVENT_TYPES: StreamEventType[] = [
@@ -78,7 +79,7 @@ export default function AlertsPage() {
           />
           <Callout tone="info">
             Use <strong>Test chat</strong> to verify the OBS chat overlay at{" "}
-            <code>http://127.0.0.1:4782/o/chat.html</code>.
+            <code>{overlayUrl("/o/chat.html")}</code>.
           </Callout>
           <div className="alert-routing-test-grid">
             {EVENT_TYPES.map((type) => (

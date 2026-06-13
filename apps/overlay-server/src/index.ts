@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { HOST, OAUTH_HTTPS_PORT, OVERLAY_PORT } from "@btv/shared";
 import { AlertQueue } from "./alert-queue.js";
+import { ActionExecutor } from "./action-executor.js";
 import { AutomationScheduler } from "./automation-scheduler.js";
 import { ensureApiToken, isAllowedOrigin, issueApiTokenToTrustedHub, requireTrustedLocalWrite } from "./auth.js";
 import { OverlayBus } from "./bus.js";
@@ -49,14 +50,15 @@ const oauthApp = Fastify({
 const bus = new OverlayBus();
 const coreEvents = new CoreEventBus();
 const alertQueue = new AlertQueue(bus);
-const effectRunner = new EffectRunner(bus);
-const macroRunner = new MacroRunner(alertQueue, effectRunner);
+const actionExecutor = new ActionExecutor(alertQueue, applySourceGroup);
+const effectRunner = new EffectRunner(bus, actionExecutor);
+const macroRunner = new MacroRunner(actionExecutor, effectRunner);
 const eventAutomationEngine = new EventAutomationEngine(
+  actionExecutor,
   macroRunner,
   effectRunner,
   bus,
   alertQueue,
-  applySourceGroup,
 );
 coreEvents.subscribe((event) => eventAutomationEngine.handleCoreEvent(event));
 setObsSceneChangedHandler((sceneName) => {
@@ -71,9 +73,9 @@ setObsSceneChangedHandler((sceneName) => {
 });
 const rulesEngine = new RulesEngine(bus, alertQueue, effectRunner, coreEvents, eventAutomationEngine);
 const automationScheduler = new AutomationScheduler(
+  actionExecutor,
   macroRunner,
   effectRunner,
-  applySourceGroup,
 );
 const chatTimerScheduler = new ChatTimerScheduler();
 
@@ -239,6 +241,7 @@ function bootEventSub(): void {
 }
 
 const corsOptions = {
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   origin: (origin: string | undefined, cb: (err: Error | null, allow: boolean) => void) => {
     cb(null, isAllowedOrigin(origin));
   },

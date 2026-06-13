@@ -2,7 +2,8 @@ import { getOverlayOrigin } from "../server-urls.js";
 import { handleWebhook } from "../webhook-handler.js";
 import { deleteWebhook, getWebhook, getWebhookLog, getWebhooks, upsertWebhook } from "../db.js";
 import { preserveMaskedSecret, SECRET_MASK } from "../schemas/webhook.schema.js";
-import type { WebhookHook } from "@btv/shared";
+import { WebhookHookSchema } from "@btv/shared";
+import { parseBody } from "../schemas/request.schema.js";
 import type { RouteModule } from "./types.js";
 
 export const registerWebhooksRoutes: RouteModule = (app, ctx) => {
@@ -14,7 +15,8 @@ export const registerWebhooksRoutes: RouteModule = (app, ctx) => {
     })),
   );
   app.put("/api/webhooks/:id", async (req, reply) => {
-    const body = req.body as WebhookHook;
+    const body = parseBody(reply, WebhookHookSchema, req.body);
+    if (!body) return;
     const existing = getWebhook(body.id);
     const next = preserveMaskedSecret(body, existing);
     if (!next.secret?.trim()) {

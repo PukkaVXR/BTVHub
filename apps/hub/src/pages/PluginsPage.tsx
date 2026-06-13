@@ -11,6 +11,7 @@ import type {
 } from "@btv/shared";
 import { api } from "../api";
 import { useToast } from "../hooks/useToast";
+import { downloadJsonFile, safeDownloadName } from "../lib/browserDownloads";
 import { Button, Callout, Card, CardHeader, EmptyState, PageHeader, StatusPill } from "../ui";
 
 const FOUNDATION_ITEMS = [
@@ -53,22 +54,6 @@ interface ManifestDraft {
   author: string;
   capabilities: PluginCapabilityType[];
   permissions: PluginPermission[];
-}
-
-function safePluginFileName(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "btv-plugin";
-}
-
-function downloadJson(name: string, data: unknown): void {
-  const blob = new Blob([`${JSON.stringify(data, null, 2)}\n`], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `${safePluginFileName(name)}.btv-plugin.json`;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
 }
 
 export default function PluginsPage() {
@@ -174,7 +159,7 @@ export default function PluginsPage() {
   const exportPlugin = async (plugin: PluginRegistryItem) => {
     try {
       const pack = await api.exportPluginPack(plugin.manifest.id);
-      downloadJson(plugin.manifest.name, pack);
+      downloadJsonFile(`${safeDownloadName(plugin.manifest.name, "btv-plugin")}.btv-plugin.json`, pack);
       toast(`${plugin.manifest.name} exported`);
     } catch (e) {
       toast(e instanceof Error ? e.message : "Could not export plugin");

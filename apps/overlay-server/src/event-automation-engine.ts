@@ -20,56 +20,12 @@ import {
 import type { MacroRunner } from "./macro-runner.js";
 import type { EffectRunner } from "./effect-runner.js";
 import type { OverlayBus } from "./bus.js";
-import { sendTwitchChatMessage } from "./twitch-service.js";
-import {
-  pauseObsRecording,
-  resumeObsRecording,
-  runObsSourceMotion,
-  setObsInputMuted,
-  setObsScene,
-  setObsSourceFilterEnabled,
-  setObsSourceVisible,
-  setObsText,
-  startObsRecording,
-  startObsStream,
-  stopObsRecording,
-  stopObsStream,
-} from "./obs-client.js";
 import type { AlertQueue } from "./alert-queue.js";
 import { resolveAlertProjectVariation } from "./alert-variations.js";
 import { withAutomationVariables } from "./alert-template-vars.js";
-
-const MAX_WAIT_MS = 60 * 60_000;
-
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, Math.max(0, Math.min(ms, MAX_WAIT_MS))));
-}
-
-function normalizeChatCommand(command: string): string {
-  const raw = command.trim().split(/\s+/)[0] ?? "";
-  if (!raw) return "";
-  return (raw.startsWith("!") ? raw : `!${raw}`).toLowerCase();
-}
-
-function readChatCommand(event: StreamEvent): { command: string; args: string } | null {
-  if (event.type !== "chat") return null;
-  const payloadCommand = event.payload.command;
-  if (typeof payloadCommand === "string" && payloadCommand.trim()) {
-    return {
-      command: normalizeChatCommand(payloadCommand),
-      args: typeof event.payload.args === "string" ? event.payload.args : "",
-    };
-  }
-
-  const message = event.message?.trim() ?? "";
-  if (!message.startsWith("!")) return null;
-  const [commandToken] = message.split(/\s+/);
-  if (!commandToken) return null;
-  return {
-    command: normalizeChatCommand(commandToken),
-    args: message.slice(commandToken.length).trim(),
-  };
-}
+import type { ActionExecutor, SharedAction } from "./action-executor.js";
+import { normalizeChatCommand, readChatCommand } from "./chat-command-utils.js";
+import { renderTemplate as renderTextTemplate } from "./template-utils.js";
 
 function eventMatches(rule: AutomationRule, event: StreamEvent): boolean {
   const trigger = rule.trigger;
@@ -134,26 +90,26 @@ function conditionMatches(condition: AutomationCondition, event: StreamEvent): b
 
 function renderTemplate(template: string, event: StreamEvent): string {
   const chatCommand = readChatCommand(event);
-  return template
-    .replaceAll("{user}", event.user?.displayName ?? "there")
-    .replaceAll("{displayName}", event.user?.displayName ?? "there")
-    .replaceAll("{login}", event.user?.login ?? event.user?.displayName ?? "viewer")
-    .replaceAll("{event}", event.type)
-    .replaceAll("{message}", event.message ?? "")
-    .replaceAll("{command}", chatCommand?.command ?? "")
-    .replaceAll("{args}", chatCommand?.args ?? "")
-    .replace(/\{var:([^}]+)\}/g, (_match, key: string) => String(getAutomationStateValue(key.trim()) ?? ""));
+  return renderTextTemplate(template, {
+    user: event.user?.displayName ?? "there",
+    displayName: event.user?.displayName ?? "there",
+    login: event.user?.login ?? event.user?.displayName ?? "viewer",
+    event: event.type,
+    message: event.message ?? "",
+    command: chatCommand?.command ?? "",
+    args: chatCommand?.args ?? "",
+  }, (name) => String(getAutomationStateValue(name) ?? ""));
 }
 
 export class EventAutomationEngine {
   private readonly cooldowns = new Map<string, number>();
 
   constructor(
+    private readonly actions: ActionExecutor,
     private readonly macros: MacroRunner,
     private readonly effects: EffectRunner,
     private readonly bus: OverlayBus,
     private readonly alertQueue: AlertQueue,
-    private readonly applySourceGroup: (id: string) => Promise<{ ok: boolean; message: string }>,
   ) {}
 
   async handleEvent(event: StreamEvent): Promise<void> {
@@ -238,76 +194,70 @@ export class EventAutomationEngine {
   private async runAction(action: AutomationActionConfig, event: StreamEvent): Promise<string> {
     switch (action.type) {
       case "macro": {
-        const result = await this.macros.run(action.macroId);
+        const result = await this.runShared(action);
         if (!result.ok) throw new Error(result.message);
         return `Macro: ${result.message}`;
       }
       case "effect": {
-        const ok = await this.effects.fireManual(action.effectId);
-        if (!ok) throw new Error("Effect missing, blocked, or failed");
+        const result = await this.runShared(action);
+        if (!result.ok) throw new Error("Effect missing, blocked, or failed");
         return `Effect: ${action.effectId}`;
       }
       case "source_group": {
-        const result = await this.applySourceGroup(action.sourceGroupId);
+        const result = await this.runShared(action);
         if (!result.ok) throw new Error(result.message);
         return result.message;
       }
       case "obs_scene": {
-        const ok = await setObsScene(action.sceneName);
-        if (!ok) throw new Error(`Could not switch OBS scene to ${action.sceneName}`);
+        const result = await this.runShared(action);
+        if (!result.ok) throw new Error(`Could not switch OBS scene to ${action.sceneName}`);
         return `OBS scene: ${action.sceneName}`;
       }
       case "obs_source_visibility": {
-        const ok = await setObsSourceVisible(action.sceneName, action.sourceName, action.visible);
-        if (!ok) throw new Error(`Could not update OBS source ${action.sourceName}`);
+        const result = await this.runShared(action);
+        if (!result.ok) throw new Error(`Could not update OBS source ${action.sourceName}`);
         return `${action.sourceName}: ${action.visible ? "visible" : "hidden"}`;
       }
       case "obs_source_motion": {
-        const ok = await runObsSourceMotion(action);
-        if (!ok) throw new Error(`Could not move OBS source ${action.sourceName}`);
+        const result = await this.runShared(action);
+        if (!result.ok) throw new Error(`Could not move OBS source ${action.sourceName}`);
         return `OBS source motion: ${action.sourceName}`;
       }
       case "obs_filter": {
-        const ok = await setObsSourceFilterEnabled(action.sourceName, action.filterName, action.enabled);
-        if (!ok) throw new Error(`Could not update OBS filter ${action.filterName}`);
+        const result = await this.runShared(action);
+        if (!result.ok) throw new Error(`Could not update OBS filter ${action.filterName}`);
         return `${action.sourceName}/${action.filterName}: ${action.enabled ? "enabled" : "disabled"}`;
       }
       case "obs_mute": {
-        const ok = await setObsInputMuted(action.inputName, action.muted);
-        if (!ok) throw new Error(`Could not update OBS input mute for ${action.inputName}`);
+        const result = await this.runShared(action);
+        if (!result.ok) throw new Error(`Could not update OBS input mute for ${action.inputName}`);
         return `${action.inputName}: ${action.muted ? "muted" : "unmuted"}`;
       }
       case "obs_recording": {
-        const ok =
-          action.action === "start"
-            ? await startObsRecording()
-            : action.action === "stop"
-              ? await stopObsRecording()
-              : action.action === "pause"
-                ? await pauseObsRecording()
-                : await resumeObsRecording();
-        if (!ok) throw new Error(`Could not ${action.action} OBS recording`);
+        const result = await this.runShared(action);
+        if (!result.ok) throw new Error(`Could not ${action.action} OBS recording`);
         return `OBS recording: ${action.action}`;
       }
       case "obs_streaming": {
-        const ok = action.action === "start" ? await startObsStream() : await stopObsStream();
-        if (!ok) throw new Error(`Could not ${action.action} OBS stream`);
+        const result = await this.runShared(action);
+        if (!result.ok) throw new Error(`Could not ${action.action} OBS stream`);
         return `OBS stream: ${action.action}`;
       }
       case "obs_text": {
         const text = renderTemplate(action.text, event);
-        const ok = await setObsText(action.inputName, text);
-        if (!ok) throw new Error(`Could not update OBS text ${action.inputName}`);
+        const result = await this.runShared({ ...action, text });
+        if (!result.ok) throw new Error(`Could not update OBS text ${action.inputName}`);
         return `OBS text: ${action.inputName}`;
       }
       case "clear_alerts": {
-        const cleared = this.alertQueue.clear();
+        const result = await this.runShared(action);
+        const cleared = Number(result.value ?? 0);
         return `Cleared ${cleared} queued alert(s)`;
       }
       case "twitch_chat": {
         const message = renderTemplate(action.message, event);
-        const ok = await sendTwitchChatMessage(message);
-        if (!ok) throw new Error("Twitch chat was not sent");
+        const result = await this.runShared({ ...action, message });
+        if (!result.ok) throw new Error("Twitch chat was not sent");
         return "Twitch chat sent";
       }
       case "overlay_event":
@@ -438,10 +388,16 @@ export class EventAutomationEngine {
         return `Random choice: ${messages.join(", ") || "no actions"}`;
       }
       case "wait":
-        await wait(action.durationMs);
-        return `Waited ${action.durationMs}ms`;
+        return (await this.runShared(action)).message;
       default:
         throw new Error("Unsupported automation action");
     }
+  }
+
+  private runShared(action: SharedAction) {
+    return this.actions.execute(action, {
+      runMacro: (id) => this.macros.run(id),
+      fireEffect: (id) => this.effects.fireManual(id),
+    });
   }
 }

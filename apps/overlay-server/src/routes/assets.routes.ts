@@ -9,6 +9,7 @@ import {
 import type { FastifyReply } from "fastify";
 import { downloadGiphyGif, searchGiphy, trendingGiphy, type GiphyAssetType } from "../giphy-service.js";
 import type { RouteModule } from "./types.js";
+import { GiphyImportBodySchema, parseBody, UploadAssetBodySchema } from "../schemas/request.schema.js";
 
 type RateLimitBucket = { resetAt: number; count: number };
 type CachedGiphyResponse = { expiresAt: number; results: Awaited<ReturnType<typeof searchGiphy>> };
@@ -58,8 +59,8 @@ export const registerAssetsRoutes: RouteModule = (app, ctx) => {
 
   app.get("/api/assets/sounds", async () => ({ sounds: listSoundAssets(ctx.assetsDir) }));
   app.post("/api/assets/sounds", async (req, reply) => {
-    const body = req.body as { name?: string; data?: string };
-    if (!body?.name || !body?.data) return reply.status(400).send({ error: "name and data (base64) required" });
+    const body = parseBody(reply, UploadAssetBodySchema, req.body);
+    if (!body) return;
     try {
       const buf = Buffer.from(body.data, "base64");
       if (buf.length > 15 * 1024 * 1024) return reply.status(400).send({ error: "File too large (max 15MB)" });
@@ -75,8 +76,8 @@ export const registerAssetsRoutes: RouteModule = (app, ctx) => {
 
   app.get("/api/assets/media", async () => ({ media: listMediaAssets(ctx.assetsDir) }));
   app.post("/api/assets/media", async (req, reply) => {
-    const body = req.body as { name?: string; data?: string };
-    if (!body?.name || !body?.data) return reply.status(400).send({ error: "name and data (base64) required" });
+    const body = parseBody(reply, UploadAssetBodySchema, req.body);
+    if (!body) return;
     try {
       const buf = Buffer.from(body.data, "base64");
       if (buf.length > 50 * 1024 * 1024) return reply.status(400).send({ error: "File too large (max 50MB)" });
@@ -124,15 +125,8 @@ export const registerAssetsRoutes: RouteModule = (app, ctx) => {
   app.post("/api/assets/giphy/import", async (req, reply) => {
     const limited = checkGiphyRateLimit(`import:${req.ip}`, GIPHY_IMPORT_LIMIT);
     if (!limited.ok) return rateLimitReply(reply, limited.retryAfterSeconds);
-    const body = req.body as {
-      id?: string;
-      title?: string;
-      originalUrl?: string;
-      sourceUrl?: string;
-      username?: string;
-      type?: GiphyAssetType;
-    };
-    if (!body.originalUrl || !body.id) return reply.status(400).send({ error: "GIPHY id and originalUrl are required" });
+    const body = parseBody(reply, GiphyImportBodySchema, req.body);
+    if (!body) return;
     try {
       const data = await downloadGiphyGif(body.originalUrl);
       const safeTitle = (body.title ?? "giphy").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 48) || "giphy";

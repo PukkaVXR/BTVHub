@@ -1,9 +1,10 @@
-import type { AlertRule, StreamEvent, StreamEventType } from "@btv/shared";
+import { AlertRuleSchema, type StreamEvent, type StreamEventType } from "@btv/shared";
 import { getActivity, getActivityById, getAlertProject, getAlertRules, getTheme, upsertAlertRule } from "../db.js";
 import { resolveAlertProjectVariation } from "../alert-variations.js";
 import { withAutomationVariables } from "../alert-template-vars.js";
 import { broadcastVisualAlertTest, findTestAlertProject } from "../visual-alert-test.js";
 import type { RouteModule } from "./types.js";
+import { parseBody, PriorityBodySchema } from "../schemas/request.schema.js";
 
 function enqueueReplayAlert(ctx: Parameters<RouteModule>[1], event: StreamEvent): { ok: boolean; message: string } {
   const enrichedEvent = withAutomationVariables(event);
@@ -44,8 +45,10 @@ function enqueueReplayAlert(ctx: Parameters<RouteModule>[1], event: StreamEvent)
 
 export const registerAlertsRoutes: RouteModule = (app, ctx) => {
   app.get("/api/alert-rules", async () => getAlertRules());
-  app.put("/api/alert-rules/:id", async (req) => {
-    upsertAlertRule(req.body as AlertRule);
+  app.put("/api/alert-rules/:id", async (req, reply) => {
+    const body = parseBody(reply, AlertRuleSchema, req.body);
+    if (!body) return;
+    upsertAlertRule(body);
     return { ok: true };
   });
 
@@ -75,11 +78,12 @@ export const registerAlertsRoutes: RouteModule = (app, ctx) => {
     queue: ctx.alertQueue.getStatus(),
   }));
 
-  app.post("/api/alerts/queue/:id/priority", async (req) => {
+  app.post("/api/alerts/queue/:id/priority", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const body = req.body as { priority?: number } | undefined;
+    const body = parseBody(reply, PriorityBodySchema, req.body);
+    if (!body) return;
     return {
-      ok: ctx.alertQueue.setQueuedPriority(id, Number(body?.priority ?? 0)),
+      ok: ctx.alertQueue.setQueuedPriority(id, body.priority),
       queue: ctx.alertQueue.getStatus(),
     };
   });

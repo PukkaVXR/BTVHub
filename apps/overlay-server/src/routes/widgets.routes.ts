@@ -1,7 +1,8 @@
-import type { WidgetConfig } from "@btv/shared";
+import { WidgetConfigSchema } from "@btv/shared";
 import { getSetting, getWidgets, upsertWidget } from "../db.js";
 import { getAccessToken, getTwitchConfig } from "../twitch-service.js";
 import type { RouteModule } from "./types.js";
+import { parseBody } from "../schemas/request.schema.js";
 
 interface TwitchBadgeVersion {
   id?: string;
@@ -74,8 +75,10 @@ export const registerWidgetsRoutes: RouteModule = (app) => {
       showMessage: cfg.showMessage !== false,
     };
   });
-  app.put("/api/widgets/:id", async (req) => {
-    upsertWidget(req.body as WidgetConfig);
+  app.put("/api/widgets/:id", async (req, reply) => {
+    const body = parseBody(reply, WidgetConfigSchema, req.body);
+    if (!body) return;
+    upsertWidget(body);
     return { ok: true };
   });
 };

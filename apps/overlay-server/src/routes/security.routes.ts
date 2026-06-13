@@ -9,6 +9,7 @@ import {
   type LocalCommandRequest,
 } from "../command-runner.js";
 import { getEffects, getMacros } from "../db.js";
+import { CommandApprovalBodySchema, parseBody } from "../schemas/request.schema.js";
 import type { RouteModule } from "./types.js";
 
 export const registerSecurityRoutes: RouteModule = (app) => {
@@ -21,7 +22,8 @@ export const registerSecurityRoutes: RouteModule = (app) => {
   });
 
   app.post("/api/security/local-commands/approve", async (req, reply) => {
-    const body = req.body as Partial<CommandRunConfig> & { label?: string } | undefined;
+    const body = parseBody(reply, CommandApprovalBodySchema, req.body);
+    if (!body) return;
     const command = typeof body?.command === "string" ? body.command : "";
     if (!command.trim()) return reply.status(400).send({ error: "Command is required" });
     const approval = approveLocalCommand({

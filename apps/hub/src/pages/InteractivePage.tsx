@@ -140,10 +140,10 @@ function MotionPathEditor({
         </svg>
       </div>
       <div className="actions" style={{ marginTop: 0 }}>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => onChange(points.slice(0, -1))} disabled={!points.length}>
+        <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => onChange(points.slice(0, -1))} disabled={!points.length}>
           Undo point
         </button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => onChange([])} disabled={!points.length}>
+        <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => onChange([])} disabled={!points.length}>
           Clear path
         </button>
       </div>
@@ -275,7 +275,7 @@ export default function InteractivePage() {
       />
 
       <div className="actions" style={{ marginBottom: 16 }}>
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => setEditing(emptyEffect())}>
+        <button type="button" className="ui-button ui-button--primary ui-button--sm" onClick={() => setEditing(emptyEffect())}>
           New interaction
         </button>
       </div>
@@ -858,15 +858,15 @@ export default function InteractivePage() {
           </div>
 
           <div className="actions" style={{ marginTop: 16 }}>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => void save()}>
+            <button type="button" className="ui-button ui-button--primary ui-button--sm" onClick={() => void save()}>
               Save
             </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditing(null)}>
+            <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => setEditing(null)}>
               Cancel
             </button>
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="ui-button ui-button--secondary ui-button--sm"
               onClick={() => void fire(editing.id)}
             >
               Test fire
@@ -895,13 +895,13 @@ export default function InteractivePage() {
                 <td style={{ fontSize: 13 }}>{actionSummary(e)}</td>
                 <td>{e.enabled ? "✓" : "—"}</td>
                 <td>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditing(e)}>
+                  <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => setEditing(e)}>
                     Edit
                   </button>{" "}
-                  <button type="button" className="btn btn-primary btn-sm" onClick={() => void fire(e.id)}>
+                  <button type="button" className="ui-button ui-button--primary ui-button--sm" onClick={() => void fire(e.id)}>
                     Test
                   </button>{" "}
-                  <button type="button" className="btn btn-danger btn-sm" onClick={() => void remove(e.id)}>
+                  <button type="button" className="ui-button ui-button--danger ui-button--sm" onClick={() => void remove(e.id)}>
                     Delete
                   </button>
                 </td>
