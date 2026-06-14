@@ -1,7 +1,26 @@
 # Ensures node.exe is on PATH for this PowerShell session.
+$MinimumNodeVersion = [Version]"22.5.0"
+
+function Test-NodeVersion {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$NodeExe
+  )
+
+  try {
+    $raw = & $NodeExe -p "process.versions.node"
+    return [Version]$raw
+  } catch {
+    return $null
+  }
+}
+
 function Ensure-NodeInPath {
   if (Get-Command node -ErrorAction SilentlyContinue) {
-    return
+    $current = Test-NodeVersion -NodeExe "node"
+    if ($current -and $current -ge $MinimumNodeVersion) {
+      return
+    }
   }
 
   $candidates = @(
@@ -24,16 +43,19 @@ function Ensure-NodeInPath {
 
   foreach ($dir in $candidates) {
     if ($dir -and (Test-Path "$dir\node.exe")) {
-      $env:PATH = "$dir;$env:PATH"
-      Write-Host "Using Node.js from $dir ($(& "$dir\node.exe" -v))"
-      return
+      $version = Test-NodeVersion -NodeExe "$dir\node.exe"
+      if ($version -and $version -ge $MinimumNodeVersion) {
+        $env:PATH = "$dir;$env:PATH"
+        Write-Host "Using Node.js from $dir ($(& "$dir\node.exe" -v))"
+        return
+      }
     }
   }
 
   Write-Host ""
   Write-Host "ERROR: Node.js was not found on your PATH." -ForegroundColor Red
   Write-Host ""
-  Write-Host "BTV requires Node.js 20 or newer."
+  Write-Host "BTV requires Node.js 22.5 or newer."
   Write-Host "  1. Install from https://nodejs.org/ (LTS recommended)"
   Write-Host "  2. Close and reopen PowerShell"
   Write-Host "  3. Run: node -v"

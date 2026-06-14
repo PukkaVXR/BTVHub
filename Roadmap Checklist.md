@@ -106,17 +106,17 @@ Goal: pause feature expansion long enough to harden the trust boundary, reliabil
 
 ### P3: Engineering Process And Product Polish
 
-- [ ] Add Vitest and first coverage for rules, automation, macro, and action execution logic.
-- [ ] Add API client tests for high-risk request/response helpers.
-- [ ] Add linting and formatting with ESLint/Prettier or Biome.
-- [ ] Add GitHub Actions CI for typecheck, lint, and tests.
+- [x] Add Vitest and first coverage for rules, automation, macro, and action execution logic.
+- [x] Add API client tests for high-risk request/response helpers.
+- [x] Add linting and formatting with ESLint/Prettier or Biome.
+- [x] Add GitHub Actions CI for typecheck, lint, and tests.
 - [ ] Add cross-platform start and port helper scripts.
-- [ ] Reconcile documented Node version requirements.
-- [ ] Remove or re-route orphaned `ThemesPage.tsx`.
-- [ ] Drop Monaco dependency if it is no longer used.
+- [x] Reconcile documented Node version requirements.
+- [x] Remove or re-route orphaned `ThemesPage.tsx`.
+- [x] Drop Monaco dependency if it is no longer used.
 - [ ] Add `LICENSE`.
 - [ ] Add `CONTRIBUTING.md`.
-- [ ] Add a short architecture document for services, routes, event flow, overlays, and persistence.
+- [x] Add a short architecture document for services, routes, event flow, overlays, and persistence.
 
 ## Phase 0: Stabilise the Foundation
 

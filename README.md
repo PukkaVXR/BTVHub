@@ -1,11 +1,11 @@
-# BTV — Personal OBS Streaming Hub
+# BTV - Personal OBS Streaming Hub
 
 Local-first control plane for OBS overlays: alerts, widgets, webhooks, and interactive effects powered by Twitch EventSub.
 
 ## Requirements
 
-- **Node.js 20+** — install from [nodejs.org](https://nodejs.org/) and verify with `node -v` in a new terminal
-- **pnpm 9+** — `npm install -g pnpm` (or use the `pnpm.exe` in this repo)
+- **Node.js 22.5+** - install from [nodejs.org](https://nodejs.org/) and verify with `node -v` in a new terminal
+- **pnpm 9+** - `npm install -g pnpm` (or use the `pnpm.exe` in this repo)
 - OBS Studio with Browser Sources
 
 ## Quick start
@@ -38,11 +38,11 @@ Twitch requires **HTTPS** for OAuth redirect URIs. BTV uses:
 1. Start `pnpm dev` or `.\scripts\start.ps1`.
 2. Open **https://127.0.0.1:4783** in your browser and accept the certificate warning.
 3. Optional: `.\scripts\trust-cert.ps1` to trust the cert on Windows.
-4. In [Twitch Developer Console](https://dev.twitch.tv/console) → **OAuth Redirect URLs**, add:
+4. In [Twitch Developer Console](https://dev.twitch.tv/console) -> **OAuth Redirect URLs**, add:
    ```
    https://127.0.0.1:4783/auth/twitch/callback
    ```
-5. In BTV **Integrations** → save Client ID/Secret → **Connect Twitch**.
+5. In BTV **Integrations** -> save Client ID/Secret -> **Connect Twitch**.
 
 ## OBS Browser Source URLs (HTTP)
 
@@ -54,7 +54,7 @@ Twitch requires **HTTPS** for OAuth redirect URIs. BTV uses:
 | Ticker | http://127.0.0.1:4782/o/ticker.html |
 | Now Playing | http://127.0.0.1:4782/o/now-playing.html |
 
-Resolution: 1920×1080, transparent background.
+Resolution: 1920x1080, transparent background.
 
 ## Tutorials
 

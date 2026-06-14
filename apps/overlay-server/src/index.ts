@@ -181,6 +181,7 @@ const twitchStatusFallback: ReturnType<typeof getTwitchStatus> = {
   displayName: null,
   userId: null,
   eventsubStatus: "status_error",
+  reauthRequired: false,
   scopes: [],
   chatSubscribed: false,
   chat: {

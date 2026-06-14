@@ -4,6 +4,17 @@ import { resolveApiBase } from "./lib/serverUrls";
 const API = resolveApiBase();
 let apiTokenPromise: Promise<string> | null = null;
 
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly data?: unknown,
+  ) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
+
 export async function getLocalApiToken(): Promise<string> {
   if (!apiTokenPromise) {
     apiTokenPromise = fetch(`${API}/auth/token`)
@@ -49,6 +60,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
     let message = res.statusText;
 
+    let data: unknown;
+
     try {
 
       const err = (await res.json()) as {
@@ -59,6 +72,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
       };
 
+      data = err;
+
       message = err.message ?? err.error ?? message;
 
     } catch {
@@ -67,7 +82,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
     }
 
-    throw new Error(message);
+    throw new ApiRequestError(message, res.status, data);
 
   }
 

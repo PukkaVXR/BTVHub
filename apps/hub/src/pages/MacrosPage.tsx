@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, type MacroConfig, type MacroStep } from "../api";
+import { ApiRequestError, api, type MacroConfig, type MacroRunResponse, type MacroStep } from "../api";
 import { useToast } from "../hooks/useToast";
 import { Button, ButtonLink, EmptyState, FormField, PageHeader, StatusPill } from "../ui";
 
@@ -9,6 +9,15 @@ const emptyMacro = (): MacroConfig => ({
   enabled: true,
   steps: [{ type: "clear_alerts" }],
 });
+
+function isMacroRunResponse(value: unknown): value is MacroRunResponse {
+  if (!value || typeof value !== "object") return false;
+  const result = value as Partial<MacroRunResponse>;
+  return typeof result.ok === "boolean"
+    && typeof result.title === "string"
+    && typeof result.message === "string"
+    && Array.isArray(result.steps);
+}
 
 function stepLabel(step: MacroStep): string {
   switch (step.type) {
@@ -333,6 +342,11 @@ export default function MacrosPage() {
       setLastRun(res.steps);
       toast(res.ok ? res.title : res.message);
     } catch (err) {
+      if (err instanceof ApiRequestError && isMacroRunResponse(err.data)) {
+        setLastRun(err.data.steps);
+        toast(`${err.data.title}: ${err.data.message}`);
+        return;
+      }
       toast(err instanceof Error ? err.message : "Macro failed");
     }
   };
@@ -340,7 +354,15 @@ export default function MacrosPage() {
   const runEditing = async () => {
     if (!editing) return;
     const parsed = validateSteps(stepsJson);
-    await run({ ...editing, steps: parsed.ok ? parsed.steps : editing.steps });
+    if (!parsed.ok) {
+      toast(parsed.error);
+      return;
+    }
+    const draft = { ...editing, steps: parsed.steps };
+    await api.saveMacro(draft);
+    setEditing(draft);
+    setMacros((current) => current.map((macro) => macro.id === draft.id ? draft : macro));
+    await run(draft);
   };
 
   const setSteps = (steps: MacroStep[]) => {

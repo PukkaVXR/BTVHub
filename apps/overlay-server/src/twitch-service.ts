@@ -12,6 +12,7 @@ import {
   deleteSetting,
   getEncryptedSetting,
   getSetting,
+  logSystem,
   setEncryptedSetting,
   setSetting,
 } from "./db.js";
@@ -54,9 +55,19 @@ export async function getAccessToken(): Promise<string> {
     return cachedTokens.accessToken;
   }
 
-  cachedTokens = await refreshAccessToken(config, cachedTokens.refreshToken);
-  setEncryptedSetting("twitch_tokens", JSON.stringify(cachedTokens));
-  return cachedTokens.accessToken;
+  try {
+    cachedTokens = await refreshAccessToken(config, cachedTokens.refreshToken);
+    setEncryptedSetting("twitch_tokens", JSON.stringify(cachedTokens));
+    return cachedTokens.accessToken;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Token refresh failed";
+    stopEventSub();
+    cachedTokens = null;
+    deleteSetting("twitch_tokens");
+    setSetting("twitch_eventsub_status", "auth_expired");
+    logSystem("twitch", "error", "Twitch authentication expired", { message });
+    throw new Error("Twitch authentication expired. Reconnect Twitch in Integrations.");
+  }
 }
 
 export async function handleTwitchCallback(code: string): Promise<void> {
@@ -106,6 +117,7 @@ export function getTwitchStatus() {
   const chatWriteScope = scopes.includes("user:write:chat");
   const chatSubscriptionFailed = eventsubStatus?.includes("sub_error:channel.chat") ?? false;
   const connected = Boolean(getEncryptedSetting("twitch_tokens"));
+  const authenticationExpired = eventsubStatus === "auth_expired";
   const chatConnected = connected && eventsubStatus === "connected" && chatReadScope && !chatSubscriptionFailed;
   const chatStatus = !connected
     ? "offline"
@@ -122,6 +134,7 @@ export function getTwitchStatus() {
     displayName: getSetting("twitch_display_name"),
     userId: getSetting("twitch_user_id"),
     eventsubStatus,
+    reauthRequired: authenticationExpired,
     scopes,
     chatSubscribed: chatConnected,
     chat: {
@@ -137,7 +150,9 @@ export function getTwitchStatus() {
             : "Reconnect Twitch to grant user:read:chat"
           : connected
             ? eventsubStatus ?? "Waiting for EventSub chat subscription"
-            : "Connect Twitch to enable chat",
+            : authenticationExpired
+              ? "Authentication expired. Reconnect Twitch in Integrations."
+              : "Connect Twitch to enable chat",
     },
   };
 }
@@ -200,4 +215,5 @@ export function disconnectTwitch(): void {
   deleteSetting("twitch_user_id");
   deleteSetting("twitch_login");
   deleteSetting("twitch_display_name");
+  deleteSetting("twitch_eventsub_status");
 }

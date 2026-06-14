@@ -2,14 +2,22 @@
   "name": "project-btv",
   "private": true,
   "version": "0.1.0",
+  "packageManager": "pnpm@9.15.0",
   "scripts": {
     "dev": "pnpm run build:packages && pnpm --filter @btv/hub --filter @btv/overlay-server --parallel dev",
     "build:packages": "pnpm --filter @btv/shared --filter @btv/twitch --filter @btv/overlay-sdk build",
     "build": "pnpm run build:packages && pnpm --filter @btv/hub --filter @btv/overlay-server build",
+    "format": "biome format --write apps packages scripts",
+    "format:check": "biome format biome.json package.json apps/hub/package.json apps/overlay-server/package.json",
+    "lint": "biome lint apps packages scripts",
+    "test": "node apps/overlay-server/node_modules/vitest/vitest.mjs run --root apps/overlay-server && node apps/hub/node_modules/vitest/vitest.mjs run --root apps/hub",
     "typecheck": "pnpm run -r typecheck",
     "free-ports": "powershell -ExecutionPolicy Bypass -File scripts/free-ports.ps1"
   },
   "engines": {
     "node": ">=22.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.0"
   }
 }
