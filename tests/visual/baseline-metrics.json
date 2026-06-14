@@ -1,0 +1,11 @@
+{
+  "hubBuild": {
+    "transformedModules": 160,
+    "totalCssBytes": 122299,
+    "totalJavaScriptBytes": 801959,
+    "largestChunks": {
+      "vendorReactBytes": 232210,
+      "alertEditorBytes": 168435
+    }
+  }
+}

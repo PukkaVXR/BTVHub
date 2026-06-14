@@ -1,6 +1,8 @@
-@import "./styles/foundation.css";
-@import "./styles/workflows.css";
-@import "./styles/stream-deck.css";
-@import "./styles/live-and-tools.css";
-@import "./styles/widgets.css";
-@import "./styles/legacy-editor.css";
+@layer tokens, base, shell, components, features, utilities;
+
+@import url("./styles/foundation.css") layer(base);
+@import url("./styles/workflows.css") layer(features);
+@import url("./styles/stream-deck.css") layer(features);
+@import url("./styles/live-and-tools.css") layer(features);
+@import url("./styles/widgets.css") layer(features);
+@import url("./styles/legacy-editor.css") layer(features);
