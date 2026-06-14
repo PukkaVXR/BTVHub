@@ -1,64 +1,18 @@
-:root {
-  --color-bg-canvas: #0b0d10;
-  --color-bg-surface-1: #10141a;
-  --color-bg-surface-2: #141922;
-  --color-bg-surface-3: #1a202b;
-  --color-border-subtle: #2a3444;
-  --color-border-strong: #3a4658;
-  --color-text-primary: #f3f6fb;
-  --color-text-secondary: #aeb9c9;
-  --color-text-disabled: #6f7b8d;
-  --color-status-success: #31d18b;
-  --color-status-warning: #f6c76f;
-  --color-status-danger: #ff5a67;
-  --color-status-info: #5b8cff;
-  --color-focus-ring: #8fb1ff;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-12: 48px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --duration-fast: 120ms;
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
-  --bg: #0b0d10;
-  --bg-elevated: #10141a;
-  --surface: #141922;
-  --surface2: #1a202b;
-  --surface3: #202836;
-  --border: #2a3444;
-  --border-strong: #3a4658;
-  --text: #f3f6fb;
-  --muted: #98a4b5;
-  --muted2: #6f7b8d;
-  --accent: #5b8cff;
-  --accent-hover: #78a2ff;
-  --accent-soft: rgba(91, 140, 255, 0.15);
-  --success: #31d18b;
-  --success-soft: rgba(49, 209, 139, 0.15);
-  --danger: #ff5a67;
-  --danger-hover: #ff7380;
-  --danger-soft: rgba(255, 90, 103, 0.14);
-  --warning: #f6c76f;
-  --radius: 8px;
-  --shadow: 0 16px 44px rgba(0, 0, 0, 0.28);
-  --font-display: "Aptos Display", "Segoe UI Variable Display", "Segoe UI", Inter, system-ui, sans-serif;
-  font-family: Inter, "Segoe UI", system-ui, sans-serif;
-  color-scheme: dark;
-}
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
+  -webkit-font-smoothing: antialiased;
   background: var(--bg);
   color: var(--text);
+  font-family: var(--font-body);
   min-height: 100vh;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: var(--font-size-md);
+  font-optical-sizing: auto;
+  font-synthesis: none;
+  font-weight: 450;
+  font-variant-numeric: tabular-nums;
+  line-height: var(--line-height-body);
+  text-rendering: optimizeLegibility;
 }
 
 a { color: var(--accent-hover); text-decoration: none; }

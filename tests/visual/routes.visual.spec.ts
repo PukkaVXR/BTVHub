@@ -1,10 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const routes = [
-  { name: "dashboard", path: "/" },
-  { name: "mobile-control", path: "/mobile-control" },
-  { name: "activity", path: "/activity" },
-  { name: "recaps", path: "/recaps" },
+  { name: "dashboard", path: "/", viewportOnly: true },
+  { name: "mobile-control", path: "/mobile-control", viewportOnly: true },
+  { name: "activity", path: "/activity", viewportOnly: true },
+  { name: "recaps", path: "/recaps", viewportOnly: true },
   { name: "overlays", path: "/overlays" },
   { name: "widgets", path: "/widgets" },
   { name: "alert-projects", path: "/alerts" },
@@ -115,6 +115,20 @@ async function normalizeDynamicContent(page: Page, routeName: (typeof routes)[nu
     }
   }
 
+  if (routeName === "integrations") {
+    await page.locator("input").evaluateAll((inputs) => {
+      for (const input of inputs as HTMLInputElement[]) {
+        if (input.type === "password") {
+          input.value = "";
+          continue;
+        }
+        if (input.type === "text" || input.type === "url") {
+          input.value = input.value.startsWith("http") ? "https://127.0.0.1/example" : "visual-baseline";
+        }
+      }
+    });
+  }
+
   if (routeName === "alert-editor") {
     await page.locator(".alert-preview-canvas video").evaluateAll((videos) => {
       for (const video of videos as HTMLVideoElement[]) {
@@ -148,6 +162,6 @@ for (const route of routes) {
     await waitForRouteContent(page, route.name);
     await waitForStableLayout(page);
     await normalizeDynamicContent(page, route.name);
-    await expect(page).toHaveScreenshot(`${route.name}.png`, { fullPage: true });
+    await expect(page).toHaveScreenshot(`${route.name}.png`, { fullPage: !("viewportOnly" in route) });
   });
 }

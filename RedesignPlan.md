@@ -153,16 +153,16 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 
 ### Stage 1 - Tokens as single source of truth
 
-- [ ] Extract the `:root` tokens from `foundation.css` into `apps/hub/src/styles/tokens.css` (under `@layer tokens`).
-- [ ] Define the canonical color system: canvas, neutral ramp, elevated-surface ramp (with 1px top highlights), enriched accent + paired gradient accent.
-- [ ] Add layered elevation shadows (ambient + key) and a soft accent-glow token.
-- [ ] Add the type scale (display + body), enable tabular numerals, refine letter-spacing/line-height tokens.
-- [ ] Add motion tokens: `--duration-fast/normal/slow`, standard/emphasized easings, reusable transition shorthands.
-- [ ] Define all currently-undefined tokens (`--color-accent`, `--color-surface`, `--color-surface-muted`, `--color-surface-subtle`, `--color-text-tertiary`, `--color-bg-page`, `--duration-normal`).
-- [ ] Re-point legacy names (`--bg`, `--text`, `--accent`, `--border`, `--surface*`, etc.) as aliases of canonical tokens.
-- [ ] Add `@fontsource` font packages; wire into `--font-display` and the body font.
-- [ ] Run the verification loop; review visual diffs (intentional global refresh).
-- [ ] Commit: `feat(hub): canonical design tokens + bundled fonts`.
+- [x] Extract the `:root` tokens from `foundation.css` into `apps/hub/src/styles/tokens.css` (under `@layer tokens`).
+- [x] Define the canonical color system: canvas, neutral ramp, elevated-surface ramp (with 1px top highlights), enriched accent + paired gradient accent.
+- [x] Add layered elevation shadows (ambient + key) and a soft accent-glow token.
+- [x] Add the type scale (display + body), enable tabular numerals, refine letter-spacing/line-height tokens.
+- [x] Add motion tokens: `--duration-fast/normal/slow`, standard/emphasized easings, reusable transition shorthands.
+- [x] Define all currently-undefined tokens (`--color-accent`, `--color-surface`, `--color-surface-muted`, `--color-surface-subtle`, `--color-text-tertiary`, `--color-bg-page`, `--duration-normal`).
+- [x] Re-point legacy names (`--bg`, `--text`, `--accent`, `--border`, `--surface*`, etc.) as aliases of canonical tokens.
+- [x] Add `@fontsource` font packages; wire into `--font-display` and the body font.
+- [x] Run the verification loop; review visual diffs (intentional global refresh).
+- [x] Commit: `feat(hub): canonical design tokens + bundled fonts`.
 
 ### Stage 2 - App shell and navigation
 
