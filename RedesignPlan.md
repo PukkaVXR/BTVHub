@@ -166,15 +166,15 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 
 ### Stage 2 - App shell and navigation
 
-- [ ] Extract shell styles into `apps/hub/src/styles/shell.css` (under `@layer shell`).
-- [ ] Apply glass treatment to the sidebar and a sticky glass topbar (sparing `backdrop-filter`).
-- [ ] Implement the animated active nav indicator on `.nav-link.active`.
-- [ ] Smooth the section expand/collapse and refine section headers/chevron in `App.tsx` markup as needed.
-- [ ] Group the topbar controls (status pills, save indicator, command palette, hotkeys, emergency) into a cohesive cluster.
-- [ ] Tighten `.main` layout rhythm (max-width, padding, vertical/horizontal spacing).
-- [ ] Add a subtle route-change entrance (fade + rise) on the page container.
-- [ ] Run the verification loop; review nav/shell visual diffs.
-- [ ] Commit: `feat(hub): premium app shell + cutting-edge navigation`.
+- [x] Extract shell styles into `apps/hub/src/styles/shell.css` (under `@layer shell`).
+- [x] Apply glass treatment to the sidebar and a sticky glass topbar (sparing `backdrop-filter`).
+- [x] Implement the animated active nav indicator on `.nav-link.active`.
+- [x] Smooth the section expand/collapse and refine section headers/chevron in `App.tsx` markup as needed.
+- [x] Group the topbar controls (status pills, save indicator, command palette, hotkeys, emergency) into a cohesive cluster.
+- [x] Tighten `.main` layout rhythm (max-width, padding, vertical/horizontal spacing).
+- [x] Add a subtle route-change entrance (fade + rise) on the page container.
+- [x] Run the verification loop; review nav/shell visual diffs.
+- [x] Commit: `feat(hub): premium app shell + cutting-edge navigation`.
 
 ### Stage 3 - Shared UI primitives
 

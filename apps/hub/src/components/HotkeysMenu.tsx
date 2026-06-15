@@ -38,7 +38,7 @@ export function HotkeysMenu() {
                 <h3>{group}</h3>
                 {hotkeys.map((hotkey) => (
                   <div className="hotkeys-menu__item" key={hotkey.id}>
-                    <span>
+                    <span className="hotkeys-menu__description">
                       <strong>{hotkey.label}</strong>
                       <small>{hotkey.description}</small>
                     </span>

@@ -1943,21 +1943,6 @@ kbd {
 }
 
 @media (max-width: 860px) {
-  .app { flex-direction: column; }
-  .sidebar {
-    width: 100%;
-    height: auto;
-    position: static;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .sidebar nav { display: flex; flex-wrap: wrap; gap: 4px; }
-  .nav-link { margin-bottom: 0; }
-  .main { padding: 20px; }
-  .app-topbar { flex-direction: column; }
-  .app-topbar-actions { width: 100%; }
-  .global-save-indicator { justify-content: center; min-width: 0; white-space: normal; }
-  .command-palette-trigger { flex: 1; justify-content: center; }
   .stream-deck-builder-pro,
   .stream-deck-builder {
     grid-template-columns: 1fr;
@@ -1985,21 +1970,6 @@ kbd {
     flex: 1 1 140px;
     justify-content: center;
   }
-  .hotkeys-menu,
-  .hotkeys-menu__trigger { width: 100%; }
-  .hotkeys-menu__trigger { justify-content: center; }
-  .hotkeys-menu__panel {
-    left: 0;
-    right: auto;
-    width: min(100%, calc(100vw - 40px));
-  }
-  .hotkeys-menu__item {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-  .hotkeys-menu__keys {
-    justify-content: flex-start;
-  }
   .mobile-control-page {
     gap: 12px;
     max-width: none;
@@ -2015,15 +1985,6 @@ kbd {
   .mobile-control-button {
     min-height: 78px;
   }
-  .emergency-menu,
-  .emergency-menu__trigger { width: 100%; }
-  .emergency-menu__trigger { justify-content: center; }
-  .emergency-menu__panel {
-    left: 0;
-    right: auto;
-    width: min(100%, calc(100vw - 40px));
-  }
-  .emergency-menu__grid { grid-template-columns: 1fr; }
   .stream-deck-endpoint { grid-template-columns: 1fr; }
   .setup-wizard { grid-template-columns: 1fr; }
   .setup-progress-card { position: static; }

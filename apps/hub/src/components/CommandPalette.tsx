@@ -276,7 +276,7 @@ export function CommandPalette() {
             }}
           >
             <label className="command-palette__search">
-              <span>Search commands</span>
+              <span className="command-palette__search-label">Search commands</span>
               <input
                 ref={inputRef}
                 value={query}
@@ -311,7 +311,7 @@ export function CommandPalette() {
                     onMouseEnter={() => setActiveIndex(index)}
                     onClick={() => void runCommand(command)}
                   >
-                    <span>
+                    <span className="command-palette__item-content">
                       <strong>{command.label}</strong>
                       <small>{command.description}</small>
                     </span>
