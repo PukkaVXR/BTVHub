@@ -205,8 +205,8 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 
 ### Stage 5 - Stylesheet split, polish, and token migration
 
-- [ ] Create `apps/hub/src/styles/features/` and `styles/overlay-animations.css` + `styles/keyframes.css`.
-- [ ] Move functional overlay-output keyframes from `legacy-editor.css` into `overlay-animations.css` unchanged; consolidate UI keyframes into `keyframes.css`.
+- [x] Create `apps/hub/src/styles/features/` and `styles/overlay-animations.css` + `styles/keyframes.css`.
+- [x] Move functional overlay-output keyframes from `legacy-editor.css` into `overlay-animations.css` unchanged; consolidate UI keyframes into `keyframes.css`.
 - [ ] Split + migrate `workflows.css` (alerts, automation, macros, webhooks, activity); verify + commit.
 - [ ] Split + migrate `stream-deck.css`; verify + commit.
 - [ ] Split + migrate `live-and-tools.css` (live, setup, integrations, commands, mobile, interactive, plugins); verify + commit.

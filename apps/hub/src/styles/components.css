@@ -511,15 +511,6 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
 }
 
-@keyframes ui-button-spin {
-  to { transform: rotate(1turn); }
-}
-
-@keyframes ui-skeleton-shimmer {
-  from { background-position: 100% 0; }
-  to { background-position: -120% 0; }
-}
-
 @media (width <= 680px) {
   :is(.ui-card-header, .ui-page-header) {
     flex-direction: column;

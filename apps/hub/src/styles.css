@@ -3,8 +3,10 @@
 @import url("./styles/fonts.css") layer(tokens);
 @import url("./styles/tokens.css") layer(tokens);
 @import url("./styles/foundation.css") layer(base);
+@import url("./styles/keyframes.css") layer(components);
 @import url("./styles/shell.css") layer(shell);
 @import url("./styles/components.css") layer(components);
+@import url("./styles/overlay-animations.css") layer(features);
 @import url("./styles/workflows.css") layer(features);
 @import url("./styles/stream-deck.css") layer(features);
 @import url("./styles/live-and-tools.css") layer(features);

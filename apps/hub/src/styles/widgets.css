@@ -110,25 +110,6 @@
   margin-top: 12px;
 }
 
-@keyframes setupCompleteBurst {
-  0% {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.98);
-  }
-  16% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  82% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-4px) scale(0.99);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

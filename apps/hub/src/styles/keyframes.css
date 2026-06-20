@@ -1,0 +1,50 @@
+/* stylelint-disable -- Shared legacy keyframe names stay stable for existing animation call sites. */
+@keyframes ui-button-spin {
+  to { transform: rotate(1turn); }
+}
+
+@keyframes ui-skeleton-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -120% 0; }
+}
+
+@keyframes shell-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes stream-deck-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes setupCompleteBurst {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  16% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  82% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.99);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+}
