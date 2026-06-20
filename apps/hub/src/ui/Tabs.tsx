@@ -10,7 +10,7 @@ export interface ChoiceItem {
 }
 
 interface ChoiceGroupProps {
-  items: ChoiceItem[];
+  items: readonly ChoiceItem[];
   activeId: string;
   onChange: (id: string) => void;
   ariaLabel: string;

@@ -244,9 +244,7 @@ button.section-tabs__item {
 }
 
 .macro-workspace {
-  display: grid;
   grid-template-columns: minmax(230px, 310px) minmax(0, 1fr);
-  gap: 16px;
   align-items: start;
 }
 
@@ -274,29 +272,12 @@ button.section-tabs__item {
   margin: 0;
 }
 
-.macro-filter-tabs {
-  display: grid;
-  gap: 6px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.macro-list-tools .ui-segmented-control {
+  width: 100%;
 }
 
-.macro-filter-tabs button {
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.035);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 850;
-  padding: 6px 8px;
-  text-transform: capitalize;
-}
-
-.macro-filter-tabs button.active,
-.macro-filter-tabs button:hover {
-  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border-subtle));
-  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-  color: var(--color-text-primary);
+.macro-list-tools .ui-segmented-control__button {
+  flex: 1 1 0;
 }
 
 .macro-list-card {
