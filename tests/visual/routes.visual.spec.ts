@@ -164,6 +164,16 @@ async function normalizeDynamicContent(page: Page, routeName: (typeof routes)[nu
     }
   }
 
+  if (routeName === "alert-projects") {
+    await page.locator(".alert-project-card__meta span").evaluateAll((chips) => {
+      for (const chip of chips) {
+        if (chip.textContent?.startsWith("Updated ")) {
+          chip.textContent = "Updated Jan 01, 12:00 PM";
+        }
+      }
+    });
+  }
+
   if (routeName === "automations") {
     await page.locator(".card table tbody tr").evaluateAll((rows) => {
       for (const [index, row] of (rows as HTMLTableRowElement[]).entries()) {

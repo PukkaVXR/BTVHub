@@ -18,7 +18,7 @@ import { EventRuleTriggerEditor } from "../components/automations/EventRuleTrigg
 import { ScheduledAutomationsPanel } from "../components/automations/ScheduledAutomationsPanel";
 import { useToast } from "../hooks/useToast";
 import { usePollingQuery } from "../hooks/usePollingQuery";
-import { Button, EmptyState, PageHeader, SplitWorkspace } from "../ui";
+import { Button, EmptyState, PageHeader, SegmentedControl, SplitWorkspace } from "../ui";
 
 const emptyRule = (): AutomationRule => {
   const now = new Date().toISOString();
@@ -217,24 +217,16 @@ export default function AutomationsPage() {
     <>
       <PageHeader title="Automations" description="Phase 1 event rules plus the older repeating timer jobs." />
 
-      <div className="section-tabs" aria-label="Automation sections">
-        <button
-          type="button"
-          className={`section-tabs__item${automationTab === "rules" ? " section-tabs__item--active" : ""}`}
-          onClick={() => setAutomationTab("rules")}
-        >
-          <span>Event rules</span>
-          <small>{rules.length}</small>
-        </button>
-        <button
-          type="button"
-          className={`section-tabs__item${automationTab === "scheduled" ? " section-tabs__item--active" : ""}`}
-          onClick={() => setAutomationTab("scheduled")}
-        >
-          <span>Scheduled jobs</span>
-          <small>{automations.length}</small>
-        </button>
-      </div>
+      <SegmentedControl
+        className="workflow-section-tabs"
+        ariaLabel="Automation sections"
+        items={[
+          { id: "rules", label: "Event rules", count: rules.length },
+          { id: "scheduled", label: "Scheduled jobs", count: automations.length },
+        ]}
+        activeId={automationTab}
+        onChange={(id) => setAutomationTab(id === "scheduled" ? "scheduled" : "rules")}
+      />
 
       {automationTab === "rules" && (
         <>
