@@ -164,6 +164,24 @@ async function normalizeDynamicContent(page: Page, routeName: (typeof routes)[nu
     }
   }
 
+  if (routeName === "automations") {
+    await page.locator(".card table tbody tr").evaluateAll((rows) => {
+      for (const [index, row] of (rows as HTMLTableRowElement[]).entries()) {
+        const cells = Array.from(row.cells);
+        const values = [
+          "01/01/2026, 12:00:00",
+          "Stable rule",
+          "ok",
+          "Stable automation run",
+          `visual-event-${String(index + 1).padStart(2, "0")}`,
+        ];
+        cells.forEach((cell, cellIndex) => {
+          cell.textContent = values[cellIndex] ?? "-";
+        });
+      }
+    });
+  }
+
   if (routeName === "integrations") {
     await page.locator("input").evaluateAll((inputs) => {
       for (const input of inputs as HTMLInputElement[]) {

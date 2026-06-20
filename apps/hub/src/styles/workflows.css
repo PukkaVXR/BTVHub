@@ -131,10 +131,9 @@ button.section-tabs__item {
 }
 
 .automation-rule-workspace {
-  display: grid;
   grid-template-columns: minmax(250px, 340px) minmax(0, 1fr);
-  gap: 16px;
   align-items: start;
+  margin-bottom: 0;
 }
 
 .automation-rule-list {
