@@ -94,6 +94,55 @@ async function normalizeDynamicContent(page: Page, routeName: (typeof routes)[nu
     }
   });
 
+  if (routeName === "dashboard") {
+    await page.locator(".live-readiness-strip .ui-status-pill").evaluateAll((pills) => {
+      const labels = [
+        "6/9 ready",
+        "Overlay server",
+        "OBS browser sources",
+        "Overlay heartbeats",
+        "Browser source reachability",
+        "Alert project assets",
+        "Twitch",
+        "Twitch chat",
+        "Spotify",
+        "OBS WebSocket",
+      ];
+      const details = [
+        "OBS browser sources",
+        "http://127.0.0.1:4782",
+        "0 connected",
+        "0 stale",
+        "0/6 expected overlays reachable",
+        "0 project(s) checked",
+        "visual-baseline",
+        "Listening for Twitch chat messages",
+        "Connected",
+        "127.0.0.1:4455",
+      ];
+      const tones = [
+        "danger",
+        "success",
+        "danger",
+        "success",
+        "danger",
+        "success",
+        "success",
+        "success",
+        "success",
+        "danger",
+      ];
+
+      pills.forEach((pill, index) => {
+        pill.className = `ui-status-pill ui-status-pill--${tones[index] ?? "neutral"}`;
+        const label = pill.querySelector(":scope > span:not(.ui-status-pill__dot)");
+        const detail = pill.querySelector(":scope > small");
+        if (label) label.textContent = labels[index] ?? "Stable";
+        if (detail) detail.textContent = details[index] ?? "Visual baseline";
+      });
+    });
+  }
+
   if (routeName === "activity") {
     const tables = page.locator(".card table tbody");
     const stableRows = [

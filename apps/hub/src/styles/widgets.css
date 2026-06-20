@@ -110,25 +110,6 @@
   margin-top: 12px;
 }
 
-.ui-skeleton {
-  display: block;
-  height: 14px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.16), rgba(255,255,255,0.08));
-  background-size: 220% 100%;
-  animation: uiSkeleton 1.1s linear infinite;
-}
-
-.ui-page-loading {
-  display: grid;
-  gap: 12px;
-}
-
-@keyframes uiSkeleton {
-  from { background-position: 100% 0; }
-  to { background-position: -120% 0; }
-}
-
 @keyframes setupCompleteBurst {
   0% {
     opacity: 0;

@@ -178,14 +178,14 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 
 ### Stage 3 - Shared UI primitives
 
-- [ ] Extract UI-kit styles into `apps/hub/src/styles/components.css` (under `@layer components`).
-- [ ] Refine `.ui-button` variants/press/hover/focus and add the missing `.ui-button__spinner`.
-- [ ] Refine `.ui-card` (hover glow, header) and `.ui-card-header__action`.
-- [ ] Add `.ui-status-pill--neutral` tone and refine all pill tones.
-- [ ] Refine `.ui-callout`, `.ui-form-field`, `.ui-empty-state`, `.ui-skeleton`.
-- [ ] Add styles for `.ui-error-card` and `.ui-page-header__action`.
-- [ ] Run the verification loop; review primitive visual diffs.
-- [ ] Commit: `feat(hub): refined shared UI primitives`.
+- [x] Extract UI-kit styles into `apps/hub/src/styles/components.css` (under `@layer components`).
+- [x] Refine `.ui-button` variants/press/hover/focus and add the missing `.ui-button__spinner`.
+- [x] Refine `.ui-card` (hover glow, header) and `.ui-card-header__action`.
+- [x] Add `.ui-status-pill--neutral` tone and refine all pill tones.
+- [x] Refine `.ui-callout`, `.ui-form-field`, `.ui-empty-state`, `.ui-skeleton`.
+- [x] Add styles for `.ui-error-card` and `.ui-page-header__action`.
+- [x] Run the verification loop; review primitive visual diffs.
+- [x] Commit: `feat(hub): refined shared UI primitives`.
 
 ### Stage 4 - Shared layout component system (heavy refactor)
 
