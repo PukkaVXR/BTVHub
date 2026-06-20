@@ -246,10 +246,9 @@ h3 {
 }
 
 .widgets-workspace {
-  display: grid;
   grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-  gap: 16px;
   align-items: start;
+  margin-bottom: 0;
 }
 
 .widgets-sidebar {
