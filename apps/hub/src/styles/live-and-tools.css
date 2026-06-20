@@ -933,34 +933,24 @@
 }
 
 .prediction-vote-meter {
+  gap: 0;
+}
+
+.prediction-vote-meter .ui-meter-bar__track {
   background-color: rgba(255, 255, 255, 0.08);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
   height: 38px;
-  overflow: hidden;
-  position: relative;
 }
 
-.prediction-vote-meter span {
+.prediction-vote-meter .ui-meter-bar__track span {
   background: linear-gradient(90deg, var(--prediction-color), color-mix(in srgb, var(--prediction-color) 44%, transparent));
-  inset: 0 auto 0 0;
-  position: absolute;
-  transition: width var(--duration-normal) var(--ease-standard);
 }
 
-.prediction-vote-meter strong {
-  color: var(--color-text-primary);
-  display: grid;
+.prediction-vote-meter .ui-meter-bar__track strong {
   font-size: 13px;
-  font-weight: 950;
-  inset: 0;
-  place-items: center;
-  position: absolute;
 }
 
 .prediction-vote-control {
   align-items: center;
-  display: grid;
   gap: 10px;
   grid-template-columns: auto minmax(90px, 1fr) auto;
 }
@@ -1026,34 +1016,23 @@
 }
 
 .boss-health-meter {
+  gap: 0;
+}
+
+.boss-health-meter .ui-meter-bar__track {
   background-color: rgba(255, 255, 255, 0.08);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
   height: 48px;
-  overflow: hidden;
-  position: relative;
 }
 
-.boss-health-meter span {
+.boss-health-meter .ui-meter-bar__track span {
   background: linear-gradient(90deg, var(--boss-color), color-mix(in srgb, var(--boss-color) 42%, #fff));
-  inset: 0 auto 0 0;
-  position: absolute;
-  transition: width var(--duration-normal) var(--ease-standard);
 }
 
-.boss-health-meter strong {
-  color: var(--color-text-primary);
-  display: grid;
+.boss-health-meter .ui-meter-bar__track strong {
   font-size: 14px;
-  font-weight: 950;
-  inset: 0;
-  place-items: center;
-  position: absolute;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
 }
 
 .boss-quick-grid {
-  display: grid;
   gap: 8px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -1126,34 +1105,23 @@
 }
 
 .chaos-live-meter {
+  gap: 0;
+}
+
+.chaos-live-meter .ui-meter-bar__track {
   background-color: rgba(255, 255, 255, 0.08);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
   height: 48px;
-  overflow: hidden;
-  position: relative;
 }
 
-.chaos-live-meter span {
+.chaos-live-meter .ui-meter-bar__track span {
   background: linear-gradient(90deg, var(--chaos-color), #ff5a67);
-  inset: 0 auto 0 0;
-  position: absolute;
-  transition: width var(--duration-normal) var(--ease-standard);
 }
 
-.chaos-live-meter strong {
-  color: var(--color-text-primary);
-  display: grid;
+.chaos-live-meter .ui-meter-bar__track strong {
   font-size: 14px;
-  font-weight: 950;
-  inset: 0;
-  place-items: center;
-  position: absolute;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
 }
 
 .chaos-quick-grid {
-  display: grid;
   gap: 8px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }

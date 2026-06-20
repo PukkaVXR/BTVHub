@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { api, type PredictionOption, type PredictionState } from "../api";
 import { useToast } from "../hooks/useToast";
 import { overlayUrl } from "../lib/serverUrls";
-import { Button, Card, CardHeader, CopyField, EmptyState, PageHeader, StatusPill } from "../ui";
+import { Button, Card, CardHeader, ControlGrid, CopyField, EmptyState, MeterBar, PageHeader, StatusPill } from "../ui";
 
 const OVERLAY_URL = overlayUrl("/o/prediction.html");
 
@@ -37,7 +37,10 @@ export default function PredictionVotingPage() {
     void load();
   }, []);
 
-  const totalVotes = useMemo(() => prediction?.options.reduce((sum, option) => sum + option.votes, 0) ?? 0, [prediction]);
+  const totalVotes = useMemo(
+    () => prediction?.options.reduce((sum, option) => sum + option.votes, 0) ?? 0,
+    [prediction],
+  );
 
   const save = async (next: PredictionState, message = "Prediction updated") => {
     setPrediction(next);
@@ -129,7 +132,13 @@ export default function PredictionVotingPage() {
             <CardHeader
               title="OBS Browser Source"
               description="Add this URL as a browser source in OBS. The overlay updates automatically as votes change."
-              action={<StatusPill tone={statusTone(prediction.status)} label={statusLabel(prediction.status)} detail={`${totalVotes} votes`} />}
+              action={
+                <StatusPill
+                  tone={statusTone(prediction.status)}
+                  label={statusLabel(prediction.status)}
+                  detail={`${totalVotes} votes`}
+                />
+              }
             />
             <CopyField label="Prediction overlay URL" value={OVERLAY_URL} />
           </Card>
@@ -139,7 +148,18 @@ export default function PredictionVotingPage() {
               title="Prediction Setup"
               description="Set the copy, visibility, and live state."
               action={
-                <Button type="button" variant={prediction.visible ? "secondary" : "primary"} size="sm" loading={saving} onClick={() => patch({ visible: !prediction.visible }, prediction.visible ? "Prediction hidden" : "Prediction shown")}>
+                <Button
+                  type="button"
+                  variant={prediction.visible ? "secondary" : "primary"}
+                  size="sm"
+                  loading={saving}
+                  onClick={() =>
+                    patch(
+                      { visible: !prediction.visible },
+                      prediction.visible ? "Prediction hidden" : "Prediction shown",
+                    )
+                  }
+                >
                   {prediction.visible ? "Hide on stream" : "Show on stream"}
                 </Button>
               }
@@ -155,10 +175,20 @@ export default function PredictionVotingPage() {
               </label>
             </div>
             <div className="prediction-action-row">
-              <Button type="button" variant={prediction.status === "open" ? "primary" : "secondary"} loading={saving} onClick={() => patch({ status: "open" }, "Voting opened")}>
+              <Button
+                type="button"
+                variant={prediction.status === "open" ? "primary" : "secondary"}
+                loading={saving}
+                onClick={() => patch({ status: "open" }, "Voting opened")}
+              >
                 Open voting
               </Button>
-              <Button type="button" variant={prediction.status === "locked" ? "primary" : "secondary"} loading={saving} onClick={() => patch({ status: "locked" }, "Voting locked")}>
+              <Button
+                type="button"
+                variant={prediction.status === "locked" ? "primary" : "secondary"}
+                loading={saving}
+                onClick={() => patch({ status: "locked" }, "Voting locked")}
+              >
                 Lock voting
               </Button>
               <Button type="button" variant="danger" loading={saving} onClick={() => void reset()}>
@@ -168,39 +198,73 @@ export default function PredictionVotingPage() {
           </Card>
 
           <Card hideableId="options-votes" hideableTitle="Options And Votes">
-            <CardHeader title="Options And Votes" description="Tune option names and colours, add manual votes, then reveal a winner when ready." />
+            <CardHeader
+              title="Options And Votes"
+              description="Tune option names and colours, add manual votes, then reveal a winner when ready."
+            />
             <div className="prediction-option-grid">
               {prediction.options.map((option) => {
                 const percent = totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0;
                 return (
-                  <section className="prediction-option-card" key={option.id} style={{ "--prediction-color": option.color } as CSSProperties}>
+                  <section
+                    className="prediction-option-card"
+                    key={option.id}
+                    style={{ "--prediction-color": option.color } as CSSProperties}
+                  >
                     <div className="prediction-option-card__header">
                       <label>
                         Option label
-                        <input value={option.label} onChange={(event) => updateOption(option.id, { label: event.target.value })} />
+                        <input
+                          value={option.label}
+                          onChange={(event) => updateOption(option.id, { label: event.target.value })}
+                        />
                       </label>
                       <label>
                         Colour
-                        <input type="color" value={option.color} onChange={(event) => updateOption(option.id, { color: event.target.value })} />
+                        <input
+                          type="color"
+                          value={option.color}
+                          onChange={(event) => updateOption(option.id, { color: event.target.value })}
+                        />
                       </label>
                     </div>
 
-                    <div className="prediction-vote-meter" aria-label={`${option.label} has ${percent}% of votes`}>
-                      <span style={{ width: `${percent}%` }} />
-                      <strong>{percent}%</strong>
-                    </div>
+                    <MeterBar
+                      className="prediction-vote-meter"
+                      value={percent}
+                      tone={option.isWinner ? "success" : "info"}
+                      trackLabel={`${percent}%`}
+                      aria-label={`${option.label} has ${percent}% of votes`}
+                    />
 
-                    <div className="prediction-vote-control">
-                      <Button type="button" variant="secondary" size="sm" loading={saving} onClick={() => adjustVotes(option, -1)}>
+                    <ControlGrid className="prediction-vote-control">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        loading={saving}
+                        onClick={() => adjustVotes(option, -1)}
+                      >
                         -1
                       </Button>
                       <strong>{option.votes}</strong>
-                      <Button type="button" variant="primary" size="sm" loading={saving} onClick={() => void castVote(option)}>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        loading={saving}
+                        onClick={() => void castVote(option)}
+                      >
                         +1 vote
                       </Button>
-                    </div>
+                    </ControlGrid>
 
-                    <Button type="button" variant={option.isWinner ? "primary" : "secondary"} loading={saving} onClick={() => void revealWinner(option)}>
+                    <Button
+                      type="button"
+                      variant={option.isWinner ? "primary" : "secondary"}
+                      loading={saving}
+                      onClick={() => void revealWinner(option)}
+                    >
                       {option.isWinner ? "Winner selected" : "Reveal as winner"}
                     </Button>
                   </section>

@@ -7,6 +7,7 @@ interface MeterBarProps extends HTMLAttributes<HTMLDivElement> {
   max?: number;
   label?: ReactNode;
   detail?: ReactNode;
+  trackLabel?: ReactNode;
   tone?: MeterTone;
 }
 
@@ -15,7 +16,16 @@ function percent(value: number, max: number) {
   return Math.min(100, Math.max(0, (value / max) * 100));
 }
 
-export function MeterBar({ value, max = 100, label, detail, tone = "info", className = "", ...props }: MeterBarProps) {
+export function MeterBar({
+  value,
+  max = 100,
+  label,
+  detail,
+  trackLabel,
+  tone = "info",
+  className = "",
+  ...props
+}: MeterBarProps) {
   const width = `${percent(value, max)}%`;
 
   return (
@@ -34,6 +44,7 @@ export function MeterBar({ value, max = 100, label, detail, tone = "info", class
         aria-valuenow={value}
       >
         <span style={{ width }} />
+        {trackLabel ? <strong>{trackLabel}</strong> : null}
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { api, type TournamentScoreboardState, type TournamentScoreboardTeam } from "../api";
 import { useToast } from "../hooks/useToast";
 import { overlayUrl } from "../lib/serverUrls";
-import { Button, Card, CardHeader, CopyField, EmptyState, PageHeader } from "../ui";
+import { Button, Card, CardHeader, ControlGrid, CopyField, EmptyState, PageHeader } from "../ui";
 
 const OVERLAY_URL = overlayUrl("/o/tournament-scoreboard.html");
 
@@ -57,7 +57,11 @@ export default function TournamentScoreboardPage() {
   };
 
   const adjustScore = (team: TournamentScoreboardTeam, amount: number) => {
-    updateTeam(team.id, { score: clampScore(team.score + amount) }, `${team.name} score ${amount > 0 ? "increased" : "decreased"}`);
+    updateTeam(
+      team.id,
+      { score: clampScore(team.score + amount) },
+      `${team.name} score ${amount > 0 ? "increased" : "decreased"}`,
+    );
   };
 
   const swapTeams = () => {
@@ -106,7 +110,18 @@ export default function TournamentScoreboardPage() {
               title="Match Setup"
               description="Set the title, match type, and whether the scoreboard should be visible on stream."
               action={
-                <Button type="button" variant={scoreboard.visible ? "secondary" : "primary"} size="sm" loading={saving} onClick={() => patch({ visible: !scoreboard.visible }, scoreboard.visible ? "Scoreboard hidden" : "Scoreboard shown")}>
+                <Button
+                  type="button"
+                  variant={scoreboard.visible ? "secondary" : "primary"}
+                  size="sm"
+                  loading={saving}
+                  onClick={() =>
+                    patch(
+                      { visible: !scoreboard.visible },
+                      scoreboard.visible ? "Scoreboard hidden" : "Scoreboard shown",
+                    )
+                  }
+                >
                   {scoreboard.visible ? "Hide on stream" : "Show on stream"}
                 </Button>
               }
@@ -122,7 +137,13 @@ export default function TournamentScoreboardPage() {
               </label>
               <label>
                 Best of
-                <input type="number" min={1} max={99} value={scoreboard.bestOf} onChange={(event) => patch({ bestOf: Number(event.target.value) })} />
+                <input
+                  type="number"
+                  min={1}
+                  max={99}
+                  value={scoreboard.bestOf}
+                  onChange={(event) => patch({ bestOf: Number(event.target.value) })}
+                />
               </label>
             </div>
           </Card>
@@ -143,32 +164,55 @@ export default function TournamentScoreboardPage() {
               }
             />
 
-            <div className="tournament-team-grid">
+            <ControlGrid className="tournament-team-grid">
               {scoreboard.teams.map((team) => (
-                <section className="tournament-team-card" key={team.id} style={{ "--team-color": team.color } as CSSProperties}>
+                <section
+                  className="tournament-team-card"
+                  key={team.id}
+                  style={{ "--team-color": team.color } as CSSProperties}
+                >
                   <div className="tournament-team-card__header">
                     <label>
                       Team name
-                      <input value={team.name} onChange={(event) => updateTeam(team.id, { name: event.target.value })} />
+                      <input
+                        value={team.name}
+                        onChange={(event) => updateTeam(team.id, { name: event.target.value })}
+                      />
                     </label>
                     <label>
                       Colour
-                      <input type="color" value={team.color} onChange={(event) => updateTeam(team.id, { color: event.target.value })} />
+                      <input
+                        type="color"
+                        value={team.color}
+                        onChange={(event) => updateTeam(team.id, { color: event.target.value })}
+                      />
                     </label>
                   </div>
 
-                  <div className="tournament-score-control">
-                    <Button type="button" variant="secondary" size="sm" loading={saving} onClick={() => adjustScore(team, -1)}>
+                  <ControlGrid className="tournament-score-control">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      loading={saving}
+                      onClick={() => adjustScore(team, -1)}
+                    >
                       -1
                     </Button>
                     <strong>{team.score}</strong>
-                    <Button type="button" variant="primary" size="sm" loading={saving} onClick={() => adjustScore(team, 1)}>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      loading={saving}
+                      onClick={() => adjustScore(team, 1)}
+                    >
                       +1
                     </Button>
-                  </div>
+                  </ControlGrid>
                 </section>
               ))}
-            </div>
+            </ControlGrid>
           </Card>
         </div>
       )}
