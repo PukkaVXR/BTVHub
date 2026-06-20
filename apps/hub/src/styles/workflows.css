@@ -657,11 +657,8 @@ button.section-tabs__item {
 }
 
 .webhook-workspace {
-  display: grid;
   grid-template-columns: minmax(250px, 340px) minmax(0, 1fr);
-  gap: 16px;
   align-items: start;
-  margin-bottom: 16px;
 }
 
 .webhook-list {
