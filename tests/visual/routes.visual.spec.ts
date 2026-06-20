@@ -194,6 +194,34 @@ async function normalizeDynamicContent(page: Page, routeName: (typeof routes)[nu
         }
       }
     });
+
+    await page.locator(".integrations-summary .ui-status-pill").evaluateAll((pills) => {
+      const labels = ["Twitch", "Twitch Chat", "OBS", "Spotify", "GIPHY"];
+      const details = ["barry_risk", "Live messages", "Saved", "Connected", "Key saved"];
+      const tones = ["success", "success", "warning", "success", "success"];
+
+      pills.forEach((pill, index) => {
+        pill.className = `ui-status-pill ui-status-pill--${tones[index] ?? "neutral"}`;
+        const label = pill.querySelector(":scope > span:not(.ui-status-pill__dot)");
+        const detail = pill.querySelector(":scope > small");
+        if (label) label.textContent = labels[index] ?? "Stable";
+        if (detail) detail.textContent = details[index] ?? "Visual baseline";
+      });
+    });
+
+    await page.locator(".integration-card .ui-card-header .ui-status-pill").evaluateAll((pills) => {
+      const labels = ["Connected", "Saved", "Connected", "Configured"];
+      const details = ["barry_risk", "", "", ""];
+      const tones = ["success", "warning", "success", "success"];
+
+      pills.forEach((pill, index) => {
+        pill.className = `ui-status-pill ui-status-pill--${tones[index] ?? "neutral"}`;
+        const label = pill.querySelector(":scope > span:not(.ui-status-pill__dot)");
+        const detail = pill.querySelector(":scope > small");
+        if (label) label.textContent = labels[index] ?? "Stable";
+        if (detail) detail.textContent = details[index] ?? "";
+      });
+    });
   }
 
   if (routeName === "alert-editor") {

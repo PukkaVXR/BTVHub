@@ -12,15 +12,35 @@ import type {
 import { api } from "../api";
 import { useToast } from "../hooks/useToast";
 import { downloadJsonFile, safeDownloadName } from "../lib/browserDownloads";
-import { Button, Callout, Card, CardHeader, EmptyState, PageHeader, StatusPill } from "../ui";
+import { Button, Callout, Card, CardHeader, EmptyState, PageGrid, PageHeader, StatusPill } from "../ui";
 
 const FOUNDATION_ITEMS = [
-  { label: "Plugin manifest system", status: "Started", detail: "BTV now has a typed manifest contract and registry endpoint." },
-  { label: "Internal plugin registry", status: "Started", detail: "Built-in and local development plugins can be listed from one API." },
-  { label: "Plugin settings pages", status: "Next", detail: "Manifest settings will become generated setup forms here." },
-  { label: "Action/trigger/widget registration", status: "Started", detail: "Enabled plugin capabilities are now catalogued by extension type." },
+  {
+    label: "Plugin manifest system",
+    status: "Started",
+    detail: "BTV now has a typed manifest contract and registry endpoint.",
+  },
+  {
+    label: "Internal plugin registry",
+    status: "Started",
+    detail: "Built-in and local development plugins can be listed from one API.",
+  },
+  {
+    label: "Plugin settings pages",
+    status: "Next",
+    detail: "Manifest settings will become generated setup forms here.",
+  },
+  {
+    label: "Action/trigger/widget registration",
+    status: "Started",
+    detail: "Enabled plugin capabilities are now catalogued by extension type.",
+  },
   { label: "Versioned plugin API", status: "Started", detail: "Registry reports the active Plugin API version." },
-  { label: "Permissions model", status: "Started", detail: "Manifests declare requested BTV permissions before install." },
+  {
+    label: "Permissions model",
+    status: "Started",
+    detail: "Manifests declare requested BTV permissions before install.",
+  },
 ] as const;
 
 function statusTone(status: string): "success" | "warning" | "danger" | "info" | "neutral" {
@@ -73,7 +93,9 @@ export default function PluginsPage() {
       const next = await api.plugins();
       setRegistry(next);
       setSettingsDrafts(Object.fromEntries(next.plugins.map((plugin) => [plugin.manifest.id, plugin.settingsValues])));
-      setManifestDrafts(Object.fromEntries(next.plugins.map((plugin) => [plugin.manifest.id, makeManifestDraft(plugin)])));
+      setManifestDrafts(
+        Object.fromEntries(next.plugins.map((plugin) => [plugin.manifest.id, makeManifestDraft(plugin)])),
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load plugins");
     }
@@ -88,7 +110,9 @@ export default function PluginsPage() {
       current
         ? {
             ...current,
-            plugins: current.plugins.map((plugin) => (plugin.manifest.id === nextPlugin.manifest.id ? nextPlugin : plugin)),
+            plugins: current.plugins.map((plugin) =>
+              plugin.manifest.id === nextPlugin.manifest.id ? nextPlugin : plugin,
+            ),
           }
         : current,
     );
@@ -204,7 +228,9 @@ export default function PluginsPage() {
 
   const capabilityCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const [type, registrations] of Object.entries(registry?.extensionCatalog ?? {}) as Array<[PluginCapabilityType, unknown[]]>) {
+    for (const [type, registrations] of Object.entries(registry?.extensionCatalog ?? {}) as Array<
+      [PluginCapabilityType, unknown[]]
+    >) {
       counts.set(type, registrations.length);
     }
     return Array.from(counts.entries()).sort(([a], [b]) => a.localeCompare(b));
@@ -276,7 +302,7 @@ export default function PluginsPage() {
         <StatusPill tone="warning" label="Local folder" detail={registry?.pluginDirectory ?? "Creating on server"} />
       </div>
 
-      <div className="plugins-grid">
+      <PageGrid className="plugins-grid">
         <Card hideableId="plugin-registry" hideableTitle="Plugin Registry">
           <CardHeader
             title="Plugin Registry"
@@ -346,15 +372,15 @@ export default function PluginsPage() {
               ))}
             </div>
           ) : (
-            <EmptyState title="No plugins found" description="BTV will show built-in and local development plugins here." />
+            <EmptyState
+              title="No plugins found"
+              description="BTV will show built-in and local development plugins here."
+            />
           )}
         </Card>
 
         <Card hideableId="plugin-foundation" hideableTitle="Phase 6 Foundation">
-          <CardHeader
-            title="Phase 6 Foundation"
-            description="The first plugin milestones and what each unlocks."
-          />
+          <CardHeader title="Phase 6 Foundation" description="The first plugin milestones and what each unlocks." />
           <div className="plugin-foundation-list">
             {FOUNDATION_ITEMS.map((item) => (
               <div className="plugin-foundation-item" key={item.label}>
@@ -377,11 +403,19 @@ export default function PluginsPage() {
           <div className="plugin-dev-form">
             <label>
               <span>Name</span>
-              <input value={devPluginName} onChange={(event) => setDevPluginName(event.target.value)} placeholder="Chaos Pack" />
+              <input
+                value={devPluginName}
+                onChange={(event) => setDevPluginName(event.target.value)}
+                placeholder="Chaos Pack"
+              />
             </label>
             <label>
               <span>Plugin id</span>
-              <input value={devPluginId} onChange={(event) => setDevPluginId(event.target.value)} placeholder="local.chaos-pack" />
+              <input
+                value={devPluginId}
+                onChange={(event) => setDevPluginId(event.target.value)}
+                placeholder="local.chaos-pack"
+              />
             </label>
             <label className="plugin-dev-form__wide">
               <span>Description</span>
@@ -408,7 +442,13 @@ export default function PluginsPage() {
               </div>
             </div>
             <div className="plugin-dev-form__actions">
-              <Button type="button" variant="primary" size="sm" onClick={() => void createDevPlugin()} disabled={!devPluginName.trim()}>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() => void createDevPlugin()}
+                disabled={!devPluginName.trim()}
+              >
                 Create plugin
               </Button>
             </div>
@@ -416,7 +456,10 @@ export default function PluginsPage() {
         </Card>
 
         <Card hideableId="plugin-extension-registry" hideableTitle="Extension Registry">
-          <CardHeader title="Extension Registry" description="Enabled plugin capabilities grouped into BTV extension points." />
+          <CardHeader
+            title="Extension Registry"
+            description="Enabled plugin capabilities grouped into BTV extension points."
+          />
           {registry ? (
             <div className="plugin-extension-catalog">
               {(Object.keys(EXTENSION_LABELS) as PluginCapabilityType[]).map((type) => {
@@ -425,12 +468,18 @@ export default function PluginsPage() {
                   <section className="plugin-extension-group" key={type}>
                     <div className="plugin-extension-group__header">
                       <strong>{EXTENSION_LABELS[type]}</strong>
-                      <StatusPill tone={registrations.length ? "success" : "neutral"} label={String(registrations.length)} />
+                      <StatusPill
+                        tone={registrations.length ? "success" : "neutral"}
+                        label={String(registrations.length)}
+                      />
                     </div>
                     {registrations.length ? (
                       <div className="plugin-extension-list">
                         {registrations.map((registration) => (
-                          <div className="plugin-extension-item" key={`${registration.pluginId}-${registration.capability.id}`}>
+                          <div
+                            className="plugin-extension-item"
+                            key={`${registration.pluginId}-${registration.capability.id}`}
+                          >
                             <strong>{registration.capability.name}</strong>
                             <span>{registration.capability.description ?? registration.capability.id}</span>
                             <small>{registration.pluginName}</small>
@@ -461,19 +510,28 @@ export default function PluginsPage() {
               ))}
             </div>
           ) : (
-            <EmptyState title="No capabilities yet" description="Plugin manifests will declare actions, triggers, widgets, overlays, commands, and exporters." />
+            <EmptyState
+              title="No capabilities yet"
+              description="Plugin manifests will declare actions, triggers, widgets, overlays, commands, and exporters."
+            />
           )}
         </Card>
 
         <Card hideableId="plugin-permissions" hideableTitle="Permission Model">
-          <CardHeader title="Permission Model" description="Permissions requested by visible plugin manifests, grouped by risk." />
+          <CardHeader
+            title="Permission Model"
+            description="Permissions requested by visible plugin manifests, grouped by risk."
+          />
           {permissionCounts.length ? (
             <PermissionReview groups={permissionReview} />
           ) : (
-            <EmptyState title="No permissions requested" description="Local plugins will need to declare their access before BTV enables them." />
+            <EmptyState
+              title="No permissions requested"
+              description="Local plugins will need to declare their access before BTV enables them."
+            />
           )}
         </Card>
-      </div>
+      </PageGrid>
     </>
   );
 }
@@ -494,11 +552,31 @@ function PluginDiagnostics({ plugin }: { plugin: PluginRegistryItem }) {
     <details className="plugin-diagnostics">
       <summary>Plugin health</summary>
       <div className="plugin-diagnostics__chips">
-        <StatusPill tone={diagnostics.extensionCount ? "success" : "neutral"} label="Extensions" detail={String(diagnostics.extensionCount)} />
-        <StatusPill tone={diagnostics.permissionCount ? "warning" : "neutral"} label="Permissions" detail={String(diagnostics.permissionCount)} />
-        <StatusPill tone={diagnostics.highRiskPermissionCount ? "danger" : "success"} label="High risk" detail={String(diagnostics.highRiskPermissionCount)} />
-        <StatusPill tone={diagnostics.settingsCount ? "info" : "neutral"} label="Settings" detail={String(diagnostics.settingsCount)} />
-        <StatusPill tone={diagnostics.secretSettingsCount ? "warning" : "neutral"} label="Secrets" detail={String(diagnostics.secretSettingsCount)} />
+        <StatusPill
+          tone={diagnostics.extensionCount ? "success" : "neutral"}
+          label="Extensions"
+          detail={String(diagnostics.extensionCount)}
+        />
+        <StatusPill
+          tone={diagnostics.permissionCount ? "warning" : "neutral"}
+          label="Permissions"
+          detail={String(diagnostics.permissionCount)}
+        />
+        <StatusPill
+          tone={diagnostics.highRiskPermissionCount ? "danger" : "success"}
+          label="High risk"
+          detail={String(diagnostics.highRiskPermissionCount)}
+        />
+        <StatusPill
+          tone={diagnostics.settingsCount ? "info" : "neutral"}
+          label="Settings"
+          detail={String(diagnostics.settingsCount)}
+        />
+        <StatusPill
+          tone={diagnostics.secretSettingsCount ? "warning" : "neutral"}
+          label="Secrets"
+          detail={String(diagnostics.secretSettingsCount)}
+        />
       </div>
       <ul>
         {diagnostics.statusReasons.map((reason) => (
@@ -621,14 +699,22 @@ function PluginManifestEditor({
         </label>
         <label className="plugin-manifest-editor__wide">
           <span>Description</span>
-          <textarea rows={3} value={draft.description} onChange={(event) => onChange({ description: event.target.value })} />
+          <textarea
+            rows={3}
+            value={draft.description}
+            onChange={(event) => onChange({ description: event.target.value })}
+          />
         </label>
         <div className="plugin-manifest-editor__wide">
           <span>Capabilities</span>
           <div className="plugin-dev-capability-grid">
             {(Object.keys(EXTENSION_LABELS) as PluginCapabilityType[]).map((type) => (
               <label key={type}>
-                <input type="checkbox" checked={draft.capabilities.includes(type)} onChange={() => toggleCapability(type)} />{" "}
+                <input
+                  type="checkbox"
+                  checked={draft.capabilities.includes(type)}
+                  onChange={() => toggleCapability(type)}
+                />{" "}
                 {EXTENSION_LABELS[type]}
               </label>
             ))}
@@ -638,7 +724,10 @@ function PluginManifestEditor({
           <span>Permissions</span>
           <div className="plugin-manifest-permission-grid">
             {permissionDefinitions.map((definition) => (
-              <label className={`plugin-manifest-permission plugin-manifest-permission--${definition.risk}`} key={definition.permission}>
+              <label
+                className={`plugin-manifest-permission plugin-manifest-permission--${definition.risk}`}
+                key={definition.permission}
+              >
                 <input
                   type="checkbox"
                   checked={draft.permissions.includes(definition.permission)}
@@ -725,7 +814,11 @@ function PluginSettingField({
           onChange={(event) => onChange(event.target.checked)}
         />
       ) : setting.type === "select" ? (
-        <select id={inputId} value={String(value ?? setting.defaultValue ?? "")} onChange={(event) => onChange(event.target.value)}>
+        <select
+          id={inputId}
+          value={String(value ?? setting.defaultValue ?? "")}
+          onChange={(event) => onChange(event.target.value)}
+        >
           <option value="">Select...</option>
           {setting.options?.map((option) => (
             <option key={option.value} value={option.value}>
@@ -738,7 +831,9 @@ function PluginSettingField({
           id={inputId}
           type={setting.type === "number" ? "number" : setting.type === "secret" ? "password" : "text"}
           value={String(value ?? "")}
-          placeholder={setting.type === "secret" && configuredSecret ? "Configured. Leave blank to keep existing." : undefined}
+          placeholder={
+            setting.type === "secret" && configuredSecret ? "Configured. Leave blank to keep existing." : undefined
+          }
           onChange={(event) => onChange(setting.type === "number" ? Number(event.target.value) : event.target.value)}
         />
       )}

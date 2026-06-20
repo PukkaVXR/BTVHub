@@ -9,6 +9,7 @@ import {
   Callout,
   Card,
   CardHeader,
+  CardGrid,
   CopyField,
   FormField,
   PageHeader,
@@ -71,8 +72,7 @@ export default function IntegrationsPage() {
   }, [searchParams, toast]);
 
   const twitchAuthUrl = info?.twitch.authStartUrl ?? "https://127.0.0.1:4783/auth/twitch";
-  const oauthOrigin =
-    info?.twitch.redirectUri?.replace(/\/auth\/twitch\/callback$/, "") ?? "https://127.0.0.1:4783";
+  const oauthOrigin = info?.twitch.redirectUri?.replace(/\/auth\/twitch\/callback$/, "") ?? "https://127.0.0.1:4783";
   const chatStatus = info?.twitch.chat;
   const chatSubError = chatStatus?.status === "error";
   const twitchRedirectMismatch = searchParams.get("twitch_error") === "redirect_mismatch";
@@ -83,7 +83,7 @@ export default function IntegrationsPage() {
         label: "Twitch",
         connected: Boolean(info?.twitch.connected),
         detail: info?.twitch.connected
-          ? info?.twitch.displayName ?? info?.twitch.login ?? "Connected"
+          ? (info?.twitch.displayName ?? info?.twitch.login ?? "Connected")
           : info?.twitch.configured
             ? "Credentials saved"
             : "Needs credentials",
@@ -102,7 +102,11 @@ export default function IntegrationsPage() {
       {
         label: "OBS",
         connected: Boolean(info?.obs.connected),
-        detail: info?.obs.connected ? `${info?.obs.host}:${info?.obs.port}` : info?.obs.hasPassword ? "Saved" : "Needs password",
+        detail: info?.obs.connected
+          ? `${info?.obs.host}:${info?.obs.port}`
+          : info?.obs.hasPassword
+            ? "Saved"
+            : "Needs password",
       },
       {
         label: "Spotify",
@@ -120,13 +124,22 @@ export default function IntegrationsPage() {
 
   return (
     <>
-      <PageHeader title="Integrations" description="Connect Twitch, OBS WebSocket, Spotify, and GIPHY from one calm control room." />
+      <PageHeader
+        title="Integrations"
+        description="Connect Twitch, OBS WebSocket, Spotify, and GIPHY from one calm control room."
+      />
 
       <div className="integrations-summary">
         {serviceSummary.map((service) => (
           <StatusPill
             key={service.label}
-            tone={service.connected ? "success" : service.label === "Spotify" || service.label === "GIPHY" ? "neutral" : "warning"}
+            tone={
+              service.connected
+                ? "success"
+                : service.label === "Spotify" || service.label === "GIPHY"
+                  ? "neutral"
+                  : "warning"
+            }
             label={service.label}
             detail={service.detail}
           />
@@ -144,8 +157,8 @@ export default function IntegrationsPage() {
 
         {info?.twitch.connected && chatSubError ? (
           <Callout tone="danger" title="Chat EventSub failed">
-            Status: <code>{chatStatus?.detail ?? info.twitch.eventsubStatus}</code>. Disconnect Twitch, then connect again so OAuth includes{" "}
-            <code>user:read:chat</code>, which is required for live chat in OBS.
+            Status: <code>{chatStatus?.detail ?? info.twitch.eventsubStatus}</code>. Disconnect Twitch, then connect
+            again so OAuth includes <code>user:read:chat</code>, which is required for live chat in OBS.
           </Callout>
         ) : null}
 
@@ -163,7 +176,7 @@ export default function IntegrationsPage() {
         ) : null}
       </div>
 
-      <div className="integrations-grid">
+      <CardGrid className="integrations-grid" minColumnWidth="360px">
         <Card className="integration-card integration-card--twitch" hideableId="twitch" hideableTitle="Twitch">
           <CardHeader
             title="Twitch"
@@ -172,7 +185,7 @@ export default function IntegrationsPage() {
               <StatusPill
                 tone={info?.twitch.connected ? "success" : info?.twitch.configured ? "warning" : "danger"}
                 label={info?.twitch.connected ? "Connected" : info?.twitch.configured ? "Ready" : "Not configured"}
-                detail={info?.twitch.connected ? info?.twitch.displayName ?? info?.twitch.login : undefined}
+                detail={info?.twitch.connected ? (info?.twitch.displayName ?? info?.twitch.login) : undefined}
               />
             }
           />
@@ -228,13 +241,23 @@ export default function IntegrationsPage() {
             ) : null}
 
             <div className="integration-card__actions">
-              <ButtonAnchor variant="secondary" size="sm" href="https://dev.twitch.tv/console" target="_blank" rel="noreferrer">
+              <ButtonAnchor
+                variant="secondary"
+                size="sm"
+                href="https://dev.twitch.tv/console"
+                target="_blank"
+                rel="noreferrer"
+              >
                 Open Twitch Developer Console
               </ButtonAnchor>
             </div>
 
             <FormField label="Client ID">
-              <input value={twitchId} onChange={(e) => setTwitchId(e.target.value)} placeholder="From Twitch Developer Console" />
+              <input
+                value={twitchId}
+                onChange={(e) => setTwitchId(e.target.value)}
+                placeholder="From Twitch Developer Console"
+              />
             </FormField>
 
             <FormField label="Client Secret" hint={secretHint(info?.twitch.hasClientSecret)}>
@@ -355,11 +378,18 @@ export default function IntegrationsPage() {
 
           <div className="integration-card__body">
             <Callout tone="info">
-              Spotify uses HTTP on port <strong>4782</strong>. Use <code>127.0.0.1</code>, not <code>localhost</code>, in the Spotify Dashboard.
+              Spotify uses HTTP on port <strong>4782</strong>. Use <code>127.0.0.1</code>, not <code>localhost</code>,
+              in the Spotify Dashboard.
             </Callout>
             <CopyField label="Spotify redirect URI" value={info?.spotify.redirectUri ?? ""} />
             <div className="integration-card__actions">
-              <ButtonAnchor variant="secondary" size="sm" href="https://developer.spotify.com/dashboard" target="_blank" rel="noreferrer">
+              <ButtonAnchor
+                variant="secondary"
+                size="sm"
+                href="https://developer.spotify.com/dashboard"
+                target="_blank"
+                rel="noreferrer"
+              >
                 Open Spotify Dashboard
               </ButtonAnchor>
             </div>
@@ -398,7 +428,13 @@ export default function IntegrationsPage() {
             >
               Save credentials
             </Button>
-            <ButtonAnchor href={info?.spotify.authStartUrl ?? overlayUrl("/auth/spotify")} variant="primary" size="sm" target="_blank" rel="noreferrer">
+            <ButtonAnchor
+              href={info?.spotify.authStartUrl ?? overlayUrl("/auth/spotify")}
+              variant="primary"
+              size="sm"
+              target="_blank"
+              rel="noreferrer"
+            >
               Connect Spotify
             </ButtonAnchor>
             {info?.spotify.connected ? (
@@ -423,13 +459,22 @@ export default function IntegrationsPage() {
           <CardHeader
             title="GIPHY"
             description="Powers GIF and sticker search inside the Visual Alert Editor."
-            action={<StatusPill tone={info?.giphy?.configured ? "success" : "neutral"} label={info?.giphy?.configured ? "Configured" : "Optional"} />}
+            action={
+              <StatusPill
+                tone={info?.giphy?.configured ? "success" : "neutral"}
+                label={info?.giphy?.configured ? "Configured" : "Optional"}
+              />
+            }
           />
 
           <div className="integration-card__body">
             <FormField
               label="GIPHY SDK API key"
-              hint={info?.giphy?.configured ? "Configured. Leave blank to keep the existing key." : "Paste your GIPHY SDK API key."}
+              hint={
+                info?.giphy?.configured
+                  ? "Configured. Leave blank to keep the existing key."
+                  : "Paste your GIPHY SDK API key."
+              }
             >
               <input
                 type="password"
@@ -439,7 +484,13 @@ export default function IntegrationsPage() {
               />
             </FormField>
             <div className="integration-card__actions">
-              <ButtonAnchor variant="secondary" size="sm" href="https://developers.giphy.com/dashboard/" target="_blank" rel="noreferrer">
+              <ButtonAnchor
+                variant="secondary"
+                size="sm"
+                href="https://developers.giphy.com/dashboard/"
+                target="_blank"
+                rel="noreferrer"
+              >
                 Open GIPHY Dashboard
               </ButtonAnchor>
             </div>
@@ -465,7 +516,7 @@ export default function IntegrationsPage() {
             </Button>
           </div>
         </Card>
-      </div>
+      </CardGrid>
     </>
   );
 }
