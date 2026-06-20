@@ -24,7 +24,7 @@ import {
 import { useAppHealth } from "../../context/AppHealthContext";
 import { useToast } from "../../hooks/useToast";
 import { goLiveChecklistItems } from "../../lib/readiness";
-import { ButtonLink, PageHeader } from "../../ui";
+import { ButtonLink, PageGrid, PageHeader } from "../../ui";
 
 export default function Dashboard() {
   const { preflight, refresh: refreshAppHealth } = useAppHealth();
@@ -181,20 +181,14 @@ export default function Dashboard() {
 
   const toggleObsSource = async (source: ObsSourceInfo) => {
     if (!selectedObsScene) return;
-    const res = await api.setObsSourceVisible(
-      selectedObsScene,
-      source.sourceName,
-      !source.sceneItemEnabled,
-    );
+    const res = await api.setObsSourceVisible(selectedObsScene, source.sourceName, !source.sceneItemEnabled);
     toast(res.ok ? res.title : res.message);
     await loadObsScenes();
   };
 
   const toggleSourceGroupSelection = (sourceName: string) => {
     setSelectedSourceNames((prev) =>
-      prev.includes(sourceName)
-        ? prev.filter((name) => name !== sourceName)
-        : [...prev, sourceName],
+      prev.includes(sourceName) ? prev.filter((name) => name !== sourceName) : [...prev, sourceName],
     );
   };
 
@@ -263,14 +257,14 @@ export default function Dashboard() {
 
       <ReadinessStrip preflight={preflight} />
 
-      <div className="live-dashboard-grid">
+      <PageGrid className="live-dashboard-grid" minColumnWidth="320px">
         <GoLiveChecklist
           items={checklistItems}
           repairingBrowserSources={repairingBrowserSources}
           onRepairBrowserSources={() => void repairObsBrowserSources()}
         />
         <HealthPanel preflight={preflight} />
-      </div>
+      </PageGrid>
 
       <EmergencyControlsPanel preflight={preflight} onAction={(action) => void emergencyAction(action)} />
 

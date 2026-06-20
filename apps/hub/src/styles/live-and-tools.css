@@ -5,7 +5,6 @@
 }
 
 .live-readiness-strip__checks,
-.live-dashboard-grid,
 .live-health-grid,
 .live-stat-grid,
 .live-shortcut-grid {
@@ -18,7 +17,7 @@
 }
 
 .live-dashboard-grid {
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
   margin-bottom: 16px;
 }
 

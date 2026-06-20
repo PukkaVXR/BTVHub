@@ -189,19 +189,19 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 
 ### Stage 4 - Shared layout component system (heavy refactor)
 
-- [ ] Build `SplitWorkspace` (master-detail) + render smoke test.
-- [ ] Build `PageGrid`/`CardGrid` (auto-fit) + render smoke test.
-- [ ] Build `Tabs`/`SegmentedControl` + render smoke test.
-- [ ] Build `MeterBar` + render smoke test.
-- [ ] Build `ControlGrid` + render smoke test.
-- [ ] Export new components from `apps/hub/src/ui/index.ts`.
-- [ ] Adopt `SplitWorkspace` in Webhooks; verify (tests + visual) and commit.
-- [ ] Adopt `SplitWorkspace` in Macros; verify and commit.
-- [ ] Adopt `SplitWorkspace` in Widgets; verify and commit.
-- [ ] Adopt `SplitWorkspace` in Automations; verify and commit.
-- [ ] Adopt `PageGrid`/`CardGrid` in Integrations, Plugins, and the Live Dashboard; verify and commit.
-- [ ] Adopt `Tabs`/`SegmentedControl` in Alerts and Automations; verify and commit.
-- [ ] Adopt `MeterBar` + `ControlGrid` in Boss Fight, Chat Chaos, Predictions, Tournament; verify and commit.
+- [x] Build `SplitWorkspace` (master-detail) + render smoke test.
+- [x] Build `PageGrid`/`CardGrid` (auto-fit) + render smoke test.
+- [x] Build `Tabs`/`SegmentedControl` + render smoke test.
+- [x] Build `MeterBar` + render smoke test.
+- [x] Build `ControlGrid` + render smoke test.
+- [x] Export new components from `apps/hub/src/ui/index.ts`.
+- [x] Adopt `SplitWorkspace` in Webhooks; verify (tests + visual) and commit.
+- [x] Adopt `SplitWorkspace` in Macros; verify and commit.
+- [x] Adopt `SplitWorkspace` in Widgets; verify and commit.
+- [x] Adopt `SplitWorkspace` in Automations; verify and commit.
+- [x] Adopt `PageGrid`/`CardGrid` in Integrations, Plugins, and the Live Dashboard; verify and commit.
+- [x] Adopt `Tabs`/`SegmentedControl` in Alerts and Automations; verify and commit.
+- [x] Adopt `MeterBar` + `ControlGrid` in Boss Fight, Chat Chaos, Predictions, Tournament; verify and commit.
 
 ### Stage 5 - Stylesheet split, polish, and token migration
 
