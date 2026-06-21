@@ -100,3 +100,14 @@
   gap: 8px;
   justify-content: flex-end;
 }
+
+@media (width <= 860px) {
+  .activity-feed-row {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .activity-feed-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}

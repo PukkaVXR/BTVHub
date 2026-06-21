@@ -110,3 +110,18 @@
   padding: 12px;
   white-space: pre-wrap;
 }
+
+@media (width <= 860px) {
+  .webhook-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .webhook-list {
+    max-height: none;
+    position: static;
+  }
+
+  .webhook-log-item summary {
+    grid-template-columns: 1fr;
+  }
+}

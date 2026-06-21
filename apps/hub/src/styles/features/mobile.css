@@ -106,3 +106,24 @@
   color: var(--color-text-secondary);
   margin-top: 12px;
 }
+
+@media (width <= 860px) {
+  .mobile-control-page {
+    gap: 12px;
+    max-width: none;
+  }
+
+  .mobile-control-emergency {
+    top: 10px;
+  }
+
+  .mobile-control-button-grid,
+  .mobile-control-button-grid--emergency,
+  .mobile-control-session {
+    grid-template-columns: 1fr;
+  }
+
+  .mobile-control-button {
+    min-height: 78px;
+  }
+}

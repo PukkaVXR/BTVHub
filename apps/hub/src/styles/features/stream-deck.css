@@ -845,3 +845,34 @@
   margin-top: 8px;
 }
 
+@media (width <= 860px) {
+  .stream-deck-builder-pro,
+  .stream-deck-builder,
+  .stream-deck-preset-grid,
+  .stream-deck-action-choice-grid,
+  .stream-deck-form-grid,
+  .stream-deck-export-grid,
+  .stream-deck-background-tools,
+  .stream-deck-endpoint {
+    grid-template-columns: 1fr;
+  }
+
+  .stream-deck-builder__header-actions {
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .stream-deck-builder__header-actions .ui-button {
+    flex: 1 1 160px;
+  }
+
+  .stream-deck-background-tools__actions {
+    justify-content: stretch;
+  }
+
+  .stream-deck-background-tools__actions .ui-button {
+    flex: 1 1 140px;
+    justify-content: center;
+  }
+}
+

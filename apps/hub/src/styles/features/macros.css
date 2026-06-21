@@ -420,3 +420,30 @@
 .macro-run-result--bad {
   border-color: color-mix(in srgb, var(--color-status-danger) 52%, var(--color-border-subtle));
 }
+
+@media (width <= 860px) {
+  .macro-page-actions,
+  .macro-editor-header,
+  .macro-steps-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .macro-page-actions .actions,
+  .macro-editor-header .actions {
+    justify-content: flex-start;
+  }
+
+  .macro-workspace,
+  .macro-editor-shell,
+  .macro-step-picker,
+  .macro-step-card {
+    grid-template-columns: 1fr;
+  }
+
+  .macro-list,
+  .macro-step-list {
+    max-height: none;
+    position: static;
+  }
+}

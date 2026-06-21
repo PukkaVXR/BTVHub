@@ -87,3 +87,14 @@
   margin: 0;
   white-space: nowrap;
 }
+
+@media (width <= 860px) {
+  .automation-rule-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .automation-rule-list {
+    max-height: none;
+    position: static;
+  }
+}

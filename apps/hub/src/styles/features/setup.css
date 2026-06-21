@@ -207,3 +207,13 @@
 .setup-command-approvals .setup-command-security-list {
   margin-top: 10px;
 }
+
+@media (width <= 860px) {
+  .setup-wizard {
+    grid-template-columns: 1fr;
+  }
+
+  .setup-progress-card {
+    position: static;
+  }
+}
