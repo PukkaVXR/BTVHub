@@ -11,10 +11,10 @@
 }
 
 .activity-filter-bar button {
-  background: rgb(15 19 25 / 72%);
-  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--color-bg-surface-2) 72%, transparent);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
-  color: var(--muted);
+  color: var(--color-text-secondary);
   cursor: pointer;
   font-weight: 750;
   padding: 7px 11px;
@@ -22,9 +22,9 @@
 
 .activity-filter-bar button:hover,
 .activity-filter-bar button.active {
-  background: rgb(91 140 255 / 16%);
-  border-color: rgb(91 140 255 / 72%);
-  color: var(--text);
+  background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 72%, transparent);
+  color: var(--color-text-primary);
 }
 
 .activity-feed-list {
@@ -34,9 +34,9 @@
 
 .activity-feed-row {
   align-items: center;
-  background: rgb(15 19 25 / 68%);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--color-bg-surface-2) 68%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   display: grid;
   gap: 12px;
   grid-template-columns: 46px minmax(0, 1fr) auto;
@@ -45,10 +45,10 @@
 
 .activity-feed-avatar {
   align-items: center;
-  background: rgb(91 140 255 / 18%);
-  border: 1px solid rgb(91 140 255 / 38%);
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 38%, transparent);
   border-radius: 50%;
-  color: var(--text);
+  color: var(--color-text-primary);
   display: flex;
   font-weight: 900;
   height: 42px;
@@ -84,12 +84,12 @@
 }
 
 .activity-feed-main p {
-  color: var(--text);
+  color: var(--color-text-primary);
   margin: 0 0 3px;
 }
 
 .activity-feed-main small {
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-size: 12px;
 }
 
@@ -99,4 +99,15 @@
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+}
+
+@media (width <= 860px) {
+  .activity-feed-row {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .activity-feed-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
 }

@@ -108,7 +108,7 @@ Restructure large stylesheets into `apps/hub/src/styles/features/` (alerts, auto
 - Replace stray hex with tokens; remove dead/duplicate rules (Stylelint-assisted).
 - Add tasteful micro-interactions.
 - Move functional overlay keyframes **unchanged** into `styles/overlay-animations.css`; consolidate UI keyframes into `styles/keyframes.css`.
-- Sources split: `workflows.css`, `stream-deck.css`, `live-and-tools.css`, `widgets.css`, `legacy-editor.css`.
+- Sources split: `workflows.css`, `stream-deck.css`, `live-and-tools.css`, `widgets.css`; legacy alert editor route removed and current editor support styles moved out of the legacy bundle.
 - Verify + commit per feature group.
 
 ## Stage 6 - Page-level refinement
@@ -211,9 +211,9 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 - [x] Split + migrate `stream-deck.css`; verify + commit.
 - [x] Split + migrate `live-and-tools.css` (live, setup, integrations, commands, mobile, interactive, plugins); verify + commit.
 - [x] Split + migrate `widgets.css` (widgets workspace, theme editor, typography helpers); verify + commit.
-- [ ] Split + migrate `legacy-editor.css` (legacy primitives, overlay editor, alert editor, toasts); verify + commit.
-- [ ] In each split: migrate references off legacy token aliases, replace stray hex with tokens, and remove dead/duplicate rules (Stylelint-assisted).
-- [ ] Update `styles.css` imports to the new feature files.
+- [x] Remove legacy alert editor route and move remaining current editor support styles out of `legacy-editor.css`; verify + commit.
+- [x] In each split: migrate references off legacy token aliases, replace stray hex with tokens, and remove dead/duplicate rules (Stylelint-assisted).
+- [x] Update `styles.css` imports to the new feature files.
 
 ### Stage 6 - Page-level refinement
 

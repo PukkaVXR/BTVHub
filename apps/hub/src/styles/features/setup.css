@@ -10,11 +10,15 @@
   align-items: center;
   animation: setupCompleteBurst 2600ms ease both;
   background:
-    radial-gradient(circle at 18% 45%, rgb(53 208 127 / 28%), transparent 34%),
-    linear-gradient(135deg, rgb(53 208 127 / 16%), rgb(91 140 255 / 16%));
-  border: 1px solid rgb(53 208 127 / 44%);
-  border-radius: var(--radius);
-  box-shadow: 0 18px 42px rgb(53 208 127 / 12%);
+    radial-gradient(circle at 18% 45%, color-mix(in srgb, var(--color-status-success) 28%, transparent), transparent 34%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-status-success) 16%, transparent),
+      color-mix(in srgb, var(--color-accent) 16%, transparent)
+    );
+  border: 1px solid color-mix(in srgb, var(--color-status-success) 44%, transparent);
+  border-radius: var(--radius-md);
+  box-shadow: 0 18px 42px color-mix(in srgb, var(--color-status-success) 12%, transparent);
   color: var(--color-text-primary);
   display: flex;
   flex-wrap: wrap;
@@ -206,4 +210,14 @@
 
 .setup-command-approvals .setup-command-security-list {
   margin-top: 10px;
+}
+
+@media (width <= 860px) {
+  .setup-wizard {
+    grid-template-columns: 1fr;
+  }
+
+  .setup-progress-card {
+    position: static;
+  }
 }

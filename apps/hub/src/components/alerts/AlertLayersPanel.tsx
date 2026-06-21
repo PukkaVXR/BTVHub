@@ -38,7 +38,7 @@ export function AlertLayersPanel({
 
   return (
     <>
-      <h2 style={{ marginTop: 16 }}>Layers</h2>
+      <h2 className="alert-layers-title">Layers</h2>
       {warnings.length > 0 && (
         <section className="alert-health-panel">
           <h3>Project checks</h3>
@@ -50,7 +50,7 @@ export function AlertLayersPanel({
           {warnings.length > 5 && <p className="warning">{warnings.length - 5} more issue(s) hidden.</p>}
         </section>
       )}
-      <div className="actions" style={{ marginBottom: 12 }}>
+      <div className="actions alert-layer-add-actions">
         {LAYER_ACTIONS.map((action) => (
           <button key={action.type} type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => onAddLayer(action.type)}>
             {action.label}
