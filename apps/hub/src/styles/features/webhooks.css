@@ -14,10 +14,10 @@
 }
 
 .webhook-list > button {
-  background: rgb(15 19 25 / 72%);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
+  background: color-mix(in srgb, var(--color-bg-surface-2) 72%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
   cursor: pointer;
   display: grid;
   gap: 6px;
@@ -28,8 +28,8 @@
 
 .webhook-list > button:hover,
 .webhook-list > button.active {
-  background: rgb(91 140 255 / 15%);
-  border-color: rgb(91 140 255 / 70%);
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 70%, transparent);
 }
 
 .webhook-list > button span {
@@ -37,7 +37,7 @@
 }
 
 .webhook-list > button small {
-  color: var(--muted);
+  color: var(--color-text-secondary);
 }
 
 .webhook-detail,
@@ -69,9 +69,9 @@
 }
 
 .webhook-log-item {
-  background: rgb(15 19 25 / 72%);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--color-bg-surface-2) 72%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -85,7 +85,7 @@
 
 .webhook-log-item summary span,
 .webhook-log-item summary small {
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-size: 12px;
 }
 
@@ -99,7 +99,7 @@
 
 .webhook-log-item pre {
   background: var(--color-bg-canvas);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border-subtle);
   color: var(--color-text-primary);
   font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
   font-size: 12px;

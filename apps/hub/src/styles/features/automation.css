@@ -21,10 +21,10 @@
 }
 
 .automation-rule-list > button {
-  background: rgb(15 19 25 / 72%);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
+  background: color-mix(in srgb, var(--color-bg-surface-2) 72%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
   cursor: pointer;
   display: grid;
   gap: 6px;
@@ -35,8 +35,8 @@
 
 .automation-rule-list > button:hover,
 .automation-rule-list > button.active {
-  background: rgb(91 140 255 / 15%);
-  border-color: rgb(91 140 255 / 70%);
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 70%, transparent);
 }
 
 .automation-rule-list > button span {
@@ -44,7 +44,7 @@
 }
 
 .automation-rule-list > button small {
-  color: var(--muted);
+  color: var(--color-text-secondary);
   line-height: 1.35;
 }
 
@@ -58,7 +58,7 @@
 }
 
 .automation-builder-step {
-  background: rgb(91 140 255 / 8%);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   display: grid;
@@ -81,7 +81,7 @@
 
 .automation-enabled-toggle {
   align-items: center;
-  color: var(--text);
+  color: var(--color-text-primary);
   display: inline-flex;
   gap: 7px;
   margin: 0;

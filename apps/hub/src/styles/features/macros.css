@@ -2,10 +2,14 @@
 .macro-page-actions {
   align-items: center;
   background:
-    linear-gradient(135deg, rgb(91 140 255 / 14%), rgb(0 245 147 / 5%)),
-    rgb(15 19 25 / 72%);
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-accent) 14%, transparent),
+      color-mix(in srgb, var(--color-accent-secondary) 5%, transparent)
+    ),
+    color-mix(in srgb, var(--color-bg-surface-2) 72%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   display: flex;
   gap: 12px;
   justify-content: space-between;
@@ -65,10 +69,10 @@
 }
 
 .macro-list-card {
-  background: rgb(15 19 25 / 72%);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
+  background: color-mix(in srgb, var(--color-bg-surface-2) 72%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
   cursor: pointer;
   display: grid;
   gap: 7px;
@@ -79,8 +83,8 @@
 
 .macro-list-card:hover,
 .macro-list-card.active {
-  background: rgb(91 140 255 / 15%);
-  border-color: rgb(91 140 255 / 70%);
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 70%, transparent);
 }
 
 .macro-list-card > span:first-child {
@@ -123,7 +127,7 @@
 }
 
 .macro-list-card > small {
-  color: var(--muted);
+  color: var(--color-text-secondary);
   line-height: 1.35;
 }
 
@@ -182,15 +186,15 @@
 }
 
 .macro-settings-panel {
-  background: rgb(8 11 16 / 48%);
+  background: color-mix(in srgb, var(--color-bg-canvas) 48%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   padding: 12px;
 }
 
 .macro-enabled-toggle {
   align-items: flex-start;
-  background: rgb(91 140 255 / 8%);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
@@ -257,7 +261,7 @@
 
 .macro-step-card {
   align-items: center;
-  background: rgb(15 19 25 / 72%);
+  background: color-mix(in srgb, var(--color-bg-surface-2) 72%, transparent);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   display: grid;
@@ -334,8 +338,8 @@
 }
 
 .macro-summary-strip {
-  background: rgb(91 140 255 / 9%);
-  border: 1px solid rgb(91 140 255 / 28%);
+  background: color-mix(in srgb, var(--color-accent) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
   border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   font-size: 12px;
@@ -380,7 +384,7 @@
 
 .macro-run-result {
   align-items: center;
-  background: rgb(15 19 25 / 72%);
+  background: color-mix(in srgb, var(--color-bg-surface-2) 72%, transparent);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   display: grid;
