@@ -480,18 +480,21 @@ label {
 .alert-inspector-section {
   border: 1px solid color-mix(in srgb, var(--color-text-tertiary) 14%, transparent);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-bg-canvas) 45%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 5%, transparent), transparent 46%),
+    color-mix(in srgb, var(--color-bg-canvas) 45%, transparent);
+  box-shadow: var(--shadow-key-sm);
   margin-bottom: 10px;
   padding: 0;
 }
 
 .alert-inspector-section > summary {
-  cursor: pointer;
-  list-style: none;
-  display: flex;
   align-items: center;
+  cursor: pointer;
+  display: flex;
   justify-content: space-between;
   gap: 10px;
+  list-style: none;
   padding: 10px 11px;
   color: var(--color-text-primary);
   font-weight: 750;
@@ -502,9 +505,17 @@ label {
 }
 
 .alert-inspector-section > summary::after {
-  content: "+";
+  align-items: center;
+  background: color-mix(in srgb, var(--color-bg-surface-3) 82%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
   color: var(--color-text-secondary);
+  content: "+";
+  display: inline-flex;
   font-weight: 900;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
 }
 
 .alert-inspector-section[open] > summary::after {
@@ -565,6 +576,26 @@ label {
 
 .alert-preview-card {
   min-width: 0;
+}
+
+.alert-preview-options {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: var(--space-3);
+}
+
+.alert-preview-safe-zone-toggle {
+  align-self: end;
+  background: color-mix(in srgb, var(--color-bg-surface-2) 66%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  gap: var(--space-2);
+  margin: 0;
+  min-height: 38px;
+  padding: 0 var(--space-3);
 }
 
 .alert-canvas-size {
@@ -632,9 +663,10 @@ label {
   width: 100%;
   aspect-ratio: 16 / 9;
   overflow: auto;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-border-strong) 58%, var(--color-border-subtle));
+  border-radius: var(--radius-lg);
   background: var(--color-bg-canvas);
+  box-shadow: inset 0 1px 22px color-mix(in srgb, var(--color-bg-canvas) 72%, transparent);
 }
 
 .alert-preview-canvas {
@@ -712,8 +744,8 @@ label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
 .alert-preview-tools span {
@@ -726,14 +758,15 @@ label {
   display: inline-flex;
   overflow: hidden;
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-surface-1);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-bg-surface-1) 86%, transparent);
+  box-shadow: var(--shadow-key-sm);
 }
 
 .segmented button {
   border: 0;
   border-right: 1px solid var(--color-border-subtle);
-  padding: 7px 10px;
+  padding: 7px 11px;
   color: var(--color-text-secondary);
   background: transparent;
   font: inherit;
@@ -1262,7 +1295,9 @@ kbd {
   margin-top: 14px;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  background: var(--color-bg-surface-1);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg-surface-3) 24%, transparent), transparent),
+    var(--color-bg-surface-1);
   padding: 12px;
   overflow-x: auto;
 }
@@ -1308,8 +1343,14 @@ kbd {
   cursor: pointer;
 }
 
+.alert-timeline-track:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 46%, transparent);
+  color: var(--color-text-primary);
+}
+
 .alert-timeline-track.active {
   border-color: color-mix(in srgb, var(--color-accent) 75%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 18%, transparent);
 }
 
 .alert-timeline-track span {

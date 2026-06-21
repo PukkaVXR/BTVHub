@@ -96,7 +96,7 @@ export function AlertCanvasWorkspace({
           <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={onRestart}>Restart</button>
         </div>
       </div>
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 12 }}>
+      <div className="alert-preview-options">
         <div>
           <label>Preview background</label>
           <select value={previewBackground} onChange={(event) => onBackgroundChange(event.target.value as PreviewBackground)}>
@@ -105,7 +105,7 @@ export function AlertCanvasWorkspace({
             <option value="transparent">Transparent</option>
           </select>
         </div>
-        <label style={{ alignSelf: "center", marginTop: 16 }}>
+        <label className="alert-preview-safe-zone-toggle">
           <input type="checkbox" checked={showSafeZones} onChange={(event) => onSafeZonesChange(event.target.checked)} /> Safe zones
         </label>
       </div>
