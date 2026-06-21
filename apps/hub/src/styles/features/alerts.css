@@ -1,0 +1,209 @@
+/* stylelint-disable no-descending-specificity -- Independent alert toolbar groups share child span selectors. */
+.alert-project-list {
+  display: grid;
+  gap: 12px;
+}
+
+.alert-project-header-actions,
+.alert-project-card__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.alert-project-card__meta {
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.alert-project-card__meta span {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+}
+
+.workflow-section-tabs {
+  margin-bottom: 16px;
+}
+
+.alert-routing-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.alert-routing-test-card,
+.alert-routing-table-card {
+  display: grid;
+  gap: 14px;
+}
+
+.alert-routing-test-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.alert-routing-table-wrap {
+  overflow-x: auto;
+}
+
+.alert-routing-table {
+  min-width: 980px;
+}
+
+.alert-routing-project-cell {
+  align-items: center;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: minmax(190px, 1fr) auto;
+}
+
+.alert-routing-project-cell a {
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.alert-routing-number-input {
+  margin: 0;
+  width: 84px;
+}
+
+.alert-routing-priority-input {
+  margin: 0;
+  width: 64px;
+}
+
+.alert-routing-sound-cell {
+  min-width: 220px;
+}
+
+.alert-editor-breadcrumbs {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.alert-editor-breadcrumbs a {
+  color: var(--color-text-secondary);
+}
+
+.alert-editor-breadcrumbs strong {
+  color: var(--color-text-primary);
+}
+
+.alert-editor-toolbar {
+  align-items: stretch;
+  background: var(--color-bg-surface-1);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(220px, 1fr);
+  margin-bottom: 16px;
+  padding: 12px;
+}
+
+.alert-editor-toolbar__project,
+.alert-editor-toolbar__group {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.alert-editor-toolbar__project {
+  justify-content: space-between;
+}
+
+.alert-editor-toolbar__project label {
+  align-items: center;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: auto minmax(220px, 1fr);
+  margin: 0;
+  min-width: min(100%, 380px);
+}
+
+.alert-editor-toolbar__project select {
+  margin: 0;
+}
+
+.alert-editor-toolbar__group {
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: 10px;
+}
+
+.alert-editor-toolbar__group select {
+  margin: 0;
+  width: auto;
+}
+
+.alert-editor-toolbar__group > span:first-child {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  margin-right: 4px;
+  text-transform: uppercase;
+}
+
+.alert-editor-toolbar__import {
+  margin: 0;
+}
+
+.alert-editor-toolbar__import input {
+  display: none;
+}
+
+.alert-editor-toolbar__overflow {
+  position: relative;
+}
+
+.alert-editor-toolbar__overflow summary {
+  list-style: none;
+}
+
+.alert-editor-toolbar__overflow summary::-webkit-details-marker {
+  display: none;
+}
+
+.alert-editor-toolbar__overflow > div {
+  background: var(--color-bg-surface-1);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg, 0 18px 45px rgb(0 0 0 / 28%));
+  display: grid;
+  gap: 8px;
+  min-width: 180px;
+  padding: 8px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+}
+
+.alert-editor-toolbar__shortcuts > div {
+  min-width: 240px;
+}
+
+.alert-editor-toolbar__shortcuts span {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 12px;
+  gap: 6px;
+  justify-content: space-between;
+}

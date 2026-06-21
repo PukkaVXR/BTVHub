@@ -1,0 +1,89 @@
+/* stylelint-disable no-descending-specificity -- Automation list and builder blocks share child span selectors. */
+.automation-rule-card {
+  display: grid;
+  gap: 14px;
+}
+
+.automation-rule-workspace {
+  grid-template-columns: minmax(250px, 340px) minmax(0, 1fr);
+  align-items: start;
+  margin-bottom: 0;
+}
+
+.automation-rule-list {
+  display: grid;
+  gap: 8px;
+  max-height: calc(100vh - 220px);
+  overflow: auto;
+  padding-right: 4px;
+  position: sticky;
+  top: 18px;
+}
+
+.automation-rule-list > button {
+  background: rgb(15 19 25 / 72%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  padding: 12px;
+  text-align: left;
+}
+
+.automation-rule-list > button:hover,
+.automation-rule-list > button.active {
+  background: rgb(91 140 255 / 15%);
+  border-color: rgb(91 140 255 / 70%);
+}
+
+.automation-rule-list > button span {
+  font-weight: 850;
+}
+
+.automation-rule-list > button small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.automation-rule-detail {
+  min-width: 0;
+}
+
+.automation-builder-card {
+  display: grid;
+  gap: 12px;
+}
+
+.automation-builder-step {
+  background: rgb(91 140 255 / 8%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+}
+
+.automation-builder-step strong {
+  color: var(--color-text-primary);
+}
+
+.automation-builder-step span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.automation-advanced-payload {
+  margin-top: 4px;
+}
+
+.automation-enabled-toggle {
+  align-items: center;
+  color: var(--text);
+  display: inline-flex;
+  gap: 7px;
+  margin: 0;
+  white-space: nowrap;
+}

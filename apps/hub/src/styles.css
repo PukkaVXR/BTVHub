@@ -7,7 +7,11 @@
 @import url("./styles/shell.css") layer(shell);
 @import url("./styles/components.css") layer(components);
 @import url("./styles/overlay-animations.css") layer(features);
-@import url("./styles/workflows.css") layer(features);
+@import url("./styles/features/alerts.css") layer(features);
+@import url("./styles/features/automation.css") layer(features);
+@import url("./styles/features/macros.css") layer(features);
+@import url("./styles/features/webhooks.css") layer(features);
+@import url("./styles/features/activity.css") layer(features);
 @import url("./styles/stream-deck.css") layer(features);
 @import url("./styles/live-and-tools.css") layer(features);
 @import url("./styles/widgets.css") layer(features);
