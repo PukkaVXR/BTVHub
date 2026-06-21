@@ -1,0 +1,117 @@
+.channel-points-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.channel-points-page {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(280px, 0.42fr) minmax(460px, 1fr);
+}
+
+.channel-points-list {
+  display: grid;
+  gap: 10px;
+}
+
+.channel-points-list-item {
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  text-align: left;
+  transition: background-color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+}
+
+.channel-points-list-item:hover,
+.channel-points-list-item.active {
+  background-color: var(--color-surface-subtle);
+  border-color: var(--color-accent);
+}
+
+.channel-points-list-item:active {
+  transform: translateY(1px);
+}
+
+.channel-points-list-item strong {
+  font-size: 15px;
+}
+
+.channel-points-list-item span,
+.channel-points-list-item small {
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.channel-points-list-item span {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.channel-points-list-item small {
+  font-size: 11px;
+}
+
+.channel-points-list-item .status-pill {
+  justify-self: flex-start;
+  margin-top: 3px;
+}
+
+.channel-points-editor {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.channel-points-editor label,
+.channel-points-editor__wide > label {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 12px;
+  font-weight: 850;
+  gap: 6px;
+}
+
+.channel-points-editor__wide {
+  display: grid;
+  gap: 6px;
+  grid-column: 1 / -1;
+}
+
+.channel-points-editor textarea {
+  min-height: 86px;
+  resize: vertical;
+}
+
+.channel-points-footer-actions {
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 14px;
+}
+
+@media (width <= 1100px) {
+  .channel-points-page,
+  .channel-points-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .channel-points-header-actions,
+  .channel-points-footer-actions {
+    justify-content: stretch;
+  }
+
+  .channel-points-header-actions .ui-button,
+  .channel-points-footer-actions .ui-button {
+    flex: 1 1 150px;
+  }
+}

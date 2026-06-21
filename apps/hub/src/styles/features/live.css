@@ -1,0 +1,283 @@
+.live-readiness-strip {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.live-readiness-strip__checks,
+.live-health-grid,
+.live-stat-grid,
+.live-shortcut-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.live-readiness-strip__checks {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.live-dashboard-grid {
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.live-checklist {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.live-checklist__item,
+.live-shortcut__header,
+.live-session-start {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.live-checklist__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.live-session-start {
+  flex-wrap: wrap;
+  min-width: min(320px, 100%);
+}
+
+.live-session-start input {
+  margin-bottom: 0;
+}
+
+.live-health-grid,
+.live-stat-grid,
+.live-shortcut-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin-top: 14px;
+}
+
+.dashboard-deck-card {
+  position: relative;
+}
+
+.dashboard-deck-title {
+  align-items: center;
+}
+
+.dashboard-deck-tabs {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  margin-top: 14px;
+}
+
+.dashboard-deck-tab {
+  align-items: center;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  min-height: 42px;
+  padding: 9px 11px;
+  text-align: left;
+}
+
+.dashboard-deck-tab span {
+  font-weight: 850;
+}
+
+.dashboard-deck-tab small {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+.dashboard-deck-tab--active {
+  background: color-mix(in srgb, var(--color-accent) 16%, var(--color-surface-muted));
+  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border-subtle));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+
+.live-stat-grid p,
+.live-shortcut p,
+.live-session-scenes p {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.live-session-scenes {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.live-session-scenes > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.live-panel-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.live-shortcut-title {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.live-shortcut-title p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.live-shortcut {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.dashboard-deck-button {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-surface-muted) 88%, transparent), var(--color-surface));
+  min-height: 126px;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.dashboard-deck-button:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border-subtle));
+  box-shadow: 0 16px 38px rgb(0 0 0 / 18%);
+  transform: translateY(-1px);
+}
+
+.dashboard-deck-button--active {
+  border-color: color-mix(in srgb, var(--color-status-success) 70%, var(--color-border-subtle));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-status-success) 26%, transparent), 0 16px 36px color-mix(in srgb, var(--color-status-success) 12%, transparent);
+}
+
+.dashboard-deck-button--disabled {
+  opacity: 0.62;
+}
+
+.dashboard-deck-emergency {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  min-height: 118px;
+  padding: 16px;
+  text-align: left;
+}
+
+.dashboard-deck-emergency strong {
+  font-size: 18px;
+}
+
+.dashboard-deck-emergency span {
+  color: rgb(255 255 255 / 78%);
+  font-size: 13px;
+}
+
+.dashboard-deck-emergency--info {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-status-info) 56%, var(--color-bg-surface-2)), color-mix(in srgb, var(--color-status-info) 28%, var(--color-bg-surface-1)));
+}
+
+.dashboard-deck-emergency--warning {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-status-warning) 48%, var(--color-bg-surface-2)), color-mix(in srgb, var(--color-status-warning) 24%, var(--color-bg-surface-1)));
+}
+
+.dashboard-deck-emergency--danger {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-status-danger) 54%, var(--color-bg-surface-2)), color-mix(in srgb, var(--color-status-danger) 26%, var(--color-bg-surface-1)));
+}
+
+.live-shortcut__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.live-shortcut__steps {
+  margin-top: 8px;
+}
+
+.live-shortcut-picker {
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: 14px;
+  padding-top: 12px;
+}
+
+.live-shortcut-picker summary {
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.live-shortcut-picker__grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 12px;
+}
+
+.live-shortcut-picker__group {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.live-shortcut-picker__group h3 {
+  font-size: 13px;
+  margin: 0;
+}
+
+.live-shortcut-picker__group p {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  margin: 0;
+}
+
+.live-shortcut-picker__item {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+}
+
+.live-shortcut-picker__item input {
+  margin-top: 3px;
+}
+
+.live-shortcut-picker__item span {
+  display: grid;
+  gap: 2px;
+}
+
+.live-shortcut-picker__item small {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.live-stream-deck-card {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}

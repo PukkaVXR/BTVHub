@@ -1,0 +1,143 @@
+.commands-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.commands-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.commands-layout {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(280px, 0.75fr) minmax(360px, 1.25fr);
+}
+
+.commands-section {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(280px, 0.75fr) minmax(360px, 1.25fr);
+  margin-top: 16px;
+}
+
+.commands-list,
+.commands-editor {
+  display: grid;
+  gap: 12px;
+}
+
+.commands-list__item {
+  align-items: center;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px;
+  text-align: left;
+}
+
+.commands-list__item:hover,
+.commands-list__item--active {
+  border-color: var(--color-accent);
+}
+
+.commands-list__item--static {
+  cursor: default;
+}
+
+.commands-list__item--static:hover {
+  border-color: var(--color-border-subtle);
+}
+
+.commands-list__item span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.commands-list__item small {
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commands-list__item em {
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-style: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commands-list__status {
+  place-items: flex-end end;
+  display: grid;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.commands-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.commands-editor__grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.commands-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.commands-loyalty-hero {
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+}
+
+.commands-loyalty-hero strong {
+  color: var(--color-text-primary);
+  font-size: 1.05rem;
+}
+
+.commands-loyalty-hero span {
+  color: var(--color-accent);
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.commands-loyalty-hero small {
+  color: var(--color-text-secondary);
+}
+
+@media (width <= 960px) {
+  .commands-layout,
+  .commands-section {
+    grid-template-columns: 1fr;
+  }
+
+  .commands-editor__grid {
+    grid-template-columns: 1fr;
+  }
+}

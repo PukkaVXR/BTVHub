@@ -1,0 +1,108 @@
+/* stylelint-disable no-descending-specificity -- Mobile controls use stateful button selectors grouped by behavior. */
+.live-emergency-panel {
+  border-color: rgb(255 90 103 / 45%);
+}
+
+.mobile-control-page {
+  display: grid;
+  gap: 16px;
+  margin-inline: auto;
+  max-width: 980px;
+}
+
+.mobile-control-status {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mobile-control-emergency {
+  border-color: rgb(255 90 103 / 45%);
+  position: sticky;
+  top: 0;
+  z-index: 18;
+}
+
+.mobile-control-button-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-top: 14px;
+}
+
+.mobile-control-button-grid--emergency {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.mobile-control-button {
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: grid;
+  gap: 7px;
+  min-height: 86px;
+  padding: 14px;
+  text-align: left;
+  transition: background-color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+}
+
+.mobile-control-button strong {
+  font-size: 17px;
+  line-height: 1.1;
+}
+
+.mobile-control-button span {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.mobile-control-button:not(:disabled):hover {
+  background-color: var(--color-bg-surface-3);
+  border-color: var(--color-border-strong);
+  box-shadow: 0 14px 32px rgb(0 0 0 / 18%);
+  transform: translateY(-1px);
+}
+
+.mobile-control-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.mobile-control-button--active {
+  border-color: color-mix(in srgb, var(--color-status-success) 72%, var(--color-border-subtle));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-status-success) 24%, transparent);
+}
+
+.mobile-control-button--info {
+  border-color: color-mix(in srgb, var(--color-status-info) 42%, var(--color-border-subtle));
+}
+
+.mobile-control-button--warning {
+  border-color: color-mix(in srgb, var(--color-status-warning) 48%, var(--color-border-subtle));
+}
+
+.mobile-control-button--danger {
+  background-color: color-mix(in srgb, var(--color-status-danger) 18%, var(--color-surface-muted));
+  border-color: color-mix(in srgb, var(--color-status-danger) 54%, var(--color-border-subtle));
+}
+
+.mobile-control-session {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 14px;
+}
+
+.mobile-control-session input {
+  margin-bottom: 0;
+  min-height: 46px;
+}
+
+.mobile-control-empty {
+  color: var(--color-text-secondary);
+  margin-top: 12px;
+}

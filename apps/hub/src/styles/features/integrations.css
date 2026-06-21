@@ -1,0 +1,49 @@
+.integrations-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.integrations-callouts {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.integrations-grid {
+  align-items: start;
+}
+
+.integration-card {
+  display: grid;
+  gap: 16px;
+}
+
+.integration-card--twitch {
+  border-color: rgb(145 71 255 / 45%);
+}
+
+.integration-card__body {
+  display: grid;
+  gap: 12px;
+}
+
+.integration-chat-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.integration-card__actions,
+.integration-card__footer {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.integration-card__footer {
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: 14px;
+}

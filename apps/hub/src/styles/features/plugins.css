@@ -1,0 +1,526 @@
+/* stylelint-disable no-descending-specificity -- Plugin form/card sections use repeated local span selectors. */
+.plugins-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.plugins-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.plugins-page-actions label.ui-button {
+  cursor: pointer;
+}
+
+.plugins-grid {
+  grid-template-columns: minmax(420px, 1.25fr) minmax(320px, 0.75fr);
+}
+
+.plugins-grid > .ui-card:first-child {
+  grid-row: span 3;
+}
+
+.plugin-registry-list,
+.plugin-foundation-list {
+  display: grid;
+  gap: 12px;
+}
+
+.plugin-registry-card {
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.plugin-registry-card__header {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.plugin-registry-card__header > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.plugin-registry-card strong,
+.plugin-foundation-item strong,
+.plugin-chip-grid strong {
+  color: var(--color-text-primary);
+}
+
+.plugin-registry-card__header span,
+.plugin-registry-card p,
+.plugin-foundation-item p {
+  color: var(--color-text-secondary);
+}
+
+.plugin-registry-card__header span,
+.plugin-registry-card p,
+.plugin-foundation-item p,
+.plugin-chip-row span {
+  font-size: 12px;
+}
+
+.plugin-registry-card code {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.plugin-registry-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.plugin-chip-row,
+.plugin-permission-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.plugin-chip-row span,
+.plugin-permission-list span {
+  align-items: center;
+  background-color: rgb(255 255 255 / 4.5%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  gap: 7px;
+  padding: 5px 9px;
+}
+
+.plugin-foundation-item {
+  align-items: flex-start;
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 12px;
+}
+
+.plugin-foundation-item p {
+  margin-top: 3px;
+}
+
+.plugin-dev-form {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.plugin-dev-form label,
+.plugin-dev-form__wide {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 12px;
+  font-weight: 850;
+  gap: 6px;
+}
+
+.plugin-dev-form label span,
+.plugin-dev-form__wide > span {
+  color: var(--color-text-primary);
+}
+
+.plugin-dev-form__wide {
+  grid-column: 1 / -1;
+}
+
+.plugin-dev-form textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+
+.plugin-dev-capability-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.plugin-dev-capability-grid label {
+  align-items: center;
+  background-color: rgb(255 255 255 / 3.5%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  padding: 9px 10px;
+}
+
+.plugin-dev-form__actions {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.plugin-extension-catalog {
+  display: grid;
+  gap: 12px;
+}
+
+.plugin-extension-group {
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.plugin-extension-group__header {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.plugin-extension-group > p {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.plugin-extension-list {
+  display: grid;
+  gap: 8px;
+}
+
+.plugin-extension-item {
+  background-color: rgb(255 255 255 / 3.5%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+}
+
+.plugin-extension-item span,
+.plugin-extension-item small {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.plugin-extension-item small {
+  color: var(--color-text-tertiary);
+  font-weight: 850;
+}
+
+.plugin-chip-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.plugin-chip-grid > div {
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.plugin-chip-grid span {
+  color: var(--color-accent);
+  font-size: 24px;
+  font-weight: 950;
+}
+
+.plugin-permission-list code {
+  background: transparent;
+  padding: 0;
+}
+
+.plugin-permission-list small {
+  color: var(--color-text-tertiary);
+  font-weight: 900;
+}
+
+.plugin-permission-summary {
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: 10px;
+}
+
+.plugin-diagnostics {
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: 10px;
+}
+
+.plugin-diagnostics summary {
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+  list-style-position: inside;
+}
+
+.plugin-diagnostics__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.plugin-diagnostics ul {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 12px;
+  gap: 5px;
+  line-height: 1.4;
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.plugin-permission-summary summary {
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+  list-style-position: inside;
+}
+
+.plugin-permission-summary__grid,
+.plugin-permission-review {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.plugin-permission-card,
+.plugin-permission-risk {
+  background-color: rgb(255 255 255 / 3.5%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+}
+
+.plugin-permission-card > div,
+.plugin-permission-risk__header {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.plugin-permission-card strong,
+.plugin-permission-risk strong {
+  color: var(--color-text-primary);
+}
+
+.plugin-permission-card p,
+.plugin-permission-risk p {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.plugin-permission-card--low,
+.plugin-permission-risk--low {
+  border-color: rgb(52 211 153 / 24%);
+}
+
+.plugin-permission-card--medium,
+.plugin-permission-risk--medium {
+  border-color: rgb(250 204 21 / 24%);
+}
+
+.plugin-permission-card--high,
+.plugin-permission-risk--high,
+.plugin-permission-card--unknown {
+  border-color: rgb(248 113 113 / 30%);
+}
+
+.plugin-settings-form {
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: 10px;
+}
+
+.plugin-manifest-editor {
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: 10px;
+}
+
+.plugin-manifest-editor summary {
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+  list-style-position: inside;
+}
+
+.plugin-manifest-editor__grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 12px 0;
+}
+
+.plugin-manifest-editor label,
+.plugin-manifest-editor__wide {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 12px;
+  font-weight: 850;
+  gap: 6px;
+}
+
+.plugin-manifest-editor label span,
+.plugin-manifest-editor__wide > span {
+  color: var(--color-text-primary);
+}
+
+.plugin-manifest-editor__wide {
+  grid-column: 1 / -1;
+}
+
+.plugin-manifest-editor textarea {
+  min-height: 78px;
+  resize: vertical;
+}
+
+.plugin-manifest-permission-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.plugin-manifest-permission {
+  align-items: flex-start;
+  background-color: rgb(255 255 255 / 3.5%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 9px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 10px;
+}
+
+.plugin-manifest-permission > span {
+  display: grid;
+  gap: 2px;
+}
+
+.plugin-manifest-permission strong {
+  color: var(--color-text-primary);
+}
+
+.plugin-manifest-permission small,
+.plugin-manifest-permission em {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.plugin-manifest-permission em {
+  color: var(--color-text-tertiary);
+}
+
+.plugin-manifest-permission--low {
+  border-color: rgb(52 211 153 / 20%);
+}
+
+.plugin-manifest-permission--medium {
+  border-color: rgb(250 204 21 / 22%);
+}
+
+.plugin-manifest-permission--high {
+  border-color: rgb(248 113 113 / 28%);
+}
+
+.plugin-settings-form summary {
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+  list-style-position: inside;
+}
+
+.plugin-settings-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin: 12px 0;
+}
+
+.plugin-setting-field {
+  background-color: rgb(255 255 255 / 3.5%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+}
+
+.plugin-setting-field > span {
+  align-items: center;
+  color: var(--color-text-primary);
+  display: flex;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.plugin-setting-field > span small {
+  color: var(--color-accent);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.plugin-setting-field p {
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+@media (width <= 1100px) {
+  .stream-recap-picker,
+  .stream-recap-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stream-recap-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stream-recap-actions {
+    justify-content: stretch;
+  }
+
+  .stream-recap-actions .ui-button {
+    flex: 1 1 150px;
+  }
+
+  .plugins-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .plugin-dev-form {
+    grid-template-columns: 1fr;
+  }
+
+  .plugins-grid > .ui-card:first-child {
+    grid-row: auto;
+  }
+}
