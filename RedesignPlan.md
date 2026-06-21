@@ -208,7 +208,7 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 - [x] Create `apps/hub/src/styles/features/` and `styles/overlay-animations.css` + `styles/keyframes.css`.
 - [x] Move functional overlay-output keyframes from `legacy-editor.css` into `overlay-animations.css` unchanged; consolidate UI keyframes into `keyframes.css`.
 - [x] Split + migrate `workflows.css` (alerts, automation, macros, webhooks, activity); verify + commit.
-- [ ] Split + migrate `stream-deck.css`; verify + commit.
+- [x] Split + migrate `stream-deck.css`; verify + commit.
 - [ ] Split + migrate `live-and-tools.css` (live, setup, integrations, commands, mobile, interactive, plugins); verify + commit.
 - [ ] Split + migrate `widgets.css` (widgets workspace, theme editor, typography helpers); verify + commit.
 - [ ] Split + migrate `legacy-editor.css` (legacy primitives, overlay editor, alert editor, toasts); verify + commit.
