@@ -29,4 +29,4 @@
 @import url("./styles/features/plugins.css") layer(features);
 @import url("./styles/features/widget-theme.css") layer(features);
 @import url("./styles/features/widgets.css") layer(features);
-@import url("./styles/legacy-editor.css") layer(features);
+@import url("./styles/features/editor-support.css") layer(features);

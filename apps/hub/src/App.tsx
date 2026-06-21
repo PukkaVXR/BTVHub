@@ -1,4 +1,4 @@
-import { Navigate, NavLink, Route, Routes, useLocation, useParams } from "react-router-dom";
+import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { CommandPalette } from "./components/CommandPalette";
 import { EmergencyMenu } from "./components/EmergencyMenu";
@@ -98,11 +98,6 @@ const navSections = [
 ] as const;
 
 const NAV_COLLAPSE_STORAGE_KEY = "btv.nav.collapsedSections";
-
-function LegacyAlertEditorRedirect() {
-  const { id } = useParams<{ id: string }>();
-  return <Navigate to={`/alerts/${encodeURIComponent(id ?? "")}`} replace />;
-}
 
 export default function App() {
   const { preflight, error, refresh } = useAppHealth();
@@ -252,7 +247,6 @@ export default function App() {
               <Route path="/alerts" element={<AlertProjectsPage />} />
               <Route path="/alerts/routing" element={<AlertsPage />} />
               <Route path="/alerts/:id" element={<AlertEditorPage />} />
-              <Route path="/alerts/editor/:id" element={<LegacyAlertEditorRedirect />} />
               <Route path="/alert-editor" element={<Navigate to="/alerts" replace />} />
               <Route path="/alert-rules" element={<Navigate to="/alerts/routing" replace />} />
               <Route path="/themes" element={<Navigate to="/widgets" replace />} />
