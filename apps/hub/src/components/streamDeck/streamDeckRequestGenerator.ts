@@ -69,12 +69,21 @@ export function buildStreamDeckRequest(action: StreamDeckBuilderAction, values: 
   }
 }
 
-export function buildApiNinjaConfig(request: StreamDeckGeneratedRequest, design: StreamDeckDesignValues): string {
+function streamDeckAuthHeaders(apiToken?: string): Record<string, string> {
+  return apiToken ? { "X-BTV-Token": apiToken } : {};
+}
+
+export function buildApiNinjaConfig(
+  request: StreamDeckGeneratedRequest,
+  design: StreamDeckDesignValues,
+  apiToken?: string,
+): string {
+  const headers = { ...request.headers, ...streamDeckAuthHeaders(apiToken) };
   return [
     `Name: ${design.keyTitle}`,
     `Method: ${request.method}`,
     `URL: ${request.url}`,
-    `Headers: ${Object.keys(request.headers).length ? prettyJson(request.headers) : "(none)"}`,
+    `Headers: ${Object.keys(headers).length ? prettyJson(headers) : "(none)"}`,
     `Body: ${request.body || "(empty)"}`,
     `Key color: ${design.keyColor}`,
     `Icon label: ${design.iconLabel.trim() || "(none)"}`,
@@ -83,12 +92,17 @@ export function buildApiNinjaConfig(request: StreamDeckGeneratedRequest, design:
   ].join("\n\n");
 }
 
-export function buildStreamDeckExportInput(request: StreamDeckGeneratedRequest, design: StreamDeckDesignValues): ApiNinjaButtonInput {
+export function buildStreamDeckExportInput(
+  request: StreamDeckGeneratedRequest,
+  design: StreamDeckDesignValues,
+  apiToken?: string,
+): ApiNinjaButtonInput {
   return {
     title: design.keyTitle,
     method: request.method,
     url: request.url,
     contentType: request.headers["Content-Type"],
+    headers: streamDeckAuthHeaders(apiToken),
     body: request.body ? compactJson(request.body) : "",
     color: design.keyColor,
     iconLabel: design.iconLabel,

@@ -1,7 +1,8 @@
 import { useState, type CSSProperties } from "react";
 import { StreamDeckRequestBuilder } from "../components/streamDeck";
 import { useAppHealth } from "../context/AppHealthContext";
-import { downloadApiNinjaButton, downloadStreamDeckAction } from "../lib/apiNinja";
+import { getLocalApiToken } from "../api";
+import { downloadApiNinjaButton, downloadStreamDeckAction, withStreamDeckAuthHeaders } from "../lib/apiNinja";
 import { resolveOverlayOrigin } from "../lib/serverUrls";
 import { Button, ButtonAnchor, ButtonLink, Card, CardHeader, CopyField, EmptyState, PageHeader } from "../ui";
 
@@ -26,6 +27,7 @@ const SETUP_STEPS = [
   "Use port 4782 for action URLs, not the Hub UI port 4781.",
   "Use POST with Content-Type application/json and body {} for action buttons.",
   "Use GET for status keys if your plugin supports polling.",
+  "Export buttons from the Hub Stream Deck page so the local X-BTV-Token header is included automatically.",
 ] as const;
 
 const RESPONSE_FIELDS = [
@@ -89,30 +91,33 @@ const BUTTON_STATE_RECIPES = [
   },
 ] as const;
 
-function formatActionButtonConfig(button: (typeof READY_ACTION_BUTTONS)[number]) {
+function formatActionButtonConfig(button: (typeof READY_ACTION_BUTTONS)[number], apiToken?: string) {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (apiToken) headers["X-BTV-Token"] = apiToken;
   return [
     `Name: ${button.title}`,
     `Method: ${button.method}`,
     `URL: ${STREAM_DECK_BASE_URL}${button.path}`,
-    "Headers: {\"Content-Type\":\"application/json\"}",
+    `Headers: ${JSON.stringify(headers)}`,
     `Body: ${button.body}`,
     `Suggested color: ${button.color}`,
     `Suggested icon: ${button.icon}`,
   ].join("\n");
 }
 
-function exportActionButton(button: (typeof READY_ACTION_BUTTONS)[number]) {
-  downloadApiNinjaButton({
+async function exportActionButton(button: (typeof READY_ACTION_BUTTONS)[number]) {
+  const input = withStreamDeckAuthHeaders({
     title: `BTV ${button.title}`,
     method: button.method,
     url: `${STREAM_DECK_BASE_URL}${button.path}`,
     contentType: "application/json",
     body: button.body,
-  });
+  }, await getLocalApiToken());
+  downloadApiNinjaButton(input);
 }
 
 async function exportStreamDeckActionButton(button: (typeof READY_ACTION_BUTTONS)[number]) {
-  await downloadStreamDeckAction({
+  const input = withStreamDeckAuthHeaders({
     title: `BTV ${button.title}`,
     method: button.method,
     url: `${STREAM_DECK_BASE_URL}${button.path}`,
@@ -120,7 +125,8 @@ async function exportStreamDeckActionButton(button: (typeof READY_ACTION_BUTTONS
     body: button.body,
     color: button.color,
     iconLabel: ICON_LABELS[button.icon],
-  });
+  }, await getLocalApiToken());
+  await downloadStreamDeckAction(input);
 }
 
 export default function StreamDeckPage() {
@@ -322,14 +328,14 @@ function ExportStreamDeckActionButton({ button }: { button: (typeof READY_ACTION
 function ExportActionButton({ button }: { button: (typeof READY_ACTION_BUTTONS)[number] }) {
   const [exported, setExported] = useState(false);
 
-  const exportButton = () => {
-    exportActionButton(button);
+  const exportButton = async () => {
+    await exportActionButton(button);
     setExported(true);
     window.setTimeout(() => setExported(false), 1600);
   };
 
   return (
-    <Button type="button" variant="secondary" size="sm" onClick={exportButton}>
+    <Button type="button" variant="secondary" size="sm" onClick={() => void exportButton()}>
       {exported ? "Exported" : "Export .ninja"}
     </Button>
   );
@@ -339,7 +345,8 @@ function CopyActionButton({ button }: { button: (typeof READY_ACTION_BUTTONS)[nu
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
-    await navigator.clipboard.writeText(formatActionButtonConfig(button));
+    const token = await getLocalApiToken();
+    await navigator.clipboard.writeText(formatActionButtonConfig(button, token));
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   };

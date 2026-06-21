@@ -110,12 +110,12 @@ Goal: pause feature expansion long enough to harden the trust boundary, reliabil
 - [x] Add API client tests for high-risk request/response helpers.
 - [x] Add linting and formatting with ESLint/Prettier or Biome.
 - [x] Add GitHub Actions CI for typecheck, lint, and tests.
-- [ ] Add cross-platform start and port helper scripts.
+- [x] Add cross-platform start and port helper scripts.
 - [x] Reconcile documented Node version requirements.
 - [x] Remove or re-route orphaned `ThemesPage.tsx`.
 - [x] Drop Monaco dependency if it is no longer used.
-- [ ] Add `LICENSE`.
-- [ ] Add `CONTRIBUTING.md`.
+- [x] Add `LICENSE`.
+- [x] Add `CONTRIBUTING.md`.
 - [x] Add a short architecture document for services, routes, event flow, overlays, and persistence.
 
 ## Phase 0: Stabilise the Foundation
