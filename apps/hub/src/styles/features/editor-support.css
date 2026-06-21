@@ -478,9 +478,9 @@ label {
 }
 
 .alert-inspector-section {
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: var(--radius);
-  background: rgba(8, 12, 18, 0.45);
+  border: 1px solid color-mix(in srgb, var(--color-text-tertiary) 14%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg-canvas) 45%, transparent);
   margin-bottom: 10px;
   padding: 0;
 }
@@ -493,7 +493,7 @@ label {
   justify-content: space-between;
   gap: 10px;
   padding: 10px 11px;
-  color: var(--text);
+  color: var(--color-text-primary);
   font-weight: 750;
 }
 
@@ -503,7 +503,7 @@ label {
 
 .alert-inspector-section > summary::after {
   content: "+";
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-weight: 900;
 }
 
@@ -517,7 +517,7 @@ label {
 
 .alert-inspector-section[open] > summary {
   margin: 0 -11px 10px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-tertiary) 12%, transparent);
 }
 
 .alert-inspector-section .alert-keyframe-panel,
@@ -542,23 +542,23 @@ label {
   gap: 8px;
   align-items: center;
   text-align: left;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   padding: 9px;
-  background: #0f1319;
-  color: var(--text);
+  background: var(--color-bg-surface-1);
+  color: var(--color-text-primary);
   cursor: pointer;
 }
 
 .layer-row:hover,
 .layer-row.active {
-  border-color: rgba(91, 140, 255, 0.55);
-  background: rgba(91, 140, 255, 0.12);
+  border-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
 .layer-row span,
 .layer-row em {
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-size: 11px;
   font-style: normal;
 }
@@ -575,7 +575,7 @@ label {
 }
 
 .alert-canvas-size span {
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 800;
 }
@@ -585,18 +585,18 @@ label {
   align-items: center;
   min-height: 32px;
   padding: 0 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
-  color: var(--muted);
-  background: rgba(20, 25, 34, 0.7);
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-bg-surface-2) 70%, transparent);
   font-size: 12px;
   font-weight: 800;
 }
 
 .alert-save-status.dirty {
-  border-color: rgba(246, 199, 111, 0.48);
-  color: var(--warning);
-  background: rgba(246, 199, 111, 0.1);
+  border-color: color-mix(in srgb, var(--color-status-warning) 48%, transparent);
+  color: var(--color-status-warning);
+  background: color-mix(in srgb, var(--color-status-warning) 10%, transparent);
 }
 
 .alert-health-panel {
@@ -604,9 +604,9 @@ label {
   gap: 6px;
   margin: 10px 0 14px;
   padding: 10px;
-  border: 1px solid rgba(246, 199, 111, 0.35);
-  border-radius: var(--radius);
-  background: rgba(246, 199, 111, 0.08);
+  border: 1px solid color-mix(in srgb, var(--color-status-warning) 35%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-status-warning) 8%, transparent);
 }
 
 .alert-health-panel h3 {
@@ -616,25 +616,25 @@ label {
 
 .alert-health-panel p {
   margin: 0;
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-size: 12px;
 }
 
 .alert-health-panel p.error {
-  color: var(--danger);
+  color: var(--color-status-danger);
 }
 
 .alert-health-panel p.warning {
-  color: var(--warning);
+  color: var(--color-status-warning);
 }
 
 .alert-preview-shell {
   width: 100%;
   aspect-ratio: 16 / 9;
   overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: #080a0d;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-canvas);
 }
 
 .alert-preview-canvas {
@@ -648,10 +648,10 @@ label {
   z-index: 5;
   width: 14px;
   height: 14px;
-  border: 2px solid #ffffff;
+  border: 2px solid var(--color-text-primary);
   border-radius: 4px;
-  background: var(--primary);
-  box-shadow: 0 0 0 1px rgba(8, 10, 13, 0.9);
+  background: var(--color-accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-bg-canvas) 90%, transparent);
 }
 
 .alert-resize-handle.nw {
@@ -685,10 +685,10 @@ label {
   z-index: 5;
   width: 18px;
   height: 18px;
-  border: 2px solid #ffffff;
+  border: 2px solid var(--color-text-primary);
   border-radius: 999px;
-  background: var(--warning);
-  box-shadow: 0 0 0 1px rgba(8, 10, 13, 0.9);
+  background: var(--color-status-warning);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-bg-canvas) 90%, transparent);
   cursor: grab;
   transform: translateX(-50%);
 }
@@ -700,7 +700,7 @@ label {
   top: 100%;
   width: 2px;
   height: 24px;
-  background: rgba(255, 255, 255, 0.75);
+  background: color-mix(in srgb, var(--color-text-primary) 75%, transparent);
   transform: translateX(-50%);
 }
 
@@ -717,7 +717,7 @@ label {
 }
 
 .alert-preview-tools span {
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 800;
 }
@@ -725,16 +725,16 @@ label {
 .segmented {
   display: inline-flex;
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #0f1319;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface-1);
 }
 
 .segmented button {
   border: 0;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--color-border-subtle);
   padding: 7px 10px;
-  color: var(--muted);
+  color: var(--color-text-secondary);
   background: transparent;
   font: inherit;
   font-size: 12px;
@@ -748,8 +748,8 @@ label {
 
 .segmented button:hover,
 .segmented button.active {
-  color: var(--text);
-  background: rgba(91, 140, 255, 0.18);
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
 }
 
 .alert-preview-canvas.checkerboard {
