@@ -1,0 +1,68 @@
+.widgets-workspace {
+  align-items: start;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  margin-bottom: 0;
+}
+
+.widgets-sidebar {
+  display: grid;
+  gap: 8px;
+  position: sticky;
+  top: 18px;
+}
+
+.widgets-sidebar button {
+  background: color-mix(in srgb, var(--color-bg-surface-2) 72%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: calc(var(--radius-md) - 2px);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: grid;
+  gap: 3px;
+  padding: 11px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.widgets-sidebar button:hover,
+.widgets-sidebar button.active {
+  background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 72%, transparent);
+}
+
+.widgets-sidebar span {
+  font-weight: 850;
+}
+
+.widgets-sidebar small {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.widgets-detail {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.widget-config-card {
+  display: grid;
+  gap: 14px;
+}
+
+.widget-config-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+@media (width <= 920px) {
+  .widgets-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .widgets-sidebar {
+    position: static;
+  }
+}

@@ -18,7 +18,7 @@ import { EventRuleTriggerEditor } from "../components/automations/EventRuleTrigg
 import { ScheduledAutomationsPanel } from "../components/automations/ScheduledAutomationsPanel";
 import { useToast } from "../hooks/useToast";
 import { usePollingQuery } from "../hooks/usePollingQuery";
-import { Button, EmptyState, PageHeader } from "../ui";
+import { Button, EmptyState, PageHeader, SegmentedControl, SplitWorkspace } from "../ui";
 
 const emptyRule = (): AutomationRule => {
   const now = new Date().toISOString();
@@ -36,18 +36,23 @@ const emptyRule = (): AutomationRule => {
   };
 };
 
-
 export default function AutomationsPage() {
   const [editing, setEditing] = useState<AutomationConfig | null>(null);
   const [editingRule, setEditingRule] = useState<AutomationRule | null>(null);
   const [configJson, setConfigJson] = useState("{}");
-  const [testEventJson, setTestEventJson] = useState(JSON.stringify({
-    type: "follow",
-    user: { id: "test", login: "testuser", displayName: "TestUser" },
-    message: "Phase 1 test event",
-    amount: 1,
-    payload: { roles: ["moderator"] },
-  }, null, 2));
+  const [testEventJson, setTestEventJson] = useState(
+    JSON.stringify(
+      {
+        type: "follow",
+        user: { id: "test", login: "testuser", displayName: "TestUser" },
+        message: "Phase 1 test event",
+        amount: 1,
+        payload: { roles: ["moderator"] },
+      },
+      null,
+      2,
+    ),
+  );
   const [ruleTestResult, setRuleTestResult] = useState<{ tone: "success" | "danger"; message: string } | null>(null);
   const [automationTab, setAutomationTab] = useState<"rules" | "scheduled">("rules");
   const toast = useToast();
@@ -127,7 +132,7 @@ export default function AutomationsPage() {
     const next = { ...automation, enabled };
     setData((current) => ({
       ...current,
-      automations: current.automations.map((item) => item.id === automation.id ? next : item),
+      automations: current.automations.map((item) => (item.id === automation.id ? next : item)),
     }));
     if (editing?.id === automation.id) setEditing(next);
     try {
@@ -212,128 +217,141 @@ export default function AutomationsPage() {
     <>
       <PageHeader title="Automations" description="Phase 1 event rules plus the older repeating timer jobs." />
 
-      <div className="section-tabs" aria-label="Automation sections">
-        <button
-          type="button"
-          className={`section-tabs__item${automationTab === "rules" ? " section-tabs__item--active" : ""}`}
-          onClick={() => setAutomationTab("rules")}
-        >
-          <span>Event rules</span>
-          <small>{rules.length}</small>
-        </button>
-        <button
-          type="button"
-          className={`section-tabs__item${automationTab === "scheduled" ? " section-tabs__item--active" : ""}`}
-          onClick={() => setAutomationTab("scheduled")}
-        >
-          <span>Scheduled jobs</span>
-          <small>{automations.length}</small>
-        </button>
-      </div>
+      <SegmentedControl
+        className="workflow-section-tabs"
+        ariaLabel="Automation sections"
+        items={[
+          { id: "rules", label: "Event rules", count: rules.length },
+          { id: "scheduled", label: "Scheduled jobs", count: automations.length },
+        ]}
+        activeId={automationTab}
+        onChange={(id) => setAutomationTab(id === "scheduled" ? "scheduled" : "rules")}
+      />
 
       {automationTab === "rules" && (
-      <>
-      <div className="card automation-rule-card">
-        <h2>Event automation rules</h2>
-        <p className="subtitle">Trigger actions from Twitch/chat/manual events with cooldowns. This is the Phase 1 foundation.</p>
-        <div className="actions" style={{ marginBottom: 16 }}>
-          <Button type="button" variant="primary" size="sm" onClick={() => { setRuleTestResult(null); setEditingRule(emptyRule()); }}>
-            New event rule
-          </Button>
-          <Button type="button" variant="secondary" size="sm" onClick={() => void fireTestEvent("follow")}>
-            Test follow
-          </Button>
-          <Button type="button" variant="secondary" size="sm" onClick={() => void fireTestEvent("chat")}>
-            Test chat
-          </Button>
-          <Button type="button" variant="secondary" size="sm" onClick={() => void dispatchDashboardEvent()}>
-            Test dashboard event
-          </Button>
-        </div>
-
-        <div className="automation-rule-workspace">
-          <EventRuleList
-            rules={rules}
-            selectedRuleId={editingRule?.id}
-            onSelect={(rule) => {
-              setRuleTestResult(null);
-              setEditingRule(rule);
-            }}
-          />
-
-          <section className="automation-rule-detail">
-        {editingRule ? (
-          <div className="card automation-builder-card" style={{ marginBottom: 16 }}>
-            <h2>{editingRule.id.startsWith("rule-") ? "Edit event rule" : editingRule.name}</h2>
-            <div className="grid">
-              <div>
-                <label>Name</label>
-                <input value={editingRule.name} onChange={(e) => setEditingRule({ ...editingRule, name: e.target.value })} />
-              </div>
-              <div>
-                <label>Cooldown</label>
-                <select
-                  value={editingRule.cooldownMs}
-                  onChange={(e) => setEditingRule({ ...editingRule, cooldownMs: Number(e.target.value) })}
-                >
-                  <option value={0}>No cooldown</option>
-                  <option value={5000}>5 seconds</option>
-                  <option value={15000}>15 seconds</option>
-                  <option value={30000}>30 seconds</option>
-                  <option value={60000}>1 minute</option>
-                  <option value={300000}>5 minutes</option>
-                </select>
-              </div>
+        <>
+          <div className="card automation-rule-card">
+            <h2>Event automation rules</h2>
+            <p className="subtitle">
+              Trigger actions from Twitch/chat/manual events with cooldowns. This is the Phase 1 foundation.
+            </p>
+            <div className="actions" style={{ marginBottom: 16 }}>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  setRuleTestResult(null);
+                  setEditingRule(emptyRule());
+                }}
+              >
+                New event rule
+              </Button>
+              <Button type="button" variant="secondary" size="sm" onClick={() => void fireTestEvent("follow")}>
+                Test follow
+              </Button>
+              <Button type="button" variant="secondary" size="sm" onClick={() => void fireTestEvent("chat")}>
+                Test chat
+              </Button>
+              <Button type="button" variant="secondary" size="sm" onClick={() => void dispatchDashboardEvent()}>
+                Test dashboard event
+              </Button>
             </div>
 
-            <label style={{ display: "block", marginBottom: 12 }}>
-              <input
-                type="checkbox"
-                checked={editingRule.enabled}
-                onChange={(e) => setEditingRule({ ...editingRule, enabled: e.target.checked })}
-              />{" "}
-              Enabled
-            </label>
+            <SplitWorkspace
+              className="automation-rule-workspace"
+              sidebarClassName="automation-rule-list"
+              detailClassName="automation-rule-detail"
+              sidebarLabel="Event automation rules"
+              sidebar={
+                <EventRuleList
+                  rules={rules}
+                  selectedRuleId={editingRule?.id}
+                  onSelect={(rule) => {
+                    setRuleTestResult(null);
+                    setEditingRule(rule);
+                  }}
+                />
+              }
+              detail={
+                editingRule ? (
+                  <div className="card automation-builder-card" style={{ marginBottom: 16 }}>
+                    <h2>{editingRule.id.startsWith("rule-") ? "Edit event rule" : editingRule.name}</h2>
+                    <div className="grid">
+                      <div>
+                        <label>Name</label>
+                        <input
+                          value={editingRule.name}
+                          onChange={(e) => setEditingRule({ ...editingRule, name: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label>Cooldown</label>
+                        <select
+                          value={editingRule.cooldownMs}
+                          onChange={(e) => setEditingRule({ ...editingRule, cooldownMs: Number(e.target.value) })}
+                        >
+                          <option value={0}>No cooldown</option>
+                          <option value={5000}>5 seconds</option>
+                          <option value={15000}>15 seconds</option>
+                          <option value={30000}>30 seconds</option>
+                          <option value={60000}>1 minute</option>
+                          <option value={300000}>5 minutes</option>
+                        </select>
+                      </div>
+                    </div>
 
-            <EventRuleTriggerEditor
-              trigger={editingRule.trigger}
-              chatCommands={chatCommands}
-              onChange={(trigger) => setEditingRule({ ...editingRule, trigger })}
-            />
+                    <label style={{ display: "block", marginBottom: 12 }}>
+                      <input
+                        type="checkbox"
+                        checked={editingRule.enabled}
+                        onChange={(e) => setEditingRule({ ...editingRule, enabled: e.target.checked })}
+                      />{" "}
+                      Enabled
+                    </label>
 
-            <EventRuleConditionsEditor
-              conditions={editingRule.conditions}
-              onChange={(conditions) => setEditingRule({ ...editingRule, conditions })}
-            />
+                    <EventRuleTriggerEditor
+                      trigger={editingRule.trigger}
+                      chatCommands={chatCommands}
+                      onChange={(trigger) => setEditingRule({ ...editingRule, trigger })}
+                    />
 
-            <EventRuleActionsEditor
-              actions={editingRule.actions}
-              macros={macros}
-              effects={effects}
-              sourceGroups={sourceGroups}
-              onChange={(actions) => setEditingRule({ ...editingRule, actions })}
-            />
-            <EventRuleTestControls
-              rule={editingRule}
-              result={ruleTestResult}
-              testEventJson={testEventJson}
-              onTestEventJsonChange={setTestEventJson}
-              onTest={(rule) => void runRuleTest(rule)}
-              onSave={() => void saveRule()}
-              onCancel={() => setEditingRule(null)}
-              onRun={(rule) => void runRule(rule)}
-              onDelete={(id) => void removeRule(id)}
+                    <EventRuleConditionsEditor
+                      conditions={editingRule.conditions}
+                      onChange={(conditions) => setEditingRule({ ...editingRule, conditions })}
+                    />
+
+                    <EventRuleActionsEditor
+                      actions={editingRule.actions}
+                      macros={macros}
+                      effects={effects}
+                      sourceGroups={sourceGroups}
+                      onChange={(actions) => setEditingRule({ ...editingRule, actions })}
+                    />
+                    <EventRuleTestControls
+                      rule={editingRule}
+                      result={ruleTestResult}
+                      testEventJson={testEventJson}
+                      onTestEventJsonChange={setTestEventJson}
+                      onTest={(rule) => void runRuleTest(rule)}
+                      onSave={() => void saveRule()}
+                      onCancel={() => setEditingRule(null)}
+                      onRun={(rule) => void runRule(rule)}
+                      onDelete={(id) => void removeRule(id)}
+                    />
+                  </div>
+                ) : (
+                  <EmptyState
+                    title="Select a rule"
+                    description="Pick a rule from the list or create a new one to edit trigger, conditions, actions, and tests."
+                  />
+                )
+              }
             />
           </div>
-        ) : (
-          <EmptyState title="Select a rule" description="Pick a rule from the list or create a new one to edit trigger, conditions, actions, and tests." />
-        )}
-          </section>
-        </div>
-      </div>
 
-      <AutomationRunHistory rules={rules} runs={runs} />
-      </>
+          <AutomationRunHistory rules={rules} runs={runs} />
+        </>
       )}
 
       {automationTab === "scheduled" && (

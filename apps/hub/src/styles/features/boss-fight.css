@@ -1,0 +1,88 @@
+.boss-page {
+  display: grid;
+  gap: 16px;
+}
+
+.boss-form-grid,
+.boss-control-grid,
+.boss-fields {
+  display: grid;
+  gap: 12px;
+}
+
+.boss-form-grid {
+  grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1fr) 100px;
+}
+
+.boss-form-grid label,
+.boss-fields label {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 12px;
+  font-weight: 850;
+  gap: 6px;
+}
+
+.boss-control-grid {
+  grid-template-columns: minmax(320px, 1fr) minmax(260px, 0.8fr);
+}
+
+.boss-panel {
+  background:
+    radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--boss-color) 30%, transparent), transparent 34%),
+    var(--color-surface-muted);
+  border: 1px solid color-mix(in srgb, var(--boss-color) 38%, var(--color-border-subtle));
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.boss-health-meter {
+  gap: 0;
+}
+
+.boss-health-meter .ui-meter-bar__track {
+  background-color: rgb(255 255 255 / 8%);
+  height: 48px;
+}
+
+.boss-health-meter .ui-meter-bar__track span {
+  background: linear-gradient(90deg, var(--boss-color), color-mix(in srgb, var(--boss-color) 42%, var(--color-text-primary)));
+}
+
+.boss-health-meter .ui-meter-bar__track strong {
+  font-size: 14px;
+}
+
+.boss-quick-grid {
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.boss-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.boss-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+@media (width <= 920px) {
+  .boss-form-grid,
+  .boss-control-grid,
+  .boss-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .boss-quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .boss-action-row .ui-button {
+    flex: 1 1 150px;
+  }
+}

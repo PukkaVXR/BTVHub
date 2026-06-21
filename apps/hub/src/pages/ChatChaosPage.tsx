@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { api, type ChatChaosState } from "../api";
 import { useToast } from "../hooks/useToast";
 import { overlayUrl } from "../lib/serverUrls";
-import { Button, Card, CardHeader, CopyField, EmptyState, PageHeader, StatusPill } from "../ui";
+import { Button, Card, CardHeader, ControlGrid, CopyField, EmptyState, MeterBar, PageHeader, StatusPill } from "../ui";
 
 const OVERLAY_URL = overlayUrl("/o/chat-chaos.html");
 const QUICK_AMOUNTS = [5, 10, 25, 50];
@@ -77,7 +77,10 @@ export default function ChatChaosPage() {
     setSaving(true);
     try {
       setChaos(await api.adjustChatChaos(amount));
-      toast({ message: amount > 0 ? `Chaos increased by ${amount}` : `Chaos reduced by ${Math.abs(amount)}`, tone: "success" });
+      toast({
+        message: amount > 0 ? `Chaos increased by ${amount}` : `Chaos reduced by ${Math.abs(amount)}`,
+        tone: "success",
+      });
     } catch (err) {
       toast({ message: err instanceof Error ? err.message : "Could not adjust chaos", tone: "error" });
     } finally {
@@ -117,7 +120,9 @@ export default function ChatChaosPage() {
             <CardHeader
               title="OBS Browser Source"
               description="Add this URL as a browser source in OBS. The meter updates automatically as chaos changes."
-              action={<StatusPill tone={statusTone(chaos.status)} label={statusLabel(chaos.status)} detail={`${percent}%`} />}
+              action={
+                <StatusPill tone={statusTone(chaos.status)} label={statusLabel(chaos.status)} detail={`${percent}%`} />
+              }
             />
             <CopyField label="Chat chaos overlay URL" value={OVERLAY_URL} />
           </Card>
@@ -127,7 +132,15 @@ export default function ChatChaosPage() {
               title="Meter Setup"
               description="Set the on-stream copy, maximum threshold, and decay rate for future automation."
               action={
-                <Button type="button" variant={chaos.visible ? "secondary" : "primary"} size="sm" loading={saving} onClick={() => patch({ visible: !chaos.visible }, chaos.visible ? "Chaos meter hidden" : "Chaos meter shown")}>
+                <Button
+                  type="button"
+                  variant={chaos.visible ? "secondary" : "primary"}
+                  size="sm"
+                  loading={saving}
+                  onClick={() =>
+                    patch({ visible: !chaos.visible }, chaos.visible ? "Chaos meter hidden" : "Chaos meter shown")
+                  }
+                >
                   {chaos.visible ? "Hide on stream" : "Show on stream"}
                 </Button>
               }
@@ -149,47 +162,95 @@ export default function ChatChaosPage() {
           </Card>
 
           <Card hideableId="live-controls" hideableTitle="Live Controls">
-            <CardHeader title="Live Controls" description="Raise or lower the meter while live, or tune exact values for testing." />
-            <div className="chaos-control-grid">
+            <CardHeader
+              title="Live Controls"
+              description="Raise or lower the meter while live, or tune exact values for testing."
+            />
+            <ControlGrid className="chaos-control-grid">
               <section className="chaos-panel" style={{ "--chaos-color": chaos.color } as CSSProperties}>
-                <div className="chaos-live-meter">
-                  <span style={{ width: `${percent}%` }} />
-                  <strong>{chaos.level} / {chaos.threshold}</strong>
-                </div>
-                <div className="chaos-quick-grid">
+                <MeterBar
+                  className="chaos-live-meter"
+                  value={chaos.level}
+                  max={chaos.threshold}
+                  tone={statusTone(chaos.status)}
+                  trackLabel={`${chaos.level} / ${chaos.threshold}`}
+                />
+                <ControlGrid className="chaos-quick-grid">
                   {QUICK_AMOUNTS.map((amount) => (
-                    <Button key={amount} type="button" variant="primary" size="sm" loading={saving} onClick={() => void adjust(amount)}>
+                    <Button
+                      key={amount}
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      loading={saving}
+                      onClick={() => void adjust(amount)}
+                    >
                       +{amount}
                     </Button>
                   ))}
                   {QUICK_AMOUNTS.map((amount) => (
-                    <Button key={`down-${amount}`} type="button" variant="secondary" size="sm" loading={saving} onClick={() => void adjust(-amount)}>
+                    <Button
+                      key={`down-${amount}`}
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      loading={saving}
+                      onClick={() => void adjust(-amount)}
+                    >
                       -{amount}
                     </Button>
                   ))}
-                </div>
+                </ControlGrid>
               </section>
 
               <section className="chaos-fields">
                 <label>
                   Current level
-                  <input type="number" min={0} max={chaos.threshold} value={chaos.level} onChange={(event) => patch({ level: Number(event.target.value) })} />
+                  <input
+                    type="number"
+                    min={0}
+                    max={chaos.threshold}
+                    value={chaos.level}
+                    onChange={(event) => patch({ level: Number(event.target.value) })}
+                  />
                 </label>
                 <label>
                   Threshold
-                  <input type="number" min={1} max={9999} value={chaos.threshold} onChange={(event) => patch({ threshold: Number(event.target.value) })} />
+                  <input
+                    type="number"
+                    min={1}
+                    max={9999}
+                    value={chaos.threshold}
+                    onChange={(event) => patch({ threshold: Number(event.target.value) })}
+                  />
                 </label>
                 <label>
                   Decay per minute
-                  <input type="number" min={0} max={999} value={chaos.decayPerMinute} onChange={(event) => patch({ decayPerMinute: Number(event.target.value) })} />
+                  <input
+                    type="number"
+                    min={0}
+                    max={999}
+                    value={chaos.decayPerMinute}
+                    onChange={(event) => patch({ decayPerMinute: Number(event.target.value) })}
+                  />
                 </label>
               </section>
-            </div>
+            </ControlGrid>
             <div className="chaos-action-row">
-              <Button type="button" variant="secondary" loading={saving} onClick={() => patch({ level: chaos.threshold }, "Chaos maxed")}>
+              <Button
+                type="button"
+                variant="secondary"
+                loading={saving}
+                onClick={() => patch({ level: chaos.threshold }, "Chaos maxed")}
+              >
                 Max chaos
               </Button>
-              <Button type="button" variant="secondary" loading={saving} onClick={() => patch({ level: 0 }, "Chaos calmed")}>
+              <Button
+                type="button"
+                variant="secondary"
+                loading={saving}
+                onClick={() => patch({ level: 0 }, "Chaos calmed")}
+              >
                 Calm down
               </Button>
               <Button type="button" variant="danger" loading={saving} onClick={() => void reset()}>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { api, type BossFightState } from "../api";
 import { useToast } from "../hooks/useToast";
 import { overlayUrl } from "../lib/serverUrls";
-import { Button, Card, CardHeader, CopyField, EmptyState, PageHeader, StatusPill } from "../ui";
+import { Button, Card, CardHeader, ControlGrid, CopyField, EmptyState, MeterBar, PageHeader, StatusPill } from "../ui";
 
 const OVERLAY_URL = overlayUrl("/o/boss-fight.html");
 const QUICK_AMOUNTS = [10, 25, 50, 100];
@@ -116,7 +116,13 @@ export default function BossFightPage() {
             <CardHeader
               title="OBS Browser Source"
               description="Add this URL as a browser source in OBS. The boss bar updates automatically as HP changes."
-              action={<StatusPill tone={boss.currentHp <= 0 ? "danger" : boss.enraged ? "warning" : "success"} label={boss.currentHp <= 0 ? "Defeated" : boss.enraged ? "Enraged" : "Active"} detail={`${hpPercent}% HP`} />}
+              action={
+                <StatusPill
+                  tone={boss.currentHp <= 0 ? "danger" : boss.enraged ? "warning" : "success"}
+                  label={boss.currentHp <= 0 ? "Defeated" : boss.enraged ? "Enraged" : "Active"}
+                  detail={`${hpPercent}% HP`}
+                />
+              }
             />
             <CopyField label="Boss fight overlay URL" value={OVERLAY_URL} />
           </Card>
@@ -126,7 +132,13 @@ export default function BossFightPage() {
               title="Boss Setup"
               description="Tune the identity, stats, and stream visibility."
               action={
-                <Button type="button" variant={boss.visible ? "secondary" : "primary"} size="sm" loading={saving} onClick={() => patch({ visible: !boss.visible }, boss.visible ? "Boss hidden" : "Boss shown")}>
+                <Button
+                  type="button"
+                  variant={boss.visible ? "secondary" : "primary"}
+                  size="sm"
+                  loading={saving}
+                  onClick={() => patch({ visible: !boss.visible }, boss.visible ? "Boss hidden" : "Boss shown")}
+                >
                   {boss.visible ? "Hide on stream" : "Show on stream"}
                 </Button>
               }
@@ -148,52 +160,108 @@ export default function BossFightPage() {
           </Card>
 
           <Card hideableId="health-controls" hideableTitle="Health Controls">
-            <CardHeader title="Health Controls" description="Apply damage, healing, shields, and phase changes while live." />
-            <div className="boss-control-grid">
+            <CardHeader
+              title="Health Controls"
+              description="Apply damage, healing, shields, and phase changes while live."
+            />
+            <ControlGrid className="boss-control-grid">
               <section className="boss-panel" style={{ "--boss-color": boss.color } as CSSProperties}>
-                <div className="boss-health-meter">
-                  <span style={{ width: `${hpPercent}%` }} />
-                  <strong>{boss.currentHp} / {boss.maxHp} HP</strong>
-                </div>
+                <MeterBar
+                  className="boss-health-meter"
+                  value={boss.currentHp}
+                  max={boss.maxHp}
+                  tone={boss.currentHp <= 0 ? "danger" : boss.enraged ? "warning" : "success"}
+                  trackLabel={`${boss.currentHp} / ${boss.maxHp} HP`}
+                />
 
-                <div className="boss-quick-grid">
+                <ControlGrid className="boss-quick-grid">
                   {QUICK_AMOUNTS.map((amount) => (
-                    <Button key={amount} type="button" variant="danger" size="sm" loading={saving} onClick={() => void damage(amount)}>
+                    <Button
+                      key={amount}
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      loading={saving}
+                      onClick={() => void damage(amount)}
+                    >
                       -{amount}
                     </Button>
                   ))}
                   {QUICK_AMOUNTS.map((amount) => (
-                    <Button key={`heal-${amount}`} type="button" variant="secondary" size="sm" loading={saving} onClick={() => void heal(amount)}>
+                    <Button
+                      key={`heal-${amount}`}
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      loading={saving}
+                      onClick={() => void heal(amount)}
+                    >
                       +{amount}
                     </Button>
                   ))}
-                </div>
+                </ControlGrid>
               </section>
 
               <section className="boss-fields">
                 <label>
                   Current HP
-                  <input type="number" min={0} max={boss.maxHp} value={boss.currentHp} onChange={(event) => patch({ currentHp: Number(event.target.value) })} />
+                  <input
+                    type="number"
+                    min={0}
+                    max={boss.maxHp}
+                    value={boss.currentHp}
+                    onChange={(event) => patch({ currentHp: Number(event.target.value) })}
+                  />
                 </label>
                 <label>
                   Max HP
-                  <input type="number" min={1} max={999999} value={boss.maxHp} onChange={(event) => patch({ maxHp: Number(event.target.value), currentHp: Number(event.target.value) })} />
+                  <input
+                    type="number"
+                    min={1}
+                    max={999999}
+                    value={boss.maxHp}
+                    onChange={(event) =>
+                      patch({ maxHp: Number(event.target.value), currentHp: Number(event.target.value) })
+                    }
+                  />
                 </label>
                 <label>
                   Shield
-                  <input type="number" min={0} max={999999} value={boss.shield} onChange={(event) => patch({ shield: Number(event.target.value) })} />
+                  <input
+                    type="number"
+                    min={0}
+                    max={999999}
+                    value={boss.shield}
+                    onChange={(event) => patch({ shield: Number(event.target.value) })}
+                  />
                 </label>
                 <label>
                   Phase
-                  <input type="number" min={1} max={99} value={boss.phase} onChange={(event) => patch({ phase: Number(event.target.value) })} />
+                  <input
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={boss.phase}
+                    onChange={(event) => patch({ phase: Number(event.target.value) })}
+                  />
                 </label>
               </section>
-            </div>
+            </ControlGrid>
             <div className="boss-action-row">
-              <Button type="button" variant={boss.enraged ? "primary" : "secondary"} loading={saving} onClick={() => patch({ enraged: !boss.enraged }, boss.enraged ? "Enrage disabled" : "Boss enraged")}>
+              <Button
+                type="button"
+                variant={boss.enraged ? "primary" : "secondary"}
+                loading={saving}
+                onClick={() => patch({ enraged: !boss.enraged }, boss.enraged ? "Enrage disabled" : "Boss enraged")}
+              >
                 {boss.enraged ? "Disable enrage" : "Enable enrage"}
               </Button>
-              <Button type="button" variant="secondary" loading={saving} onClick={() => patch({ currentHp: boss.maxHp }, "Boss restored")}>
+              <Button
+                type="button"
+                variant="secondary"
+                loading={saving}
+                onClick={() => patch({ currentHp: boss.maxHp }, "Boss restored")}
+              >
                 Restore HP
               </Button>
               <Button type="button" variant="danger" loading={saving} onClick={() => void reset()}>

@@ -183,18 +183,25 @@ export default function App() {
                 <span>{section.label}</span>
                 <span className="nav-section-chevron" aria-hidden="true" />
               </button>
-              <div className="nav-section-items" hidden={collapsedSections[section.label]}>
-                {section.items.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    end={item.path === "" || ("end" in item && item.end)}
-                    className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
-                  >
-                    <span>{item.label}</span>
-                    {item.path === "/setup" && setupNeedsAttention ? <small>Start</small> : null}
-                  </NavLink>
-                ))}
+              <div
+                className="nav-section-items"
+                data-collapsed={collapsedSections[section.label] ? "true" : "false"}
+                aria-hidden={collapsedSections[section.label] || undefined}
+              >
+                <div className="nav-section-items__inner">
+                  {section.items.map((item) => (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      end={item.path === "" || ("end" in item && item.end)}
+                      tabIndex={collapsedSections[section.label] ? -1 : undefined}
+                      className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+                    >
+                      <span>{item.label}</span>
+                      {item.path === "/setup" && setupNeedsAttention ? <small>Start</small> : null}
+                    </NavLink>
+                  ))}
+                </div>
               </div>
             </div>
           ))}
@@ -203,23 +210,25 @@ export default function App() {
       <main className="main">
         <GlobalHotkeys />
         <div className="app-topbar">
-          <div className="live-status-bar" aria-label="Live readiness status">
-            <StatusPill to="/integrations" tone={preflight?.twitch.connected ? "success" : "danger"} label="Twitch" detail={String(preflight?.twitch.displayName ?? preflight?.twitch.login ?? "Offline")} />
-            <StatusPill
-              to="/integrations"
-              tone={preflight?.twitch.chat?.connected ? "success" : preflight?.twitch.connected ? "warning" : "danger"}
-              label="Chat"
-              detail={preflight?.twitch.chat?.connected ? "Live" : preflight?.twitch.chat?.status === "error" ? "Needs reconnect" : preflight?.twitch.connected ? "Pending" : "Offline"}
-            />
-            <StatusPill to="/integrations" tone={preflight?.obs.connected ? "success" : "danger"} label="OBS" detail={preflight?.obs.connected ? `${preflight.obs.host}:${preflight.obs.port}` : "Offline"} />
-            <StatusPill
-              to="/overlays"
-              tone={expectedOverlays && reachableOverlays === expectedOverlays ? "success" : reachableOverlays ? "warning" : "danger"}
-              label="Browser sources"
-              detail={expectedOverlays ? `${reachableOverlays}/${expectedOverlays}` : "Checking"}
-            />
-            <StatusPill to="/" tone={preflight?.alerts.paused ? "warning" : "info"} label="Alert queue" detail={preflight?.alerts.paused ? "Paused" : `${preflight?.alerts.queued ?? 0} queued`} />
-            {error ? <StatusPill to="/" tone="danger" label="Health" detail={error} /> : null}
+          <div className="app-topbar-status-cluster">
+            <div className="live-status-bar" aria-label="Live readiness status">
+              <StatusPill to="/integrations" tone={preflight?.twitch.connected ? "success" : "danger"} label="Twitch" detail={String(preflight?.twitch.displayName ?? preflight?.twitch.login ?? "Offline")} />
+              <StatusPill
+                to="/integrations"
+                tone={preflight?.twitch.chat?.connected ? "success" : preflight?.twitch.connected ? "warning" : "danger"}
+                label="Chat"
+                detail={preflight?.twitch.chat?.connected ? "Live" : preflight?.twitch.chat?.status === "error" ? "Needs reconnect" : preflight?.twitch.connected ? "Pending" : "Offline"}
+              />
+              <StatusPill to="/integrations" tone={preflight?.obs.connected ? "success" : "danger"} label="OBS" detail={preflight?.obs.connected ? `${preflight.obs.host}:${preflight.obs.port}` : "Offline"} />
+              <StatusPill
+                to="/overlays"
+                tone={expectedOverlays && reachableOverlays === expectedOverlays ? "success" : reachableOverlays ? "warning" : "danger"}
+                label="Browser sources"
+                detail={expectedOverlays ? `${reachableOverlays}/${expectedOverlays}` : "Checking"}
+              />
+              <StatusPill to="/" tone={preflight?.alerts.paused ? "warning" : "info"} label="Alert queue" detail={preflight?.alerts.paused ? "Paused" : `${preflight?.alerts.queued ?? 0} queued`} />
+              {error ? <StatusPill to="/" tone="danger" label="Health" detail={error} /> : null}
+            </div>
           </div>
           <div className="app-topbar-actions">
             <GlobalSaveIndicator status={saveSummary.status} label={saveSummary.label} count={saveSummary.count} />
@@ -232,9 +241,10 @@ export default function App() {
             />
           </div>
         </div>
-        <ErrorBoundary>
-          <Suspense fallback={<PageLoading />}>
-            <Routes>
+        <div className="app-page" key={location.pathname}>
+          <ErrorBoundary>
+            <Suspense fallback={<PageLoading />}>
+              <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/mobile-control" element={<MobileControlPage />} />
               <Route path="/setup" element={<SetupPage />} />
@@ -263,9 +273,10 @@ export default function App() {
               <Route path="/stream-deck" element={<StreamDeckPage />} />
               <Route path="/integrations" element={<IntegrationsPage />} />
               <Route path="/activity" element={<ActivityPage />} />
-            </Routes>
-          </Suspense>
-        </ErrorBoundary>
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
+        </div>
       </main>
     </div>
   );

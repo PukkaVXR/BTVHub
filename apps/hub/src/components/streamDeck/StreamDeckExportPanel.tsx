@@ -1,23 +1,18 @@
-import type { ApiNinjaButtonInput } from "../../lib/apiNinja";
 import { Button, CopyField } from "../../ui";
 import type { StreamDeckGeneratedRequest } from "./streamDeckBuilderTypes";
 
 type Props = {
   request: StreamDeckGeneratedRequest;
-  exportInput: ApiNinjaButtonInput;
-  apiNinjaConfig: string;
   testResult: { ok: boolean; message: string } | null;
   copiedMessage: string | null;
-  onExportAction: (input: ApiNinjaButtonInput) => void;
-  onExportNinja: (input: ApiNinjaButtonInput) => void;
-  onCopyConfig: (config: string) => void;
+  onExportAction: () => void;
+  onExportNinja: () => void;
+  onCopyConfig: () => void;
   onTest: () => void;
 };
 
 export function StreamDeckExportPanel({
   request,
-  exportInput,
-  apiNinjaConfig,
   testResult,
   copiedMessage,
   onExportAction,
@@ -36,13 +31,13 @@ export function StreamDeckExportPanel({
       </div>
 
       <div className="stream-deck-export-grid">
-        <Button type="button" variant="primary" size="sm" onClick={() => onExportAction(exportInput)}>
+        <Button type="button" variant="primary" size="sm" onClick={onExportAction}>
           Export Stream Deck action
         </Button>
-        <Button type="button" variant="secondary" size="sm" onClick={() => onExportNinja(exportInput)}>
+        <Button type="button" variant="secondary" size="sm" onClick={onExportNinja}>
           Export .ninja
         </Button>
-        <Button type="button" variant="secondary" size="sm" onClick={() => onCopyConfig(apiNinjaConfig)}>
+        <Button type="button" variant="secondary" size="sm" onClick={onCopyConfig}>
           Copy config
         </Button>
         <Button type="button" variant="secondary" size="sm" onClick={onTest}>

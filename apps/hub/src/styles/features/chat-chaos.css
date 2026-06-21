@@ -1,0 +1,87 @@
+.chaos-page {
+  display: grid;
+  gap: 16px;
+}
+
+.chaos-form-grid,
+.chaos-control-grid,
+.chaos-fields {
+  display: grid;
+  gap: 12px;
+}
+
+.chaos-form-grid {
+  grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1fr) 100px;
+}
+
+.chaos-form-grid label,
+.chaos-fields label {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 12px;
+  font-weight: 850;
+  gap: 6px;
+}
+
+.chaos-control-grid {
+  grid-template-columns: minmax(320px, 1fr) minmax(240px, 0.65fr);
+}
+
+.chaos-panel {
+  background:
+    radial-gradient(circle at 22% 18%, color-mix(in srgb, var(--chaos-color) 30%, transparent), transparent 38%),
+    var(--color-surface-muted);
+  border: 1px solid color-mix(in srgb, var(--chaos-color) 36%, var(--color-border-subtle));
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.chaos-live-meter {
+  gap: 0;
+}
+
+.chaos-live-meter .ui-meter-bar__track {
+  background-color: rgb(255 255 255 / 8%);
+  height: 48px;
+}
+
+.chaos-live-meter .ui-meter-bar__track span {
+  background: linear-gradient(90deg, var(--chaos-color), var(--color-status-danger));
+}
+
+.chaos-live-meter .ui-meter-bar__track strong {
+  font-size: 14px;
+}
+
+.chaos-quick-grid {
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.chaos-fields {
+  grid-template-columns: 1fr;
+}
+
+.chaos-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+@media (width <= 920px) {
+  .chaos-form-grid,
+  .chaos-control-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chaos-quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .chaos-action-row .ui-button {
+    flex: 1 1 150px;
+  }
+}

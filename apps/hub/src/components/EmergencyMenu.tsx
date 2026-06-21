@@ -101,7 +101,7 @@ export function EmergencyMenu({
               disabled={runningAction !== null}
               onClick={() => void runAction(action.id)}
             >
-              <span>{action.label}</span>
+              <span className="emergency-menu__action-label">{action.label}</span>
               <small>{action.description}</small>
             </button>
           ))}
@@ -111,7 +111,7 @@ export function EmergencyMenu({
             disabled={runningAction !== null}
             onClick={() => void runAction(automationAction)}
           >
-            <span>{automationsDisabled ? "Enable automations" : "Disable automations"}</span>
+            <span className="emergency-menu__action-label">{automationsDisabled ? "Enable automations" : "Disable automations"}</span>
             <small>{automationsDisabled ? "Allows automation rules to run again." : "Pauses automation rules while live."}</small>
           </button>
           <button
@@ -120,7 +120,7 @@ export function EmergencyMenu({
             disabled={runningAction !== null}
             onClick={() => void runAction(channelPointsAction)}
           >
-            <span>{channelPointActionsDisabled ? "Enable channel points" : "Disable channel points"}</span>
+            <span className="emergency-menu__action-label">{channelPointActionsDisabled ? "Enable channel points" : "Disable channel points"}</span>
             <small>{channelPointActionsDisabled ? "Allows redemptions to trigger actions again." : "Stops redemptions from firing actions."}</small>
           </button>
         </div>

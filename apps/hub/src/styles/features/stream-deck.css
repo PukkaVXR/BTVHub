@@ -1,3 +1,4 @@
+/* stylelint-disable no-descending-specificity -- Stream Deck subcontrols use independent local button/text selectors. */
 .stream-deck-endpoints {
   display: grid;
   gap: 8px;
@@ -91,11 +92,11 @@
   align-items: center;
   background:
     radial-gradient(circle at 30% 18%, color-mix(in srgb, var(--button-color) 34%, transparent), transparent 48%),
-    linear-gradient(145deg, color-mix(in srgb, var(--button-color) 45%, #111720), #10141c);
+    linear-gradient(145deg, color-mix(in srgb, var(--button-color) 45%, var(--color-bg-surface-2)), var(--color-bg-surface-1));
   border: 1px solid color-mix(in srgb, var(--button-color) 58%, var(--color-border-subtle));
   border-radius: 14px;
   box-shadow: 0 12px 28px color-mix(in srgb, var(--button-color) 16%, transparent);
-  color: #fff;
+  color: var(--color-text-primary);
   display: flex;
   font-size: 11px;
   font-weight: 950;
@@ -122,16 +123,16 @@
 }
 
 .stream-deck-button-style-meta code {
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: rgb(255 255 255 / 4%);
   border: 1px solid var(--color-border-subtle);
   border-radius: 6px;
   padding: 2px 6px;
 }
 
 .stream-deck-button-swatch {
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  border: 1px solid rgb(255 255 255 / 28%);
   border-radius: 999px;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 4%);
   height: 14px;
   width: 14px;
 }
@@ -354,7 +355,7 @@
   align-items: center;
   background:
     radial-gradient(circle at 25% 20%, color-mix(in srgb, var(--button-color) 55%, transparent), transparent 44%),
-    linear-gradient(145deg, color-mix(in srgb, var(--button-color) 70%, #101724), #101724);
+    linear-gradient(145deg, color-mix(in srgb, var(--button-color) 70%, var(--color-bg-surface-2)), var(--color-bg-surface-2));
   border: 1px solid color-mix(in srgb, var(--button-color) 58%, transparent);
   border-radius: 8px;
   display: inline-flex;
@@ -451,16 +452,15 @@
 }
 
 .stream-deck-key-preview-large {
-  align-items: center;
+  place-items: center center;
   aspect-ratio: 1;
   background:
     radial-gradient(circle at 28% 18%, color-mix(in srgb, var(--button-color) 50%, transparent), transparent 46%),
-    linear-gradient(145deg, color-mix(in srgb, var(--button-color) 72%, #101724), #101724);
+    linear-gradient(145deg, color-mix(in srgb, var(--button-color) 72%, var(--color-bg-surface-2)), var(--color-bg-surface-2));
   border: 1px solid color-mix(in srgb, var(--button-color) 56%, var(--color-border-subtle));
   border-radius: 18px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.13), 0 18px 44px rgba(0, 0, 0, 0.24);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 13%), 0 18px 44px rgb(0 0 0 / 24%);
   display: grid;
-  justify-items: center;
   margin-inline: auto;
   max-width: 250px;
   overflow: hidden;
@@ -493,7 +493,7 @@
 }
 
 .stream-deck-key-preview-large::before {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgb(255 255 255 / 12%);
   content: "";
   inset: 0 0 auto;
   height: 30%;
@@ -502,7 +502,7 @@
 }
 
 .stream-deck-key-preview-large::after {
-  background: rgba(0, 0, 0, 0.35);
+  background: rgb(0 0 0 / 35%);
   border-radius: 12px;
   content: "";
   inset: 44% 10% 12%;
@@ -519,18 +519,18 @@
 }
 
 .stream-deck-key-preview-large--glow {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.13), 0 0 0 2px color-mix(in srgb, var(--button-color) 80%, transparent), 0 0 36px color-mix(in srgb, var(--button-color) 34%, transparent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 13%), 0 0 0 2px color-mix(in srgb, var(--button-color) 80%, transparent), 0 0 36px color-mix(in srgb, var(--button-color) 34%, transparent);
 }
 
 .stream-deck-key-preview-large--vignette {
-  box-shadow: inset 0 -70px 100px rgba(0, 0, 0, 0.58), inset 0 1px 0 rgba(255, 255, 255, 0.13), 0 18px 44px rgba(0, 0, 0, 0.24);
+  box-shadow: inset 0 -70px 100px rgb(0 0 0 / 58%), inset 0 1px 0 rgb(255 255 255 / 13%), 0 18px 44px rgb(0 0 0 / 24%);
 }
 
 .stream-deck-key-preview-large--scanlines {
   background-image:
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 8px),
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 8%) 0 2px, transparent 2px 8px),
     radial-gradient(circle at 28% 18%, color-mix(in srgb, var(--button-color) 50%, transparent), transparent 46%),
-    linear-gradient(145deg, color-mix(in srgb, var(--button-color) 72%, #101724), #101724);
+    linear-gradient(145deg, color-mix(in srgb, var(--button-color) 72%, var(--color-bg-surface-2)), var(--color-bg-surface-2));
 }
 
 .stream-deck-key-preview-large--none::before,
@@ -544,7 +544,7 @@
 }
 
 .stream-deck-key-preview-large--image-only {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.13), 0 18px 44px rgba(0, 0, 0, 0.24);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 13%), 0 18px 44px rgb(0 0 0 / 24%);
 }
 
 .stream-deck-key-preview-large span,
@@ -559,8 +559,8 @@
   align-items: center;
   background: var(--button-color);
   border-radius: 999px;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
-  color: #fff;
+  box-shadow: 0 8px 18px rgb(0 0 0 / 24%);
+  color: var(--color-text-primary);
   display: inline-flex;
   font-size: 12px;
   font-style: normal;
@@ -610,7 +610,7 @@
 
 .stream-deck-key-preview-large small {
   align-self: start;
-  color: rgba(255, 255, 255, 0.76);
+  color: rgb(255 255 255 / 76%);
   font-size: 12px;
   font-weight: 850;
   max-width: 100%;
@@ -696,17 +696,6 @@
 
 .stream-deck-design-panel > * + * {
   margin-top: 10px;
-}
-
-@keyframes stream-deck-panel-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .stream-deck-background-tools {
@@ -796,7 +785,7 @@
 }
 
 .stream-deck-color-row__item--active {
-  border-color: #fff !important;
+  border-color: var(--color-text-primary) !important;
   box-shadow: 0 0 0 2px var(--color-accent);
 }
 

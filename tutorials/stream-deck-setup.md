@@ -59,13 +59,31 @@ For most action buttons:
 ```text
 Method: POST
 Content-Type: application/json
+Headers: X-BTV-Token: <your local token>
 Body: {}
 ```
+
+BTV requires the `X-BTV-Token` header on action and status requests. The Hub adds this automatically when you export `.ninja` or `.streamDeckAction` files from the Stream Deck page.
+
+If you build a button manually in API Ninja, add the header in plain text:
+
+```text
+X-BTV-Token:YOUR_TOKEN_HERE
+```
+
+To read your local token from the Hub browser console:
+
+```javascript
+fetch('/api/auth/token').then((response) => response.json()).then((data) => console.log(data.token));
+```
+
+Re-export buttons after moving to a new PC. The token is machine-specific.
 
 For status buttons:
 
 ```text
 Method: GET
+Headers: X-BTV-Token: <your local token>
 Body: empty
 ```
 
@@ -85,6 +103,7 @@ These `.streamDeckAction` files include:
 
 - The API Ninja plugin requirement.
 - The BTV local action URL and request settings.
+- The local `X-BTV-Token` header required for authenticated API calls.
 - A generated BTV key image using the action's suggested colour and label.
 - Generic profile/action IDs so exported files can be shared with other BTV users.
 

@@ -1,0 +1,112 @@
+.webhook-workspace {
+  grid-template-columns: minmax(250px, 340px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.webhook-list {
+  display: grid;
+  gap: 8px;
+  max-height: calc(100vh - 180px);
+  overflow: auto;
+  padding-right: 4px;
+  position: sticky;
+  top: 18px;
+}
+
+.webhook-list > button {
+  background: rgb(15 19 25 / 72%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  padding: 12px;
+  text-align: left;
+}
+
+.webhook-list > button:hover,
+.webhook-list > button.active {
+  background: rgb(91 140 255 / 15%);
+  border-color: rgb(91 140 255 / 70%);
+}
+
+.webhook-list > button span {
+  font-weight: 850;
+}
+
+.webhook-list > button small {
+  color: var(--muted);
+}
+
+.webhook-detail,
+.webhook-editor-card {
+  min-width: 0;
+}
+
+.webhook-editor-card {
+  display: grid;
+  gap: 14px;
+}
+
+.webhook-editor-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.webhook-log-card {
+  display: grid;
+  gap: 12px;
+}
+
+.webhook-log-list {
+  display: grid;
+  gap: 8px;
+}
+
+.webhook-log-item {
+  background: rgb(15 19 25 / 72%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.webhook-log-item summary {
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: minmax(170px, auto) minmax(160px, 0.45fr) minmax(0, 1fr);
+  padding: 10px 12px;
+}
+
+.webhook-log-item summary span,
+.webhook-log-item summary small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.webhook-log-item summary strong,
+.webhook-log-item summary small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.webhook-log-item pre {
+  background: var(--color-bg-canvas);
+  border-top: 1px solid var(--border);
+  color: var(--color-text-primary);
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 12px;
+  white-space: pre-wrap;
+}

@@ -1,0 +1,76 @@
+.stream-recap-page {
+  display: grid;
+  gap: 16px;
+}
+
+.stream-recap-picker {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(280px, 1fr) auto;
+}
+
+.stream-recap-picker label {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 12px;
+  font-weight: 850;
+  gap: 6px;
+}
+
+.stream-recap-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.stream-recap-stat-grid,
+.stream-recap-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.stream-recap-stat-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.stream-recap-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stream-recap-stat {
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.stream-recap-stat span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.stream-recap-stat strong {
+  color: var(--color-text-primary);
+  font-size: 22px;
+  font-weight: 950;
+}
+
+.stream-recap-list {
+  color: var(--color-text-secondary);
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.stream-recap-markdown {
+  font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+  min-height: 360px;
+  resize: vertical;
+  white-space: pre;
+}

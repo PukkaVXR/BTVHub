@@ -8,6 +8,7 @@ export interface ApiNinjaButtonInput {
   url: string;
   contentType?: string;
   body?: string;
+  headers?: Record<string, string>;
   color?: string;
   iconLabel?: string;
   showTitle?: boolean;
@@ -25,6 +26,26 @@ export interface ApiNinjaButtonInput {
   textPlacement?: "bottom" | "center" | "top";
 }
 
+export const STREAM_DECK_AUTH_HEADER = "X-BTV-Token";
+
+export function formatApiNinjaHeaders(headers: Record<string, string> | undefined): string {
+  if (!headers) return "";
+  return Object.entries(headers)
+    .filter(([, value]) => value.trim())
+    .map(([name, value]) => `${name}:${value}`)
+    .join("\n");
+}
+
+export function withStreamDeckAuthHeaders(input: ApiNinjaButtonInput, apiToken: string): ApiNinjaButtonInput {
+  return {
+    ...input,
+    headers: {
+      ...input.headers,
+      [STREAM_DECK_AUTH_HEADER]: apiToken,
+    },
+  };
+}
+
 export function createApiNinjaButton(input: ApiNinjaButtonInput) {
   return {
     version: "1.0",
@@ -36,7 +57,7 @@ export function createApiNinjaButton(input: ApiNinjaButtonInput) {
     loadFromFiles: false,
     headersFile: "",
     dataFile: "",
-    headers: "",
+    headers: formatApiNinjaHeaders(input.headers),
     data: input.body === "{}" ? "" : input.body ?? "",
     responseShown: "",
     autorunMinutes: "0",

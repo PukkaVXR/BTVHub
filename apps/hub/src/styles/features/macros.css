@@ -1,0 +1,422 @@
+/* stylelint-disable no-descending-specificity -- Macro list/editor sections intentionally use local child selectors. */
+.macro-page-actions {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgb(91 140 255 / 14%), rgb(0 245 147 / 5%)),
+    rgb(15 19 25 / 72%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+}
+
+.macro-page-actions > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.macro-page-actions strong {
+  color: var(--color-text-primary);
+}
+
+.macro-page-actions span {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.macro-workspace {
+  grid-template-columns: minmax(230px, 310px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.macro-list {
+  display: grid;
+  gap: 8px;
+  max-height: calc(100vh - 180px);
+  overflow: auto;
+  padding-right: 4px;
+  position: sticky;
+  top: 18px;
+}
+
+.macro-list-tools {
+  background: linear-gradient(180deg, var(--color-bg-page) 72%, transparent);
+  display: grid;
+  gap: 8px;
+  padding: 4px 0 6px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.macro-list-tools input {
+  margin: 0;
+}
+
+.macro-list-tools .ui-segmented-control {
+  width: 100%;
+}
+
+.macro-list-tools .ui-segmented-control__button {
+  flex: 1 1 0;
+}
+
+.macro-list-card {
+  background: rgb(15 19 25 / 72%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  gap: 7px;
+  justify-items: start;
+  padding: 10px 11px;
+  text-align: left;
+}
+
+.macro-list-card:hover,
+.macro-list-card.active {
+  background: rgb(91 140 255 / 15%);
+  border-color: rgb(91 140 255 / 70%);
+}
+
+.macro-list-card > span:first-child {
+  font-weight: 850;
+}
+
+.macro-list-meta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.macro-list-meta em {
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.macro-list-actions {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: 100%;
+}
+
+.macro-list-actions .ui-button {
+  min-height: 30px;
+  padding-inline: 8px;
+  width: 100%;
+}
+
+.macro-list-count {
+  color: var(--color-text-tertiary);
+  display: block;
+  font-size: 12px;
+  padding: 2px 4px 8px;
+  text-align: center;
+}
+
+.macro-list-card > small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.macro-detail,
+.macro-editor-card {
+  min-width: 0;
+}
+
+.macro-editor-card {
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.macro-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.macro-editor-header > div:first-child {
+  min-width: 0;
+}
+
+.macro-editor-header span {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.macro-editor-header h2 {
+  margin: 2px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.macro-editor-shell {
+  display: grid;
+  grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.macro-settings-panel,
+.macro-steps-panel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.macro-settings-panel {
+  background: rgb(8 11 16 / 48%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.macro-enabled-toggle {
+  align-items: flex-start;
+  background: rgb(91 140 255 / 8%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+}
+
+.macro-enabled-toggle input {
+  margin-top: 3px;
+}
+
+.macro-enabled-toggle span {
+  display: grid;
+  gap: 2px;
+}
+
+.macro-enabled-toggle small {
+  color: var(--color-text-secondary);
+}
+
+.macro-step-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.macro-step-picker label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  font-weight: 800;
+}
+
+.macro-step-picker select {
+  margin-bottom: 0;
+}
+
+.macro-step-list {
+  display: grid;
+  gap: 8px;
+  max-height: calc(100vh - 310px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.macro-steps-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.macro-steps-header > div {
+  display: grid;
+  gap: 2px;
+}
+
+.macro-steps-header span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.macro-step-card {
+  align-items: center;
+  background: rgb(15 19 25 / 72%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 9px 10px;
+}
+
+.macro-step-card > div:first-child {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 10px;
+  align-items: center;
+}
+
+.macro-step-card > div:first-child span {
+  grid-row: span 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--color-bg-surface-3);
+  border: 1px solid var(--color-border-subtle);
+  font-weight: 900;
+  font-size: 12px;
+}
+
+.macro-step-card strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.macro-step-card small {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.macro-step-card .actions {
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
+.macro-step-fields {
+  display: grid;
+  gap: 8px;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  padding-top: 2px;
+}
+
+.macro-step-fields--three {
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+}
+
+.macro-step-fields--command {
+  grid-template-columns: minmax(160px, 0.9fr) minmax(220px, 1.4fr) minmax(120px, 0.7fr);
+}
+
+.macro-step-fields label {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 5px;
+}
+
+.macro-step-fields input,
+.macro-step-fields select {
+  min-height: 36px;
+  margin: 0;
+}
+
+.macro-summary-strip {
+  background: rgb(91 140 255 / 9%);
+  border: 1px solid rgb(91 140 255 / 28%);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 9px 10px;
+}
+
+.macro-json-editor {
+  margin-top: 2px;
+}
+
+.macro-last-run-card {
+  margin-top: 16px;
+}
+
+.macro-last-run-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.macro-last-run-header span {
+  color: var(--color-text-secondary);
+  display: block;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.macro-last-run-header h2 {
+  margin: 2px 0 0;
+}
+
+.macro-run-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.macro-run-result {
+  align-items: center;
+  background: rgb(15 19 25 / 72%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 4px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 9px 10px;
+}
+
+.macro-run-result span {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--color-bg-surface-3);
+  font-size: 12px;
+  font-weight: 900;
+  grid-row: span 2;
+}
+
+.macro-run-result strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.macro-run-result small {
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.macro-run-result--ok {
+  border-color: color-mix(in srgb, var(--color-status-success) 44%, var(--color-border-subtle));
+}
+
+.macro-run-result--bad {
+  border-color: color-mix(in srgb, var(--color-status-danger) 52%, var(--color-border-subtle));
+}

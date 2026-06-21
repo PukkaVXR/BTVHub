@@ -10,10 +10,16 @@ Local-first control plane for OBS overlays: alerts, widgets, webhooks, and inter
 
 ## Quick start
 
-```powershell
-cd D:\ProjectBTV
-.\scripts\start.cmd
+```bash
+cd /path/to/ProjectBTV
+pnpm start
 ```
+
+Cross-platform helpers:
+
+- `pnpm start` frees ports `4781`-`4783` and starts the Hub plus overlay server.
+- `pnpm free-ports` only clears those ports.
+- Windows launchers remain available at `.\scripts\start.cmd` and `.\scripts\start.ps1`.
 
 If `start.ps1` is blocked by execution policy, use `start.cmd` (recommended) or:
 
@@ -35,7 +41,7 @@ Twitch requires **HTTPS** for OAuth redirect URIs. BTV uses:
 | Twitch OAuth | `https://127.0.0.1:4783` |
 | Spotify OAuth | `http://127.0.0.1:4782` (loopback HTTP) |
 
-1. Start `pnpm dev` or `.\scripts\start.ps1`.
+1. Start `pnpm start`, `pnpm dev`, or `.\scripts\start.ps1`.
 2. Open **https://127.0.0.1:4783** in your browser and accept the certificate warning.
 3. Optional: `.\scripts\trust-cert.ps1` to trust the cert on Windows.
 4. In [Twitch Developer Console](https://dev.twitch.tv/console) -> **OAuth Redirect URLs**, add:

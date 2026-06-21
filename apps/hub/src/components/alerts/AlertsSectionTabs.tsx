@@ -1,23 +1,26 @@
-import { NavLink } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Tabs } from "../../ui";
 
 const tabs = [
-  { to: "/alerts", label: "Projects", end: true },
-  { to: "/alerts/routing", label: "Routing" },
+  { id: "projects", to: "/alerts", label: "Projects" },
+  { id: "routing", to: "/alerts/routing", label: "Routing" },
 ];
 
 export function AlertsSectionTabs() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activeId = location.pathname.startsWith("/alerts/routing") ? "routing" : "projects";
+
   return (
-    <nav className="section-tabs" aria-label="Alerts section">
-      {tabs.map((tab) => (
-        <NavLink
-          key={tab.to}
-          to={tab.to}
-          end={tab.end}
-          className={({ isActive }) => `section-tabs__item${isActive ? " section-tabs__item--active" : ""}`}
-        >
-          <span>{tab.label}</span>
-        </NavLink>
-      ))}
-    </nav>
+    <Tabs
+      className="workflow-section-tabs"
+      ariaLabel="Alerts section"
+      items={tabs}
+      activeId={activeId}
+      onChange={(id) => {
+        const tab = tabs.find((item) => item.id === id);
+        if (tab) navigate(tab.to);
+      }}
+    />
   );
 }

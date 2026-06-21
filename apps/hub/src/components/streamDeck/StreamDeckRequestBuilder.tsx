@@ -345,8 +345,23 @@ export function StreamDeckRequestBuilder() {
   };
 
   const request = buildStreamDeckRequest(action, behaviorValues);
-  const apiNinjaConfig = buildApiNinjaConfig(request, designValues);
-  const exportInput = buildStreamDeckExportInput(request, designValues);
+
+  const buildAuthenticatedExportInput = async () => buildStreamDeckExportInput(request, designValues, await getLocalApiToken());
+
+  const exportStreamDeck = async () => {
+    await downloadStreamDeckAction(await buildAuthenticatedExportInput());
+    toast("Stream Deck action exported");
+  };
+
+  const exportNinja = async () => {
+    downloadApiNinjaButton(await buildAuthenticatedExportInput());
+    toast("API Ninja file exported");
+  };
+
+  const copyApiNinjaConfig = async () => {
+    const token = await getLocalApiToken();
+    await copy(buildApiNinjaConfig(request, designValues, token), "API Ninja config copied");
+  };
 
   const updateDesign = (patch: Partial<StreamDeckDesignValues>) => {
     if (patch.keyTitle !== undefined) setKeyTitle(patch.keyTitle);
@@ -376,7 +391,7 @@ export function StreamDeckRequestBuilder() {
         description="Build importable Stream Deck keys with BTV actions, API Ninja settings, visual styling, and testable payloads."
         action={
           <div className="stream-deck-builder__header-actions">
-            <Button type="button" variant="primary" size="sm" onClick={() => void downloadStreamDeckAction(exportInput).then(() => toast("Stream Deck action exported"))}>
+            <Button type="button" variant="primary" size="sm" onClick={() => void exportStreamDeck()}>
               Export Stream Deck action
             </Button>
             <Button type="button" variant="secondary" size="sm" onClick={() => void testRequest()}>
@@ -415,13 +430,11 @@ export function StreamDeckRequestBuilder() {
         />
         <StreamDeckExportPanel
           request={request}
-          exportInput={exportInput}
-          apiNinjaConfig={apiNinjaConfig}
           testResult={testResult}
           copiedMessage={copied}
-          onExportAction={(input) => void downloadStreamDeckAction(input).then(() => toast("Stream Deck action exported"))}
-          onExportNinja={downloadApiNinjaButton}
-          onCopyConfig={(config) => void copy(config, "API Ninja config copied")}
+          onExportAction={() => void exportStreamDeck()}
+          onExportNinja={() => void exportNinja()}
+          onCopyConfig={() => void copyApiNinjaConfig()}
           onTest={() => void testRequest()}
         />
       </div>

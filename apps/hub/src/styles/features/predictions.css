@@ -1,0 +1,95 @@
+/* stylelint-disable no-descending-specificity -- Prediction meter and control blocks style independent strong elements. */
+.prediction-page {
+  display: grid;
+  gap: 16px;
+}
+
+.prediction-form-grid,
+.prediction-option-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.prediction-form-grid {
+  grid-template-columns: minmax(220px, 0.7fr) minmax(280px, 1fr);
+}
+
+.prediction-form-grid label,
+.prediction-option-card label {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 12px;
+  font-weight: 850;
+  gap: 6px;
+}
+
+.prediction-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.prediction-option-grid {
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+}
+
+.prediction-option-card {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--prediction-color) 20%, transparent), transparent 48%),
+    var(--color-surface-muted);
+  border: 1px solid color-mix(in srgb, var(--prediction-color) 36%, var(--color-border-subtle));
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.prediction-option-card__header {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 92px;
+}
+
+.prediction-vote-meter {
+  gap: 0;
+}
+
+.prediction-vote-meter .ui-meter-bar__track {
+  background-color: rgb(255 255 255 / 8%);
+  height: 38px;
+}
+
+.prediction-vote-meter .ui-meter-bar__track span {
+  background: linear-gradient(90deg, var(--prediction-color), color-mix(in srgb, var(--prediction-color) 44%, transparent));
+}
+
+.prediction-vote-meter .ui-meter-bar__track strong {
+  font-size: 13px;
+}
+
+.prediction-vote-control {
+  align-items: center;
+  gap: 10px;
+  grid-template-columns: auto minmax(90px, 1fr) auto;
+}
+
+.prediction-vote-control > strong {
+  color: var(--color-text-primary);
+  font-size: clamp(34px, 5vw, 54px);
+  font-weight: 1000;
+  line-height: 1;
+  text-align: center;
+}
+
+@media (width <= 920px) {
+  .prediction-form-grid,
+  .prediction-option-grid,
+  .prediction-option-card__header {
+    grid-template-columns: 1fr;
+  }
+
+  .prediction-action-row .ui-button {
+    flex: 1 1 150px;
+  }
+}

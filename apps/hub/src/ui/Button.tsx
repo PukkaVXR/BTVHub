@@ -22,7 +22,7 @@ export function Button({
 }: ButtonProps) {
   const classes = ["ui-button", `ui-button--${variant}`, `ui-button--${size}`, className].filter(Boolean).join(" ");
   return (
-    <button className={classes} disabled={disabled || loading} {...props}>
+    <button className={classes} disabled={disabled || loading} aria-busy={loading || undefined} {...props}>
       {loading ? <span className="ui-button__spinner" aria-hidden="true" /> : null}
       <span>{children}</span>
     </button>

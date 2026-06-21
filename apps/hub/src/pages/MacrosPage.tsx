@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { ApiRequestError, api, type MacroConfig, type MacroRunResponse, type MacroStep } from "../api";
 import { useToast } from "../hooks/useToast";
-import { Button, ButtonLink, EmptyState, FormField, PageHeader, StatusPill } from "../ui";
+import {
+  Button,
+  ButtonLink,
+  EmptyState,
+  FormField,
+  PageHeader,
+  SegmentedControl,
+  SplitWorkspace,
+  StatusPill,
+} from "../ui";
 
 const emptyMacro = (): MacroConfig => ({
   id: `macro-${Date.now()}`,
@@ -13,10 +22,12 @@ const emptyMacro = (): MacroConfig => ({
 function isMacroRunResponse(value: unknown): value is MacroRunResponse {
   if (!value || typeof value !== "object") return false;
   const result = value as Partial<MacroRunResponse>;
-  return typeof result.ok === "boolean"
-    && typeof result.title === "string"
-    && typeof result.message === "string"
-    && Array.isArray(result.steps);
+  return (
+    typeof result.ok === "boolean" &&
+    typeof result.title === "string" &&
+    typeof result.message === "string" &&
+    Array.isArray(result.steps)
+  );
 }
 
 function stepLabel(step: MacroStep): string {
@@ -93,7 +104,11 @@ const STEP_TEMPLATES: Array<{ type: MacroStep["type"]; label: string; template: 
   { type: "obs_record_stop", label: "Stop recording", template: { type: "obs_record_stop" } },
   { type: "obs_replay_buffer_save", label: "Save replay buffer", template: { type: "obs_replay_buffer_save" } },
   { type: "twitch_chat", label: "Send Twitch chat", template: { type: "twitch_chat", message: "Going live now!" } },
-  { type: "obs_filter", label: "Toggle OBS filter", template: { type: "obs_filter", sourceName: "Camera", filterName: "Blur", enabled: true } },
+  {
+    type: "obs_filter",
+    label: "Toggle OBS filter",
+    template: { type: "obs_filter", sourceName: "Camera", filterName: "Blur", enabled: true },
+  },
   {
     type: "run_command",
     label: "Run local command",
@@ -107,17 +122,17 @@ const STEP_TEMPLATES: Array<{ type: MacroStep["type"]; label: string; template: 
   },
 ];
 
+const MACRO_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "enabled", label: "Enabled" },
+  { id: "disabled", label: "Disabled" },
+] as const;
+
 function cloneStep(step: MacroStep): MacroStep {
   return JSON.parse(JSON.stringify(step)) as MacroStep;
 }
 
-function StepQuickFields({
-  step,
-  onChange,
-}: {
-  step: MacroStep;
-  onChange: (step: MacroStep) => void;
-}) {
+function StepQuickFields({ step, onChange }: { step: MacroStep; onChange: (step: MacroStep) => void }) {
   switch (step.type) {
     case "wait":
       return (
@@ -151,11 +166,17 @@ function StepQuickFields({
           </label>
           <label>
             Source
-            <input value={step.sourceName} onChange={(event) => onChange({ ...step, sourceName: event.target.value })} />
+            <input
+              value={step.sourceName}
+              onChange={(event) => onChange({ ...step, sourceName: event.target.value })}
+            />
           </label>
           <label>
             Visibility
-            <select value={step.visible ? "show" : "hide"} onChange={(event) => onChange({ ...step, visible: event.target.value === "show" })}>
+            <select
+              value={step.visible ? "show" : "hide"}
+              onChange={(event) => onChange({ ...step, visible: event.target.value === "show" })}
+            >
               <option value="show">Show</option>
               <option value="hide">Hide</option>
             </select>
@@ -180,15 +201,24 @@ function StepQuickFields({
         <div className="macro-step-fields macro-step-fields--three">
           <label>
             Source
-            <input value={step.sourceName} onChange={(event) => onChange({ ...step, sourceName: event.target.value })} />
+            <input
+              value={step.sourceName}
+              onChange={(event) => onChange({ ...step, sourceName: event.target.value })}
+            />
           </label>
           <label>
             Filter
-            <input value={step.filterName} onChange={(event) => onChange({ ...step, filterName: event.target.value })} />
+            <input
+              value={step.filterName}
+              onChange={(event) => onChange({ ...step, filterName: event.target.value })}
+            />
           </label>
           <label>
             State
-            <select value={step.enabled ? "enable" : "disable"} onChange={(event) => onChange({ ...step, enabled: event.target.value === "enable" })}>
+            <select
+              value={step.enabled ? "enable" : "disable"}
+              onChange={(event) => onChange({ ...step, enabled: event.target.value === "enable" })}
+            >
               <option value="enable">Enable</option>
               <option value="disable">Disable</option>
             </select>
@@ -243,7 +273,10 @@ function StepQuickFields({
         <div className="macro-step-fields">
           <label>
             Session title
-            <input value={step.title ?? ""} onChange={(event) => onChange({ ...step, title: event.target.value || undefined })} />
+            <input
+              value={step.title ?? ""}
+              onChange={(event) => onChange({ ...step, title: event.target.value || undefined })}
+            />
           </label>
         </div>
       );
@@ -281,11 +314,9 @@ export default function MacrosPage() {
       if (macroFilter === "enabled" && !macro.enabled) return false;
       if (macroFilter === "disabled" && macro.enabled) return false;
       if (!query) return true;
-      return [
-        macro.name,
-        macro.id,
-        ...macro.steps.map((step) => `${step.type} ${stepLabel(step)}`),
-      ].some((value) => value.toLowerCase().includes(query));
+      return [macro.name, macro.id, ...macro.steps.map((step) => `${step.type} ${stepLabel(step)}`)].some((value) =>
+        value.toLowerCase().includes(query),
+      );
     });
   }, [macroFilter, macroSearch, macros]);
 
@@ -361,7 +392,7 @@ export default function MacrosPage() {
     const draft = { ...editing, steps: parsed.steps };
     await api.saveMacro(draft);
     setEditing(draft);
-    setMacros((current) => current.map((macro) => macro.id === draft.id ? draft : macro));
+    setMacros((current) => current.map((macro) => (macro.id === draft.id ? draft : macro)));
     await run(draft);
   };
 
@@ -408,11 +439,16 @@ export default function MacrosPage() {
 
   return (
     <>
-      <PageHeader title="Macros" description="Create ordered stream actions for Stream Deck keys and dashboard controls." />
+      <PageHeader
+        title="Macros"
+        description="Create ordered stream actions for Stream Deck keys and dashboard controls."
+      />
 
       <div className="macro-page-actions">
         <div>
-          <strong>{macros.length} macro{macros.length === 1 ? "" : "s"}</strong>
+          <strong>
+            {macros.length} macro{macros.length === 1 ? "" : "s"}
+          </strong>
           <span>{macros.filter((macro) => macro.enabled).length} enabled for dashboards and Stream Deck actions</span>
         </div>
         <div className="actions">
@@ -425,82 +461,126 @@ export default function MacrosPage() {
         </div>
       </div>
 
-      <div className="macro-workspace">
-        <aside className="macro-list" aria-label="Configured macros">
-          <div className="macro-list-tools">
-            <input
-              value={macroSearch}
-              onChange={(event) => setMacroSearch(event.target.value)}
-              placeholder="Search macros or steps"
-              aria-label="Search macros"
-            />
-            <div className="macro-filter-tabs" role="tablist" aria-label="Filter macros">
-              {(["all", "enabled", "disabled"] as const).map((filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  className={macroFilter === filter ? "active" : ""}
-                  onClick={() => setMacroFilter(filter)}
-                >
-                  {filter}
-                </button>
-              ))}
+      <SplitWorkspace
+        className="macro-workspace"
+        sidebarClassName="macro-list"
+        detailClassName="macro-detail"
+        sidebarLabel="Configured macros"
+        sidebar={
+          <>
+            <div className="macro-list-tools">
+              <input
+                value={macroSearch}
+                onChange={(event) => setMacroSearch(event.target.value)}
+                placeholder="Search macros or steps"
+                aria-label="Search macros"
+              />
+              <SegmentedControl
+                ariaLabel="Filter macros"
+                size="sm"
+                items={MACRO_FILTERS}
+                activeId={macroFilter}
+                onChange={(filter) => setMacroFilter(filter as typeof macroFilter)}
+              />
             </div>
-          </div>
-          {visibleMacros.map((macro) => (
-            <div
-              key={macro.id}
-              role="button"
-              tabIndex={0}
-              className={`macro-list-card${editing?.id === macro.id ? " active" : ""}`}
-              onClick={() => edit(macro)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  edit(macro);
-                }
-              }}
-            >
-              <span>{macro.name}</span>
-              <small>
-                {macro.steps.slice(0, 3).map(stepLabel).join(" -> ")}
-                {macro.steps.length > 3 ? " -> ..." : ""}
-              </small>
-              <span className="macro-list-meta">
-                <StatusPill tone={macro.enabled ? "success" : "neutral"} label={macro.enabled ? "Enabled" : "Disabled"} />
-                <em>{macro.steps.length} step{macro.steps.length === 1 ? "" : "s"}</em>
+            {visibleMacros.map((macro) => (
+              <div
+                key={macro.id}
+                role="button"
+                tabIndex={0}
+                className={`macro-list-card${editing?.id === macro.id ? " active" : ""}`}
+                onClick={() => edit(macro)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    edit(macro);
+                  }
+                }}
+              >
+                <span>{macro.name}</span>
+                <small>
+                  {macro.steps.slice(0, 3).map(stepLabel).join(" -> ")}
+                  {macro.steps.length > 3 ? " -> ..." : ""}
+                </small>
+                <span className="macro-list-meta">
+                  <StatusPill
+                    tone={macro.enabled ? "success" : "neutral"}
+                    label={macro.enabled ? "Enabled" : "Disabled"}
+                  />
+                  <em>
+                    {macro.steps.length} step{macro.steps.length === 1 ? "" : "s"}
+                  </em>
+                </span>
+                <span className="macro-list-actions">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void run(macro);
+                    }}
+                    disabled={!macro.enabled}
+                  >
+                    Run
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void toggleMacroEnabled(macro);
+                    }}
+                  >
+                    {macro.enabled ? "Disable" : "Enable"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void duplicateMacro(macro);
+                    }}
+                  >
+                    Copy
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void remove(macro.id);
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </span>
+              </div>
+            ))}
+            {!macros.length ? (
+              <EmptyState
+                title="No macros yet"
+                description="Create one to chain OBS, Twitch, alert, and session actions."
+              />
+            ) : null}
+            {macros.length && !visibleMacros.length ? (
+              <EmptyState
+                title="No matching macros"
+                description="Try another search or switch the filter back to all."
+              />
+            ) : null}
+            {visibleMacros.length ? (
+              <span className="macro-list-count">
+                Showing {visibleMacros.length} of {macros.length}
               </span>
-              <span className="macro-list-actions">
-                <Button type="button" variant="primary" size="sm" onClick={(event) => { event.stopPropagation(); void run(macro); }} disabled={!macro.enabled}>
-                  Run
-                </Button>
-                <Button type="button" variant="secondary" size="sm" onClick={(event) => { event.stopPropagation(); void toggleMacroEnabled(macro); }}>
-                  {macro.enabled ? "Disable" : "Enable"}
-                </Button>
-                <Button type="button" variant="secondary" size="sm" onClick={(event) => { event.stopPropagation(); void duplicateMacro(macro); }}>
-                  Copy
-                </Button>
-                <Button type="button" variant="danger" size="sm" onClick={(event) => { event.stopPropagation(); void remove(macro.id); }}>
-                  Delete
-                </Button>
-              </span>
-            </div>
-          ))}
-          {!macros.length ? (
-            <EmptyState title="No macros yet" description="Create one to chain OBS, Twitch, alert, and session actions." />
-          ) : null}
-          {macros.length && !visibleMacros.length ? (
-            <EmptyState title="No matching macros" description="Try another search or switch the filter back to all." />
-          ) : null}
-          {visibleMacros.length ? (
-            <span className="macro-list-count">
-              Showing {visibleMacros.length} of {macros.length}
-            </span>
-          ) : null}
-        </aside>
-
-        <main className="macro-detail">
-          {editing ? (
+            ) : null}
+          </>
+        }
+        detail={
+          editing ? (
             <div className="card macro-editor-card">
               <div className="macro-editor-header">
                 <div>
@@ -540,9 +620,14 @@ export default function MacrosPage() {
                   <div className="macro-step-picker">
                     <label>
                       Add step
-                      <select value={stepTemplateType} onChange={(e) => setStepTemplateType(e.target.value as MacroStep["type"])}>
+                      <select
+                        value={stepTemplateType}
+                        onChange={(e) => setStepTemplateType(e.target.value as MacroStep["type"])}
+                      >
                         {STEP_TEMPLATES.map((item) => (
-                          <option key={item.type} value={item.type}>{item.label}</option>
+                          <option key={item.type} value={item.type}>
+                            {item.label}
+                          </option>
                         ))}
                       </select>
                     </label>
@@ -550,7 +635,12 @@ export default function MacrosPage() {
                       type="button"
                       variant="secondary"
                       size="sm"
-                      onClick={() => addTemplate(STEP_TEMPLATES.find((item) => item.type === stepTemplateType)?.template ?? STEP_TEMPLATES[0].template)}
+                      onClick={() =>
+                        addTemplate(
+                          STEP_TEMPLATES.find((item) => item.type === stepTemplateType)?.template ??
+                            STEP_TEMPLATES[0].template,
+                        )
+                      }
                     >
                       Add step
                     </Button>
@@ -588,22 +678,44 @@ export default function MacrosPage() {
                   </div>
 
                   <div className="macro-step-list">
-                    {parsedSteps.ok && parsedSteps.steps.length ? parsedSteps.steps.map((step, index) => (
-                      <div key={`${step.type}-${index}`} className="macro-step-card">
-                        <div>
-                          <span>{index + 1}</span>
-                          <strong>{stepLabel(step)}</strong>
-                          <small>{step.type}</small>
+                    {parsedSteps.ok && parsedSteps.steps.length ? (
+                      parsedSteps.steps.map((step, index) => (
+                        <div key={`${step.type}-${index}`} className="macro-step-card">
+                          <div>
+                            <span>{index + 1}</span>
+                            <strong>{stepLabel(step)}</strong>
+                            <small>{step.type}</small>
+                          </div>
+                          <div className="actions">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => moveStep(index, -1)}
+                              disabled={index === 0}
+                            >
+                              Up
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => moveStep(index, 1)}
+                              disabled={index === parsedSteps.steps.length - 1}
+                            >
+                              Down
+                            </Button>
+                            <Button type="button" variant="secondary" size="sm" onClick={() => duplicateStep(index)}>
+                              Duplicate
+                            </Button>
+                            <Button type="button" variant="danger" size="sm" onClick={() => removeStep(index)}>
+                              Remove
+                            </Button>
+                          </div>
+                          <StepQuickFields step={step} onChange={(nextStep) => updateStep(index, nextStep)} />
                         </div>
-                        <div className="actions">
-                          <Button type="button" variant="secondary" size="sm" onClick={() => moveStep(index, -1)} disabled={index === 0}>Up</Button>
-                          <Button type="button" variant="secondary" size="sm" onClick={() => moveStep(index, 1)} disabled={index === parsedSteps.steps.length - 1}>Down</Button>
-                          <Button type="button" variant="secondary" size="sm" onClick={() => duplicateStep(index)}>Duplicate</Button>
-                          <Button type="button" variant="danger" size="sm" onClick={() => removeStep(index)}>Remove</Button>
-                        </div>
-                        <StepQuickFields step={step} onChange={(nextStep) => updateStep(index, nextStep)} />
-                      </div>
-                    )) : (
+                      ))
+                    ) : (
                       <EmptyState
                         title={parsedSteps.ok ? "No steps yet" : "Step JSON needs attention"}
                         description={parsedSteps.ok ? "Add a step to build this macro." : parsedSteps.error}
@@ -614,17 +726,22 @@ export default function MacrosPage() {
               </div>
             </div>
           ) : (
-            <EmptyState title="Select a macro" description="Choose a macro from the list or create a new one to edit its ordered steps." />
-          )}
-        </main>
-      </div>
+            <EmptyState
+              title="Select a macro"
+              description="Choose a macro from the list or create a new one to edit its ordered steps."
+            />
+          )
+        }
+      />
 
       {lastRun.length ? (
         <div className="card macro-last-run-card">
           <div className="macro-last-run-header">
             <div>
               <span>Last run</span>
-              <h2>{lastRun.filter((step) => step.ok).length}/{lastRun.length} steps completed</h2>
+              <h2>
+                {lastRun.filter((step) => step.ok).length}/{lastRun.length} steps completed
+              </h2>
             </div>
             <Button type="button" variant="secondary" size="sm" onClick={() => setLastRun([])}>
               Clear
@@ -632,7 +749,10 @@ export default function MacrosPage() {
           </div>
           <div className="macro-run-grid">
             {lastRun.map((step) => (
-              <div className={`macro-run-result ${step.ok ? "macro-run-result--ok" : "macro-run-result--bad"}`} key={`${step.index}-${step.type}`}>
+              <div
+                className={`macro-run-result ${step.ok ? "macro-run-result--ok" : "macro-run-result--bad"}`}
+                key={`${step.index}-${step.type}`}
+              >
                 <span>{step.index + 1}</span>
                 <strong>{step.type}</strong>
                 <small>{step.message}</small>

@@ -5,19 +5,26 @@
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "dev": "pnpm run build:packages && pnpm --filter @btv/hub --filter @btv/overlay-server --parallel dev",
+    "start": "node scripts/start.mjs",
     "build:packages": "pnpm --filter @btv/shared --filter @btv/twitch --filter @btv/overlay-sdk build",
     "build": "pnpm run build:packages && pnpm --filter @btv/hub --filter @btv/overlay-server build",
-    "format": "biome format --write apps packages scripts",
-    "format:check": "biome format biome.json package.json apps/hub/package.json apps/overlay-server/package.json",
-    "lint": "biome lint apps packages scripts",
+    "format": "biome format --write apps packages scripts tests biome.json package.json .stylelintrc.json playwright.config.ts",
+    "format:check": "biome format biome.json package.json .stylelintrc.json playwright.config.ts apps/hub/package.json apps/overlay-server/package.json tests",
+    "lint": "biome lint apps packages scripts tests playwright.config.ts",
+    "stylelint": "stylelint \"apps/hub/src/**/*.css\"",
     "test": "node apps/overlay-server/node_modules/vitest/vitest.mjs run --root apps/overlay-server && node apps/hub/node_modules/vitest/vitest.mjs run --root apps/hub",
+    "test:visual": "playwright test",
+    "test:visual:update": "playwright test --update-snapshots",
     "typecheck": "pnpm run -r typecheck",
-    "free-ports": "powershell -ExecutionPolicy Bypass -File scripts/free-ports.ps1"
+    "free-ports": "node scripts/free-ports.mjs"
   },
   "engines": {
     "node": ">=22.5"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.0"
+    "@biomejs/biome": "^2.5.0",
+    "@playwright/test": "^1.60.0",
+    "stylelint": "^17.13.0",
+    "stylelint-config-standard": "^40.0.0"
   }
 }
