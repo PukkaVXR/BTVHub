@@ -1027,7 +1027,7 @@ label {
 .alert-template-dialog__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.72);
+  background: color-mix(in srgb, var(--color-bg-canvas) 72%, transparent);
   backdrop-filter: blur(8px);
 }
 
@@ -1036,7 +1036,7 @@ label {
   width: min(1080px, 96vw);
   max-height: min(820px, 92vh);
   overflow: auto;
-  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.46);
+  box-shadow: 0 28px 90px color-mix(in srgb, var(--color-bg-canvas) 46%, transparent);
 }
 
 .alert-template-dialog__header {
@@ -1081,17 +1081,17 @@ label {
   display: grid;
   gap: 6px;
   padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  color: var(--text);
-  background: var(--surface2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface-3);
   text-align: left;
   cursor: pointer;
 }
 
 .animation-preset-gallery button.active {
-  border-color: rgba(91, 140, 255, 0.9);
-  background: rgba(91, 140, 255, 0.16);
+  border-color: color-mix(in srgb, var(--color-accent) 90%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 16%, transparent);
 }
 
 .animation-preset-gallery strong {
@@ -1102,7 +1102,7 @@ label {
   width: 100%;
   height: 28px;
   border-radius: 6px;
-  background: linear-gradient(90deg, #5b8cff, #78f7ff);
+  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-secondary));
   animation-duration: 900ms;
   animation-iteration-count: infinite;
   animation-fill-mode: both;
@@ -1147,7 +1147,7 @@ label {
 
 .alert-collapsible-card summary {
   cursor: pointer;
-  color: var(--text);
+  color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 800;
 }
@@ -1173,14 +1173,14 @@ label {
 .alert-compact-section {
   margin: 10px 0;
   padding: 9px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: rgba(15, 19, 25, 0.72);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg-surface-1) 72%, transparent);
 }
 
 .alert-compact-section summary {
   cursor: pointer;
-  color: var(--text);
+  color: var(--color-text-primary);
   font-size: 13px;
   font-weight: 800;
 }
@@ -1197,7 +1197,7 @@ label {
 .alert-help-card ol,
 .alert-help-card ul {
   margin: 0 0 14px 18px;
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1.55;
 }
@@ -1217,10 +1217,10 @@ label {
   align-items: center;
   gap: 5px;
   padding: 7px 9px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 7px;
-  color: var(--muted);
-  background: var(--surface2);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-surface-3);
   font-size: 12px;
   font-weight: 700;
 }
@@ -1228,14 +1228,14 @@ label {
 kbd {
   min-width: 22px;
   padding: 2px 5px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--color-border-strong);
   border-radius: 5px;
-  color: var(--text);
-  background: #0f1319;
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface-1);
   font: inherit;
   font-size: 11px;
   text-align: center;
-  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 -1px 0 var(--color-surface-topline);
 }
 
 .alert-timeline {
