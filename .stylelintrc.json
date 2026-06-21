@@ -3,7 +3,6 @@
   "ignoreFiles": [
     "apps/hub/src/styles/foundation.css",
     "apps/hub/src/styles/workflows.css",
-    "apps/hub/src/styles/widgets.css",
     "apps/hub/src/styles/legacy-editor.css"
   ],
   "reportDescriptionlessDisables": true,
