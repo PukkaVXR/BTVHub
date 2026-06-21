@@ -171,7 +171,7 @@ label {
 }
 
 .overlay-layout-header p {
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-size: 13px;
 }
 
@@ -197,9 +197,9 @@ label {
 .overlay-layout-stage-shell {
   overflow: auto;
   padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: #080a0d;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-canvas);
 }
 
 .overlay-layout-stage {
@@ -208,15 +208,15 @@ label {
   aspect-ratio: 16 / 9;
   min-width: 520px;
   overflow: hidden;
-  border: 1px solid rgba(91, 140, 255, 0.25);
-  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
+  border-radius: var(--radius-md);
   user-select: none;
-  background-color: #111722;
+  background-color: var(--color-bg-surface-2);
   background-image:
-    linear-gradient(45deg, rgba(255, 255, 255, 0.07) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(255, 255, 255, 0.07) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.07) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.07) 75%);
+    linear-gradient(45deg, color-mix(in srgb, var(--color-text-primary) 7%, transparent) 25%, transparent 25%),
+    linear-gradient(-45deg, color-mix(in srgb, var(--color-text-primary) 7%, transparent) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, color-mix(in srgb, var(--color-text-primary) 7%, transparent) 75%),
+    linear-gradient(-45deg, transparent 75%, color-mix(in srgb, var(--color-text-primary) 7%, transparent) 75%);
   background-position: 0 0, 0 10px, 10px -10px, -10px 0;
   background-size: 20px 20px;
 }
@@ -224,7 +224,7 @@ label {
 .overlay-layout-safe-zone {
   position: absolute;
   inset: 5% 5%;
-  border: 1px dashed rgba(255, 255, 255, 0.24);
+  border: 1px dashed color-mix(in srgb, var(--color-text-primary) 24%, transparent);
   pointer-events: none;
   z-index: 1;
 }
@@ -238,19 +238,19 @@ label {
   align-items: center;
   gap: 3px;
   padding: 6px;
-  border: 1px solid rgba(91, 140, 255, 0.7);
-  background: rgba(91, 140, 255, 0.22);
-  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  color: var(--color-text-primary);
   text-align: center;
   cursor: move;
   overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px var(--color-surface-topline);
 }
 
 .overlay-layout-source:hover,
 .overlay-layout-source.active {
-  border-color: #ffffff;
-  background: rgba(91, 140, 255, 0.34);
+  border-color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-accent) 34%, transparent);
 }
 
 .overlay-layout-source.locked {
@@ -265,7 +265,7 @@ label {
 }
 
 .overlay-layout-source em {
-  color: rgba(255, 255, 255, 0.78);
+  color: color-mix(in srgb, var(--color-text-primary) 78%, transparent);
   font-size: clamp(9px, 1vw, 12px);
   font-style: normal;
   font-weight: 700;
@@ -277,16 +277,16 @@ label {
   bottom: -1px;
   width: 16px;
   height: 16px;
-  border: 2px solid #fff;
+  border: 2px solid var(--color-text-primary);
   border-radius: 4px 0 0 0;
-  background: var(--accent);
+  background: var(--color-accent);
   cursor: nwse-resize;
 }
 
 .overlay-layout-properties {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: rgba(15, 19, 25, 0.82);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg-surface-1) 82%, transparent);
   padding: 14px;
 }
 
@@ -303,7 +303,7 @@ label {
 }
 
 .overlay-layout-toggles label {
-  color: var(--text);
+  color: var(--color-text-primary);
   font-size: 13px;
   margin: 0;
 }
@@ -319,10 +319,10 @@ label {
   align-items: center;
   min-height: 32px;
   padding: 0 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface2);
-  color: var(--text);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface-3);
+  color: var(--color-text-primary);
   font-size: 13px;
   margin: 0;
 }
@@ -374,7 +374,7 @@ label {
 }
 
 .overlay-url-card__header p {
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-size: 12px;
   margin-top: 4px;
 }
@@ -401,7 +401,7 @@ label {
 .overlay-pack-header p,
 .overlay-pack-item p,
 .overlay-pack-item span {
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-size: 13px;
 }
 
@@ -414,9 +414,9 @@ label {
 .overlay-pack-item {
   flex-direction: column;
   padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: rgba(15, 19, 25, 0.7);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg-surface-1) 70%, transparent);
 }
 
 .overlay-pack-item div:first-child {
