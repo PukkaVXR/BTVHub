@@ -212,7 +212,7 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 - [x] Split + migrate `live-and-tools.css` (live, setup, integrations, commands, mobile, interactive, plugins); verify + commit.
 - [x] Split + migrate `widgets.css` (widgets workspace, theme editor, typography helpers); verify + commit.
 - [x] Remove legacy alert editor route and move remaining current editor support styles out of `legacy-editor.css`; verify + commit.
-- [ ] In each split: migrate references off legacy token aliases, replace stray hex with tokens, and remove dead/duplicate rules (Stylelint-assisted).
+- [x] In each split: migrate references off legacy token aliases, replace stray hex with tokens, and remove dead/duplicate rules (Stylelint-assisted).
 - [x] Update `styles.css` imports to the new feature files.
 
 ### Stage 6 - Page-level refinement
