@@ -106,14 +106,17 @@
 
 .alert-editor-toolbar {
   align-items: stretch;
-  background: var(--color-bg-surface-1);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 42%),
+    color-mix(in srgb, var(--color-bg-surface-1) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-strong) 62%, var(--color-border-subtle));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevation-1);
   display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(220px, 1fr);
-  margin-bottom: 16px;
-  padding: 12px;
+  gap: var(--space-3);
+  grid-template-columns: minmax(260px, 1fr);
+  margin-bottom: var(--space-5);
+  padding: var(--space-3);
 }
 
 .alert-editor-toolbar__project,
@@ -121,20 +124,21 @@
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .alert-editor-toolbar__project {
   justify-content: space-between;
+  row-gap: var(--space-3);
 }
 
 .alert-editor-toolbar__project label {
   align-items: center;
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   grid-template-columns: auto minmax(220px, 1fr);
   margin: 0;
-  min-width: min(100%, 380px);
+  min-width: min(100%, 420px);
 }
 
 .alert-editor-toolbar__project select {
@@ -142,8 +146,10 @@
 }
 
 .alert-editor-toolbar__group {
-  border-top: 1px solid var(--color-border-subtle);
-  padding-top: 10px;
+  background: color-mix(in srgb, var(--color-bg-surface-2) 52%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
 }
 
 .alert-editor-toolbar__group select {
@@ -156,7 +162,7 @@
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.08em;
-  margin-right: 4px;
+  margin-right: var(--space-1);
   text-transform: uppercase;
 }
 
@@ -181,17 +187,17 @@
 }
 
 .alert-editor-toolbar__overflow > div {
-  background: var(--color-bg-surface-1);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-lg, 0 18px 45px rgb(0 0 0 / 28%));
+  background: color-mix(in srgb, var(--color-bg-surface-1) 98%, transparent);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-elevation-3);
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 180px;
-  padding: 8px;
+  padding: var(--space-2);
   position: absolute;
   right: 0;
-  top: calc(100% + 6px);
+  top: calc(100% + var(--space-2));
   z-index: 30;
 }
 

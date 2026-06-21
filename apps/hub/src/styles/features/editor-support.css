@@ -434,23 +434,23 @@ label {
 
 .alert-editor-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 330px) minmax(560px, 1fr) minmax(300px, 360px);
-  gap: 16px;
+  grid-template-columns: minmax(280px, 340px) minmax(640px, 1fr) minmax(300px, 370px);
+  gap: var(--space-5);
   align-items: start;
 }
 
 .alert-editor-side-panel,
 .alert-preview-card {
-  max-height: calc(100vh - 178px);
+  max-height: calc(100vh - 190px);
   overflow: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   position: sticky;
-  top: 16px;
+  top: var(--space-5);
 }
 
 .alert-editor-side-panel {
-  padding: 14px;
+  padding: var(--space-4);
 }
 
 .alert-editor-side-panel .form-row {
@@ -1132,24 +1132,44 @@ label {
 .alert-shortcuts-card {
   grid-column: 1 / -1;
   margin-bottom: 0;
-  padding: 11px 14px;
+  padding: var(--space-3) var(--space-4);
 }
 
 .alert-help-card {
   grid-column: 1 / -1;
   margin-bottom: 0;
-  padding: 11px 14px;
+  padding: var(--space-3) var(--space-4);
 }
 
 .alert-collapsible-card {
-  box-shadow: none;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-status-info) 7%, transparent), transparent 38%),
+    color-mix(in srgb, var(--color-bg-surface-2) 88%, transparent);
+  box-shadow: var(--shadow-key-sm);
 }
 
 .alert-collapsible-card summary {
+  align-items: center;
   cursor: pointer;
+  display: flex;
+  gap: var(--space-2);
   color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 800;
+}
+
+.alert-collapsible-card summary::after {
+  color: var(--color-text-tertiary);
+  content: "Open";
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: var(--letter-spacing-label);
+  margin-left: auto;
+  text-transform: uppercase;
+}
+
+.alert-collapsible-card[open] summary::after {
+  content: "Hide";
 }
 
 .alert-collapsible-card[open] {
