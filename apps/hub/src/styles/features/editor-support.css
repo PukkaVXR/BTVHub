@@ -753,24 +753,24 @@ label {
 }
 
 .alert-preview-canvas.checkerboard {
-  background-color: #111722;
+  background-color: var(--color-bg-surface-2);
   background-image:
-    linear-gradient(45deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.08) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.08) 75%);
+    linear-gradient(45deg, color-mix(in srgb, var(--color-text-primary) 8%, transparent) 25%, transparent 25%),
+    linear-gradient(-45deg, color-mix(in srgb, var(--color-text-primary) 8%, transparent) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, color-mix(in srgb, var(--color-text-primary) 8%, transparent) 75%),
+    linear-gradient(-45deg, transparent 75%, color-mix(in srgb, var(--color-text-primary) 8%, transparent) 75%);
   background-position: 0 0, 0 12px, 12px -12px, -12px 0;
   background-size: 24px 24px;
 }
 
 .alert-preview-canvas.dark {
-  background: #111722;
+  background: var(--color-bg-surface-2);
 }
 
 .alert-safe-zone {
   position: absolute;
   inset: 54px 96px;
-  border: 2px dashed rgba(255, 255, 255, 0.28);
+  border: 2px dashed color-mix(in srgb, var(--color-text-primary) 28%, transparent);
   pointer-events: none;
   z-index: 9999;
 }
@@ -805,7 +805,7 @@ label {
 }
 
 .alert-test-panel textarea {
-  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-family: var(--font-mono);
   line-height: 1.45;
 }
 
@@ -823,18 +823,18 @@ label {
 .alert-test-state {
   align-self: center;
   justify-self: start;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 850;
   padding: 6px 9px;
 }
 
 .alert-test-state.enabled {
-  border-color: rgba(53, 208, 127, 0.42);
-  color: var(--success);
-  background: rgba(53, 208, 127, 0.1);
+  border-color: color-mix(in srgb, var(--color-status-success) 42%, transparent);
+  color: var(--color-status-success);
+  background: color-mix(in srgb, var(--color-status-success) 10%, transparent);
 }
 
 .alert-empty-state {
@@ -843,7 +843,7 @@ label {
 
 .alert-empty-state ol {
   margin: 0 0 16px 18px;
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-size: 14px;
   line-height: 1.55;
 }
@@ -864,22 +864,22 @@ label {
 .alert-template-card {
   min-height: 82px;
   padding: 11px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface2);
-  color: var(--text);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface-3);
+  color: var(--color-text-primary);
   text-align: left;
   cursor: pointer;
 }
 
 .alert-template-card:hover {
-  border-color: rgba(91, 140, 255, 0.75);
-  background: rgba(91, 140, 255, 0.12);
+  border-color: color-mix(in srgb, var(--color-accent) 75%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
 .alert-template-card.active {
-  border-color: rgba(91, 140, 255, 0.92);
-  background: rgba(91, 140, 255, 0.18);
+  border-color: color-mix(in srgb, var(--color-accent) 92%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
 }
 
 .alert-template-card strong,
@@ -893,7 +893,7 @@ label {
 }
 
 .alert-template-card span {
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-size: 12px;
   line-height: 1.35;
 }
@@ -901,7 +901,7 @@ label {
 .alert-local-templates {
   margin: 18px 0;
   padding-top: 14px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .alert-local-templates h2 {
@@ -911,19 +911,19 @@ label {
 .alert-variation-panel {
   margin: 18px 0;
   padding-top: 14px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .alert-chaos-panel {
   margin: 18px 0;
   padding-top: 14px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .alert-safety-panel {
   margin: 18px 0;
   padding-top: 14px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .alert-chaos-panel h2,
@@ -936,9 +936,9 @@ label {
   gap: 10px;
   margin: 14px 0;
   padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: rgba(255, 195, 92, 0.06);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-status-warning) 6%, transparent);
 }
 
 .alert-advanced-panel h3 {
@@ -948,7 +948,7 @@ label {
 
 .alert-advanced-panel summary {
   cursor: pointer;
-  color: var(--text);
+  color: var(--color-text-primary);
   font-weight: 800;
 }
 
@@ -961,9 +961,9 @@ label {
 
 .chaos-modifier-list label {
   padding: 7px 9px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--surface2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface-3);
   font-size: 12px;
   font-weight: 750;
 }
@@ -985,7 +985,7 @@ label {
 }
 
 .alert-template-preview p {
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-size: 13px;
 }
 
@@ -993,9 +993,9 @@ label {
   position: relative;
   height: 150px;
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: #0f1319;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface-1);
 }
 
 .alert-template-preview-frame .alert-preview-canvas {
