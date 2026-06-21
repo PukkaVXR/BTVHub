@@ -1,10 +1,10 @@
 /* stylelint-disable -- Transitional current editor and overlay support styles moved out of the removed legacy editor bundle. */
 
 code {
-  color: #dbe6ff;
-  background: rgba(91, 140, 255, 0.12);
-  border: 1px solid rgba(91, 140, 255, 0.22);
-  border-radius: 5px;
+  color: var(--color-text-primary);
+  background: var(--color-accent-soft);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 32%, transparent);
+  border-radius: var(--radius-sm);
   padding: 1px 5px;
 }
 
@@ -14,12 +14,12 @@ code {
   StatusPill, Callout, FormField, CopyField, EmptyState, and Skeleton.
 */
 .card {
-  background: rgba(20, 25, 34, 0.94);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--color-bg-surface-2) 94%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   padding: 18px;
-  margin-bottom: 16px;
-  box-shadow: var(--shadow);
+  margin-bottom: var(--space-4);
+  box-shadow: var(--shadow-elevation-2);
 }
 
 .card h2 {
@@ -37,43 +37,35 @@ code {
 input, select, textarea {
   width: 100%;
   padding: 9px 11px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: #0f1319;
-  color: var(--text);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface-1);
+  color: var(--color-text-primary);
   font-size: 14px;
   margin-bottom: 12px;
   outline: none;
 }
 
 input:focus, select:focus, textarea:focus {
-  border-color: rgba(91, 140, 255, 0.85);
-  box-shadow: 0 0 0 3px rgba(91, 140, 255, 0.16);
+  border-color: color-mix(in srgb, var(--color-accent) 78%, var(--color-border-strong));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent-glow) 52%, transparent);
 }
 
 input[type="checkbox"] {
   width: auto;
   margin: 0 6px 0 0;
-  accent-color: var(--accent);
+  accent-color: var(--color-accent);
 }
 
-input[type="range"] { padding: 0; accent-color: var(--accent); }
+input[type="range"] { padding: 0; accent-color: var(--color-accent); }
 input[type="color"] { min-height: 40px; padding: 4px; }
 
 label {
   display: block;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--color-text-secondary);
   margin-bottom: 5px;
   font-weight: 700;
-}
-
-code {
-  color: #dbe6ff;
-  background: rgba(91, 140, 255, 0.12);
-  border: 1px solid rgba(91, 140, 255, 0.22);
-  border-radius: 4px;
-  padding: 1px 5px;
 }
 
 .form-row { margin-bottom: 15px; }
@@ -87,19 +79,26 @@ code {
   font-weight: 750;
 }
 
-.badge-ok { background: var(--success-soft); color: var(--success); }
-.badge-off { background: rgba(152, 164, 181, 0.13); color: var(--muted); }
+.badge-ok {
+  background: color-mix(in srgb, var(--color-status-success) 15%, transparent);
+  color: var(--color-status-success);
+}
+
+.badge-off {
+  background: color-mix(in srgb, var(--color-text-tertiary) 13%, transparent);
+  color: var(--color-text-secondary);
+}
 
 .url-box {
-  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
-  background: #0f1319;
+  background: var(--color-bg-surface-1);
   padding: 10px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   word-break: break-all;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   margin: 8px 0;
-  color: #dbe6ff;
+  color: var(--color-text-primary);
 }
 
 .table {
@@ -112,18 +111,20 @@ code {
 .table td {
   text-align: left;
   padding: 10px 9px;
-  border-bottom: 1px solid rgba(42, 52, 68, 0.78);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-subtle) 78%, transparent);
   vertical-align: middle;
 }
 
 .table th {
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-weight: 750;
   font-size: 12px;
   text-transform: uppercase;
 }
 
-.table tbody tr:hover { background: rgba(255, 255, 255, 0.025); }
+.table tbody tr:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 2.5%, transparent);
+}
 
 .actions {
   display: flex;
@@ -137,9 +138,9 @@ code {
   gap: 12px;
   align-items: center;
   padding: 10px 12px;
-  background: rgba(20, 25, 34, 0.84);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--color-bg-surface-2) 84%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   margin-bottom: 22px;
   font-size: 13px;
 }
@@ -147,9 +148,9 @@ code {
 .preview-frame {
   width: 100%;
   height: 400px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: #000;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-canvas);
 }
 
 .overlay-layout-editor {
