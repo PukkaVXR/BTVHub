@@ -15,7 +15,7 @@ export function AlertLayerTypeInspector({ layer, assetUploading, onUpdate, onUpl
       <details open className="alert-inspector-section">
         <summary>Text</summary>
         <div className="form-row"><label>Text</label><textarea rows={3} value={layer.text} onChange={(event) => onUpdate({ text: event.target.value } as Partial<AlertLayer>)} /></div>
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <div className="grid alert-two-column-grid">
           <div><label>Font size</label><input type="number" value={layer.fontSize} onChange={(event) => onUpdate({ fontSize: Number(event.target.value) } as Partial<AlertLayer>)} /></div>
           <div><label>Weight</label><input type="number" value={layer.fontWeight} onChange={(event) => onUpdate({ fontWeight: Number(event.target.value) } as Partial<AlertLayer>)} /></div>
           <div><label>Color</label><input type="color" value={layer.color} onChange={(event) => onUpdate({ color: event.target.value } as Partial<AlertLayer>)} /></div>
@@ -32,7 +32,7 @@ export function AlertLayerTypeInspector({ layer, assetUploading, onUpdate, onUpl
     return (
       <details open className="alert-inspector-section">
         <summary>Shape</summary>
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <div className="grid alert-two-column-grid">
           <div><label>Fill</label><input value={layer.fill} onChange={(event) => onUpdate({ fill: event.target.value } as Partial<AlertLayer>)} /></div>
           <div><label>Radius</label><input type="number" value={layer.radius} onChange={(event) => onUpdate({ radius: Number(event.target.value) } as Partial<AlertLayer>)} /></div>
           <div><label>Shape</label><select value={layer.shape} onChange={(event) => onUpdate({ shape: event.target.value } as Partial<AlertLayer>)}><option value="rectangle">Rectangle</option><option value="ellipse">Ellipse</option></select></div>
@@ -45,7 +45,7 @@ export function AlertLayerTypeInspector({ layer, assetUploading, onUpdate, onUpl
     return (
       <details open className="alert-inspector-section">
         <summary>Particle</summary>
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <div className="grid alert-two-column-grid">
           <div><label>Particle type</label><select value={layer.particle} onChange={(event) => onUpdate({ particle: event.target.value } as Partial<AlertLayer>)}><option value="confetti">Confetti</option><option value="spark">Spark</option><option value="burst">Burst</option><option value="embers">Embers</option><option value="snow">Snow</option></select></div>
           <div><label>Count</label><input type="number" min={1} max={1000} value={layer.count} onChange={(event) => onUpdate({ count: Number(event.target.value) } as Partial<AlertLayer>)} /></div>
           <div><label>Color</label><input type="color" value={layer.color} onChange={(event) => onUpdate({ color: event.target.value } as Partial<AlertLayer>)} /></div>
@@ -104,23 +104,23 @@ export function AlertLayerTypeInspector({ layer, assetUploading, onUpdate, onUpl
         <>
           <details open className="alert-inspector-section">
             <summary>Audio</summary>
-            <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div className="grid alert-two-column-grid">
               <div><label>Volume</label><input type="number" min={0} max={1} step={0.05} value={layer.volume} onChange={(event) => onUpdate({ volume: Number(event.target.value) } as Partial<AlertLayer>)} /></div>
               <div><label>Start offset (ms)</label><input type="number" min={0} value={layer.startOffsetMs ?? 0} onChange={(event) => onUpdate({ startOffsetMs: Number(event.target.value) } as Partial<AlertLayer>)} /></div>
               <div><label>Fade in (ms)</label><input type="number" min={0} value={layer.fadeInMs ?? 0} onChange={(event) => onUpdate({ fadeInMs: Number(event.target.value) } as Partial<AlertLayer>)} /></div>
               <div><label>Fade out (ms)</label><input type="number" min={0} value={layer.fadeOutMs ?? 0} onChange={(event) => onUpdate({ fadeOutMs: Number(event.target.value) } as Partial<AlertLayer>)} /></div>
-              <label style={{ alignSelf: "center", marginTop: 16 }}><input type="checkbox" checked={layer.loop} onChange={(event) => onUpdate({ loop: event.target.checked } as Partial<AlertLayer>)} /> Loop</label>
-              <label style={{ alignSelf: "center", marginTop: 0 }}><input type="checkbox" checked={layer.muted} onChange={(event) => onUpdate({ muted: event.target.checked } as Partial<AlertLayer>)} /> Muted</label>
+              <label className="alert-field-check"><input type="checkbox" checked={layer.loop} onChange={(event) => onUpdate({ loop: event.target.checked } as Partial<AlertLayer>)} /> Loop</label>
+              <label className="alert-field-check alert-field-check--flush"><input type="checkbox" checked={layer.muted} onChange={(event) => onUpdate({ muted: event.target.checked } as Partial<AlertLayer>)} /> Muted</label>
             </div>
-            <div className="actions" style={{ marginTop: 0, marginBottom: 0 }}>
+            <div className="actions alert-actions-flat">
               <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={onTestAudio} disabled={!layer.assetUrl || layer.muted}>Test sound</button>
               <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={onStopAudio}>Stop sound</button>
             </div>
           </details>
           <details className="alert-inspector-section">
             <summary>Reactive</summary>
-            <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-              <label style={{ alignSelf: "center", marginTop: 16 }}><input type="checkbox" checked={layer.reactive?.enabled ?? false} onChange={(event) => onUpdate({ reactive: { ...(layer.reactive ?? { mode: "none", sensitivity: 1 }), enabled: event.target.checked } } as Partial<AlertLayer>)} /> Reactive</label>
+            <div className="grid alert-two-column-grid">
+              <label className="alert-field-check"><input type="checkbox" checked={layer.reactive?.enabled ?? false} onChange={(event) => onUpdate({ reactive: { ...(layer.reactive ?? { mode: "none", sensitivity: 1 }), enabled: event.target.checked } } as Partial<AlertLayer>)} /> Reactive</label>
               <div><label>Mode</label><select value={layer.reactive?.mode ?? "none"} onChange={(event) => onUpdate({ reactive: { ...(layer.reactive ?? { enabled: false, sensitivity: 1 }), mode: event.target.value as "none" | "amplitude" | "bass" } } as Partial<AlertLayer>)}><option value="none">None</option><option value="amplitude">Amplitude</option><option value="bass">Bass</option></select></div>
               <div><label>Sensitivity</label><input type="number" min={0} max={5} step={0.1} value={layer.reactive?.sensitivity ?? 1} onChange={(event) => onUpdate({ reactive: { ...(layer.reactive ?? { enabled: false, mode: "none" }), sensitivity: Number(event.target.value) } } as Partial<AlertLayer>)} /></div>
             </div>
@@ -131,7 +131,7 @@ export function AlertLayerTypeInspector({ layer, assetUploading, onUpdate, onUpl
       {layer.type === "video" && (
         <details open className="alert-inspector-section">
           <summary>Playback</summary>
-          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <div className="grid alert-two-column-grid">
             <label><input type="checkbox" checked={layer.loop} onChange={(event) => onUpdate({ loop: event.target.checked } as Partial<AlertLayer>)} /> Loop</label>
             <label><input type="checkbox" checked={layer.muted} onChange={(event) => onUpdate({ muted: event.target.checked } as Partial<AlertLayer>)} /> Muted</label>
           </div>

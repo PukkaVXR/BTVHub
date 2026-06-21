@@ -1813,7 +1813,7 @@ export default function AlertEditorPage() {
             testPayload={previewTestPayload}
             onApply={() => createFromTemplate(templatePreviewId)}
           />
-          <div className="actions" style={{ marginBottom: 0 }}>
+          <div className="actions alert-actions-flush">
             <button type="button" className="ui-button ui-button--primary ui-button--sm" onClick={createNew}>Blank alert</button>
             <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => void createSamplePack()} disabled={saving}>
               Add sample pack
@@ -1926,7 +1926,7 @@ export default function AlertEditorPage() {
                 <li>Set the source to 1920x1080 or match your canvas preset.</li>
                 <li>Keep custom CSS transparent and leave the source active while testing.</li>
               </ol>
-              <div className="actions" style={{ marginBottom: 0 }}>
+              <div className="actions alert-actions-flush">
                 <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => void copyObsAlertUrl()}>Copy OBS URL</button>
                 <Link className="ui-button ui-button--secondary ui-button--sm" to="/overlays">All overlay URLs</Link>
                 <Link className="ui-button ui-button--secondary ui-button--sm" to="/">Dashboard checks</Link>
@@ -1954,7 +1954,7 @@ export default function AlertEditorPage() {
                   ))}
                 </select>
               </div>
-              <div className="actions" style={{ marginBottom: 10 }}>
+              <div className="actions alert-actions-spaced">
                 <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => setTemplateDialogOpen(true)}>
                   Browse template gallery
                 </button>
@@ -1982,7 +1982,7 @@ export default function AlertEditorPage() {
                 testPayload={previewTestPayload}
                 onApply={() => createFromTemplate(templatePreviewId)}
               />
-              <div className="actions" style={{ marginTop: -6 }}>
+              <div className="actions alert-template-preview-actions">
                 <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => resetCurrentToTemplate(templatePreviewId)}>
                   Reset current to template
                 </button>
@@ -2006,7 +2006,7 @@ export default function AlertEditorPage() {
                       ))}
                     </div>
                     {selectedLocalTemplate && (
-                      <div className="actions" style={{ marginBottom: 0 }}>
+                      <div className="actions alert-actions-flush">
                         <button type="button" className="ui-button ui-button--primary ui-button--sm" onClick={() => createFromLocalTemplate(selectedLocalTemplate)}>
                           Use local template
                         </button>
@@ -2025,7 +2025,7 @@ export default function AlertEditorPage() {
               <label>Name</label>
               <input value={project.name} onChange={(e) => commitProject({ ...project, name: e.target.value, updatedAt: nowIso() })} />
             </div>
-            <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div className="grid alert-two-column-grid">
               <div>
                 <label>Event type</label>
                 <select value={project.eventType} onChange={(e) => commitProject({ ...project, eventType: e.target.value as StreamEventType, updatedAt: nowIso() })}>
@@ -2063,7 +2063,7 @@ export default function AlertEditorPage() {
                         <label>Name</label>
                         <input value={selectedVariation.name} onChange={(e) => updateVariation(selectedVariation.id, { name: e.target.value })} />
                       </div>
-                      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                      <div className="grid alert-two-column-grid">
                         <label><input type="checkbox" checked={selectedVariation.enabled} onChange={(e) => updateVariation(selectedVariation.id, { enabled: e.target.checked })} /> Enabled</label>
                         <label><input type="checkbox" checked={selectedVariation.legendary} onChange={(e) => updateVariation(selectedVariation.id, { legendary: e.target.checked })} /> Legendary</label>
                         <div><label>Priority</label><input type="number" value={selectedVariation.priority} onChange={(e) => updateVariation(selectedVariation.id, { priority: Number(e.target.value) })} /></div>
@@ -2073,7 +2073,7 @@ export default function AlertEditorPage() {
                         <div><label>User role</label><select value={selectedVariation.condition.userRole ?? ""} onChange={(e) => updateVariation(selectedVariation.id, { condition: { ...selectedVariation.condition, userRole: e.target.value ? e.target.value as NonNullable<AlertVariation["condition"]["userRole"]> : undefined } })}><option value="">Any</option><option value="broadcaster">Broadcaster</option><option value="moderator">Moderator</option><option value="subscriber">Subscriber</option><option value="vip">VIP</option></select></div>
                         <div><label>Channel point title</label><input value={selectedVariation.condition.channelPointTitle ?? ""} onChange={(e) => updateVariation(selectedVariation.id, { condition: { ...selectedVariation.condition, channelPointTitle: e.target.value || undefined } })} /></div>
                       </div>
-                      <div className="actions" style={{ marginBottom: 0 }}>
+                      <div className="actions alert-actions-flush">
                         <button type="button" className="ui-button ui-button--primary ui-button--sm" onClick={() => void testProjectInObs(selectedVariation.condition.eventType ?? project.eventType, selectedVariation.id)}>Test selected variation</button>
                         <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => duplicateVariation(selectedVariation)}>Duplicate variation</button>
                         <button type="button" className="ui-button ui-button--danger ui-button--sm" onClick={() => deleteVariation(selectedVariation.id)}>Delete variation</button>
@@ -2105,7 +2105,7 @@ export default function AlertEditorPage() {
                   onChange={(e) => updateChaos({ intensity: Number(e.target.value) })}
                 />
               </div>
-              <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+              <div className="grid alert-two-column-grid">
                 <div>
                   <label>Legendary boost %</label>
                   <input
@@ -2141,7 +2141,7 @@ export default function AlertEditorPage() {
               </label>
               <p className="subtitle">Safe mode disables custom browser-layer JavaScript during playback and keeps risky custom code contained before going live.</p>
             </details>
-            <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div className="grid alert-two-column-grid">
               <div>
                 <label>Canvas preset</label>
                 <select value={activeCanvasPreset} onChange={(e) => applyCanvasPreset(e.target.value)}>

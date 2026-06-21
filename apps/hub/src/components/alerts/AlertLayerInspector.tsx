@@ -49,7 +49,7 @@ export function AlertLayerInspector({
           <label title="Name shown in the layer stack and timeline.">Layer name</label>
           <input value={layer.name} onChange={(event) => onUpdate({ name: event.target.value })} />
         </div>
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <div className="grid alert-two-column-grid">
           <label><input type="checkbox" checked={layer.visible} onChange={(event) => onUpdate({ visible: event.target.checked })} /> Visible</label>
           <label><input type="checkbox" checked={layer.locked} onChange={(event) => onUpdate({ locked: event.target.checked })} /> Locked</label>
         </div>
@@ -57,7 +57,7 @@ export function AlertLayerInspector({
 
       <details open className="alert-inspector-section">
         <summary>Transform</summary>
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <div className="grid alert-two-column-grid">
           <div><label>X</label><input type="number" value={layer.x} onChange={(event) => onUpdate({ x: Number(event.target.value) })} /></div>
           <div><label>Y</label><input type="number" value={layer.y} onChange={(event) => onUpdate({ y: Number(event.target.value) })} /></div>
           <div><label>Width</label><input type="number" value={layer.width} onChange={(event) => onUpdate({ width: Number(event.target.value) })} /></div>
@@ -65,7 +65,7 @@ export function AlertLayerInspector({
           <div><label>Rotation</label><input type="number" value={layer.rotation} onChange={(event) => onUpdate({ rotation: Number(event.target.value) })} /></div>
           <div><label>Scale</label><input type="number" step="0.05" value={layer.scale} onChange={(event) => onUpdate({ scale: Number(event.target.value) })} /></div>
         </div>
-        <div className="actions" style={{ marginBottom: 0 }}>
+        <div className="actions alert-actions-flush">
           {(["left", "center", "right", "top", "middle", "bottom"] as AlertLayerAlignment[]).map((alignment) => (
             <button key={alignment} type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => onAlign(alignment)}>
               {alignment[0]!.toUpperCase() + alignment.slice(1)}
@@ -91,11 +91,11 @@ export function AlertLayerInspector({
           ))}
         </div>
         {layer.animation && layer.animation.preset !== "none" && (
-          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <div className="grid alert-two-column-grid">
             <div><label>Anim delay (ms)</label><input type="number" value={layer.animation.delayMs} onChange={(event) => onUpdate({ animation: { ...layer.animation!, delayMs: Number(event.target.value) } } as Partial<AlertLayer>)} /></div>
             <div><label>Anim duration (ms)</label><input type="number" value={layer.animation.durationMs} onChange={(event) => onUpdate({ animation: { ...layer.animation!, durationMs: Number(event.target.value) } } as Partial<AlertLayer>)} /></div>
             <div><label>Intensity</label><input type="number" step="0.1" min={0} max={5} value={layer.animation.intensity} onChange={(event) => onUpdate({ animation: { ...layer.animation!, intensity: Number(event.target.value) } } as Partial<AlertLayer>)} /></div>
-            <label style={{ alignSelf: "center", marginTop: 16 }}><input type="checkbox" checked={layer.animation.loop} onChange={(event) => onUpdate({ animation: { ...layer.animation!, loop: event.target.checked } } as Partial<AlertLayer>)} /> Loop</label>
+            <label className="alert-field-check"><input type="checkbox" checked={layer.animation.loop} onChange={(event) => onUpdate({ animation: { ...layer.animation!, loop: event.target.checked } } as Partial<AlertLayer>)} /> Loop</label>
           </div>
         )}
       </details>
@@ -112,7 +112,7 @@ export function AlertLayerInspector({
             {BLEND_MODES.map((mode) => <option key={mode} value={mode}>{mode}</option>)}
           </select>
         </div>
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <div className="grid alert-two-column-grid">
           <div><label>Glow</label><input type="number" min={0} max={120} value={layer.filter?.glow ?? 0} onChange={(event) => onUpdateFilter({ glow: Number(event.target.value) })} /></div>
           <div><label>Glow color</label><input value={layer.filter?.glowColor ?? "rgba(91, 140, 255, 0.9)"} onChange={(event) => onUpdateFilter({ glowColor: event.target.value })} /></div>
           <div><label>Blur</label><input type="number" min={0} max={80} value={layer.filter?.blur ?? 0} onChange={(event) => onUpdateFilter({ blur: Number(event.target.value) })} /></div>
@@ -125,13 +125,13 @@ export function AlertLayerInspector({
 
       <details open className="alert-inspector-section">
         <summary>Timing</summary>
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <div className="grid alert-two-column-grid">
           <div><label title="When this layer appears during the alert.">Start (ms)</label><input type="number" value={layer.startMs} onChange={(event) => onUpdate({ startMs: Number(event.target.value) })} /></div>
           <div><label title="When this layer disappears during the alert.">End (ms)</label><input type="number" value={layer.endMs} onChange={(event) => onUpdate({ endMs: Number(event.target.value) })} /></div>
         </div>
         <div className="alert-keyframe-panel">
           <h3>Keyframes</h3>
-          <div className="actions" style={{ marginBottom: 10 }}>
+          <div className="actions alert-actions-spaced">
             {KEYFRAME_PROPERTIES.map((property) => <button key={property} type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => onAddKeyframe(property)}>Add {property}</button>)}
           </div>
           {layer.keyframes.length ? (

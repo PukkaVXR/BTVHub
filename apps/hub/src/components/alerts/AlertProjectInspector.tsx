@@ -31,7 +31,7 @@ export function AlertProjectInspector({
           <label>Name</label>
           <input value={project.name} onChange={(event) => update({ name: event.target.value })} />
         </div>
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <div className="grid alert-two-column-grid">
           <div>
             <label>Event type</label>
             <select value={project.eventType} onChange={(event) => update({ eventType: event.target.value as StreamEventType })}>
@@ -46,7 +46,7 @@ export function AlertProjectInspector({
       </details>
       <details open className="alert-inspector-section">
         <summary>Canvas</summary>
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <div className="grid alert-two-column-grid">
           <div>
             <label>Width</label>
             <input type="number" min={320} value={project.canvas.width} onChange={(event) => updateCanvas({ width: Number(event.target.value) })} />
