@@ -453,6 +453,30 @@ label {
   padding: var(--space-4);
 }
 
+.alert-editor-side-panel > h2,
+.alert-editor-panel-title h2,
+.alert-inspector-tabs h2 {
+  font-family: var(--font-display);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+.alert-editor-side-panel > h2 {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.alert-editor-side-panel > h2::before {
+  background: var(--gradient-accent);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--color-accent-glow) 58%, transparent);
+  content: "";
+  display: block;
+  height: 10px;
+  width: 10px;
+}
+
 .alert-editor-side-panel .form-row {
   margin-bottom: 10px;
 }
@@ -486,6 +510,10 @@ label {
   box-shadow: var(--shadow-key-sm);
   margin-bottom: 10px;
   padding: 0;
+}
+
+.alert-compact-section {
+  box-shadow: var(--shadow-key-sm);
 }
 
 .alert-inspector-section > summary {
@@ -543,22 +571,33 @@ label {
 
 .layer-list {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
+}
+
+.alert-layers-title {
+  margin-top: var(--space-4);
+}
+
+.alert-layer-add-actions {
+  margin-bottom: var(--space-3);
 }
 
 .layer-row {
   width: 100%;
   display: grid;
-  grid-template-columns: 48px 1fr 54px;
-  gap: 8px;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: var(--space-2);
   align-items: center;
   text-align: left;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  padding: 9px;
-  background: var(--color-bg-surface-1);
+  padding: var(--space-2);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-bg-surface-3) 46%, transparent), transparent 48%),
+    var(--color-bg-surface-1);
   color: var(--color-text-primary);
   cursor: pointer;
+  transition: var(--transition-interactive);
 }
 
 .layer-row:hover,
@@ -567,11 +606,30 @@ label {
   background: color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
+.layer-row:hover {
+  transform: translateY(-1px);
+}
+
+.layer-row.active {
+  box-shadow: var(--shadow-key-sm), 0 0 24px color-mix(in srgb, var(--color-accent-glow) 32%, transparent);
+}
+
 .layer-row span,
 .layer-row em {
+  background: color-mix(in srgb, var(--color-bg-surface-3) 78%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
   color: var(--color-text-secondary);
   font-size: 11px;
   font-style: normal;
+  justify-self: start;
+  padding: 3px 7px;
+}
+
+.layer-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .alert-preview-card {
