@@ -219,7 +219,7 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 
 - [x] Refine Alert Editor layout and editor chrome; verify + commit.
 - [x] Refine Overlays (layout editor + URL grids); verify + commit.
-- [ ] Refine Widgets workspace; verify + commit.
+- [x] Refine Widgets workspace; verify + commit.
 - [ ] Refine Macros and Automations workspaces; verify + commit.
 - [ ] Refine Plugins and Stream Deck; verify + commit.
 - [ ] Refine Live Dashboard and Mobile Control; verify + commit.

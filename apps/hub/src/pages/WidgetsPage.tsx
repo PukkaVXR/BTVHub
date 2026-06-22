@@ -274,7 +274,7 @@ export default function WidgetsPage() {
                         </button>
                       ))}
                     </div>
-                    <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+                    <div className="grid widget-control-grid">
                       <div className="form-row">
                         <label>Theme name</label>
                         <input value={overlayTheme.name} onChange={(e) => updateTheme({ name: e.target.value })} />
@@ -342,7 +342,7 @@ export default function WidgetsPage() {
                       </div>
                     </div>
 
-                    <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+                    <div className="grid widget-control-grid">
                       <div className="form-row">
                         <label>Corner radius ({overlayTheme.borderRadius}px)</label>
                         <input
@@ -394,7 +394,7 @@ export default function WidgetsPage() {
                           onChange={(e) => updateTheme({ backgroundBlur: Number(e.target.value) })}
                         />
                       </div>
-                      <label style={{ alignSelf: "center", marginTop: 16 }}>
+                      <label className="widget-check-field">
                         <input
                           type="checkbox"
                           checked={overlayTheme.pulse}
@@ -578,7 +578,7 @@ export default function WidgetsPage() {
                                 />
                               </div>
                             </div>
-                            <div className="actions" style={{ marginTop: 0 }}>
+                            <div className="actions widget-actions-topless">
                               <label>
                                 <input
                                   type="checkbox"
@@ -733,7 +733,7 @@ export default function WidgetsPage() {
                   )}
                   {w.type === "ticker" && (
                     <>
-                      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+                      <div className="grid widget-control-grid">
                         <div className="form-row">
                           <label>Ticker title</label>
                           <input
@@ -764,7 +764,7 @@ export default function WidgetsPage() {
                           />
                         </div>
                       </div>
-                      <div className="actions" style={{ marginBottom: 12 }}>
+                      <div className="actions widget-actions-spaced">
                         <label>
                           <input
                             type="checkbox"
@@ -809,7 +809,7 @@ export default function WidgetsPage() {
                         </label>
                       </div>
                       <label>Included event types</label>
-                      <div className="actions" style={{ marginTop: 0 }}>
+                      <div className="actions widget-actions-topless">
                         {TICKER_EVENT_TYPES.map((type) => {
                           const selected = Array.isArray(w.config.eventTypes)
                             ? (w.config.eventTypes as unknown[]).includes(type)
@@ -900,10 +900,7 @@ export default function WidgetsPage() {
                   description="Configure goal values shown by the goals browser source."
                 />
                 {goals.map((g) => (
-                  <div
-                    key={g.id}
-                    style={{ display: "flex", gap: 12, alignItems: "end", marginBottom: 12, flexWrap: "wrap" }}
-                  >
+                  <div key={g.id} className="widget-goal-row">
                     <div>
                       <label>Label</label>
                       <input
