@@ -146,6 +146,15 @@ label {
   margin-bottom: 0;
 }
 
+.alert-actions-topless {
+  margin-top: 0;
+}
+
+.alert-actions-section {
+  margin-top: 0;
+  margin-bottom: var(--space-3);
+}
+
 .alert-actions-spaced {
   margin-bottom: var(--space-3);
 }
@@ -164,6 +173,18 @@ label {
 
 .alert-field-check--flush {
   margin-top: 0;
+}
+
+.alert-asset-filter-grid {
+  grid-template-columns: minmax(0, 1fr) 120px;
+}
+
+.alert-hidden-file-input {
+  display: none;
+}
+
+.alert-segmented-spaced {
+  margin-bottom: var(--space-3);
 }
 
 .status-bar {

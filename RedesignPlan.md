@@ -217,7 +217,7 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 
 ### Stage 6 - Page-level refinement
 
-- [ ] Refine Alert Editor layout and editor chrome; verify + commit.
+- [x] Refine Alert Editor layout and editor chrome; verify + commit.
 - [ ] Refine Overlays (layout editor + URL grids); verify + commit.
 - [ ] Refine Widgets workspace; verify + commit.
 - [ ] Refine Macros and Automations workspaces; verify + commit.

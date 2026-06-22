@@ -48,7 +48,8 @@ async function waitForRouteContent(page: Page, routeName: (typeof routes)[number
   }
 
   if (routeName === "alert-editor") {
-    await page.locator(".alert-preview-canvas img").first().waitFor({ state: "visible" });
+    await page.getByRole("heading", { name: "Visual Alert Editor", exact: true }).waitFor({ state: "visible" });
+    await page.getByRole("button", { name: /Use this template/ }).waitFor({ state: "visible" });
   }
 }
 

@@ -68,7 +68,7 @@ export function AlertAssetLibrary({
     <>
       <details className="alert-compact-section">
         <summary>Assets</summary>
-        <div className="grid" style={{ gridTemplateColumns: "1fr 120px" }}>
+        <div className="grid alert-asset-filter-grid">
           <div>
             <label>Search local assets</label>
             <input value={assetSearch} onChange={(event) => onAssetSearchChange(event.target.value)} placeholder="filename..." />
@@ -84,13 +84,13 @@ export function AlertAssetLibrary({
             </select>
           </div>
         </div>
-        <div className="actions" style={{ marginTop: 0, marginBottom: 12 }}>
+        <div className="actions alert-actions-section">
           <label className="ui-button ui-button--secondary ui-button--sm">
             Upload media
             <input
               type="file"
               accept="image/*,video/*,.gif,.png,.jpg,.jpeg,.webp,.mp4,.webm,.mov"
-              style={{ display: "none" }}
+              className="alert-hidden-file-input"
               disabled={assetUploading}
               onChange={(event) => {
                 const file = event.currentTarget.files?.[0];
@@ -104,7 +104,7 @@ export function AlertAssetLibrary({
             <input
               type="file"
               accept="audio/*,.mp3,.wav,.ogg,.m4a,.webm"
-              style={{ display: "none" }}
+              className="alert-hidden-file-input"
               disabled={assetUploading}
               onChange={(event) => {
                 const file = event.currentTarget.files?.[0];
@@ -146,7 +146,7 @@ export function AlertAssetLibrary({
 
       <details className="alert-compact-section">
         <summary>GIPHY</summary>
-        <div className="segmented" style={{ marginBottom: 12 }}>
+        <div className="segmented alert-segmented-spaced">
           <button type="button" className={giphyAssetType === "gif" ? "active" : ""} onClick={() => onGiphyAssetTypeChange("gif")}>
             GIFs
           </button>
@@ -165,7 +165,7 @@ export function AlertAssetLibrary({
             placeholder={giphyAssetType === "sticker" ? "sparkle, hype, emote..." : "hype, raid, explosion..."}
           />
         </div>
-        <div className="actions" style={{ marginTop: 0, marginBottom: 12 }}>
+        <div className="actions alert-actions-section">
           <button type="button" className="ui-button ui-button--primary ui-button--sm" onClick={() => onGiphySearch()} disabled={giphyLoading}>
             {giphyLoading ? "Searching..." : "Search"}
           </button>
