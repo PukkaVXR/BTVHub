@@ -221,7 +221,7 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 - [x] Refine Overlays (layout editor + URL grids); verify + commit.
 - [x] Refine Widgets workspace; verify + commit.
 - [x] Refine Macros and Automations workspaces; verify + commit.
-- [ ] Refine Plugins and Stream Deck; verify + commit.
+- [x] Refine Plugins and Stream Deck; verify + commit.
 - [ ] Refine Live Dashboard and Mobile Control; verify + commit.
 - [ ] Refine the simple pages (Integrations, Setup, Activity, Recaps, Commands, Channel Points, Soundboard, Boss/Chaos/Prediction/Tournament, Alert Projects, Alert Routing); verify + commit.
 - [ ] Confirm responsive `@media` behavior holds at the existing breakpoints.

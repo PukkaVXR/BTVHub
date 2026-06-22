@@ -1,25 +1,27 @@
 /* stylelint-disable no-descending-specificity -- Stream Deck subcontrols use independent local button/text selectors. */
 .stream-deck-endpoints {
   display: grid;
-  gap: 8px;
-  margin-top: 14px;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 
 .stream-deck-endpoints-card-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: flex-end;
 }
 
 .stream-deck-endpoints-summary {
-  background: var(--color-surface-muted);
+  background:
+    radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 34%),
+    color-mix(in srgb, var(--color-bg-surface-2) 86%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   color: var(--color-text-secondary);
   font-size: 13px;
   margin: 12px 0 0;
-  padding: 10px 12px;
+  padding: var(--space-3);
 }
 
 .stream-deck-guide-grid,
@@ -27,8 +29,8 @@
 .stream-deck-response-grid,
 .stream-deck-state-recipes {
   display: grid;
-  gap: 12px;
-  margin-top: 14px;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
 }
 
 .stream-deck-guide-grid {
@@ -42,17 +44,23 @@
 .stream-deck-guide-card,
 .stream-deck-action-button-card,
 .stream-deck-response-grid > div {
-  background-color: var(--color-surface-muted);
+  background: color-mix(in srgb, var(--color-bg-surface-2) 84%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 12px;
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 1px 0 var(--color-surface-topline);
+  padding: var(--space-3);
 }
 
 .stream-deck-action-button-card {
   align-items: start;
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
   grid-template-columns: auto minmax(0, 1fr);
+  transition: var(--transition-fast);
+}
+
+.stream-deck-action-button-card:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 34%, var(--color-border-subtle));
 }
 
 .stream-deck-action-button-card small {
@@ -80,7 +88,7 @@
 .stream-deck-action-button-card__actions {
   grid-column: 1 / -1;
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
 }
 
@@ -176,12 +184,12 @@
 }
 
 .stream-deck-state-recipe {
-  background-color: var(--color-surface-muted);
+  background: color-mix(in srgb, var(--color-bg-surface-2) 84%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   display: grid;
-  gap: 12px;
-  padding: 12px;
+  gap: var(--space-3);
+  padding: var(--space-3);
 }
 
 .stream-deck-state-recipe p {
@@ -192,7 +200,7 @@
 
 .stream-deck-guide-card {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .stream-deck-guide-card small {
@@ -213,7 +221,7 @@
 
 .stream-deck-response-grid > div {
   display: grid;
-  gap: 7px;
+  gap: var(--space-2);
 }
 
 .stream-deck-response-grid code {
@@ -229,11 +237,11 @@
 .stream-deck-endpoint {
   align-items: center;
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
   grid-template-columns: minmax(150px, 0.6fr) minmax(280px, 1.4fr);
-  padding: 10px;
+  padding: var(--space-3);
 }
 
 .stream-deck-endpoint span {
@@ -254,26 +262,29 @@
 
 .stream-deck-builder {
   display: grid;
-  gap: 14px;
+  gap: var(--space-4);
   grid-template-columns: minmax(220px, 0.85fr) minmax(280px, 1.15fr);
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 
 .stream-deck-builder-pro {
   display: grid;
-  gap: 14px;
+  gap: var(--space-4);
   grid-template-columns: minmax(260px, 0.85fr) minmax(340px, 1fr) minmax(300px, 0.95fr);
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 
 .stream-deck-builder-panel {
-  background: color-mix(in srgb, var(--color-surface-muted) 86%, transparent);
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--color-accent) 7%, transparent), transparent 34%),
+    color-mix(in srgb, var(--color-bg-surface-2) 90%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 1px 0 var(--color-surface-topline), var(--shadow-elevation-1);
   display: grid;
-  gap: 14px;
+  gap: var(--space-4);
   min-width: 0;
-  padding: 14px;
+  padding: var(--space-4);
 }
 
 .stream-deck-builder-panel--actions,
@@ -317,7 +328,7 @@
 .stream-deck-action-choice-grid,
 .stream-deck-export-grid {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .stream-deck-preset-grid {
@@ -326,9 +337,9 @@
 
 .stream-deck-preset,
 .stream-deck-action-choice {
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-bg-surface-1) 78%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   color: var(--color-text-primary);
   cursor: pointer;
   display: grid;
@@ -340,8 +351,8 @@
 
 .stream-deck-preset:hover,
 .stream-deck-action-choice:hover {
-  background: var(--color-bg-surface-3);
-  border-color: var(--color-border-strong);
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-bg-surface-3));
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border-strong));
   transform: translateY(-1px);
 }
 
@@ -375,7 +386,7 @@
 
 .stream-deck-action-group {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .stream-deck-action-group h4 {
@@ -388,7 +399,7 @@
 
 .stream-deck-form-grid {
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
@@ -421,8 +432,8 @@
 .stream-deck-builder-notes,
 .stream-deck-test-result {
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 10px;
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
 }
 
 .stream-deck-builder-warnings {
@@ -443,12 +454,12 @@
 }
 
 .stream-deck-builder-notes {
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-bg-surface-1) 78%, transparent);
 }
 
 .stream-deck-visual-builder {
   display: grid;
-  gap: 14px;
+  gap: var(--space-4);
 }
 
 .stream-deck-key-preview-large {
@@ -621,14 +632,14 @@
 
 .stream-deck-visual-presets {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
 }
 
 .stream-deck-visual-preset {
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-bg-surface-1) 78%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   color: var(--color-text-primary);
   cursor: pointer;
   display: grid;
@@ -640,8 +651,8 @@
 }
 
 .stream-deck-visual-preset:hover {
-  background: var(--color-bg-surface-3);
-  border-color: var(--color-border-strong);
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-bg-surface-3));
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border-strong));
   transform: translateY(-1px);
 }
 
@@ -661,9 +672,9 @@
 }
 
 .stream-deck-design-tabs {
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-bg-surface-1) 78%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   display: grid;
   gap: 4px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -673,7 +684,7 @@
 .stream-deck-design-tabs button {
   background: transparent;
   border: 1px solid transparent;
-  border-radius: calc(var(--radius-sm) - 3px);
+  border-radius: calc(var(--radius-md) - 4px);
   color: var(--color-text-secondary);
   cursor: pointer;
   font-size: 12px;
@@ -700,13 +711,13 @@
 
 .stream-deck-background-tools {
   align-items: center;
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-bg-surface-1) 78%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: 10px;
+  padding: var(--space-3);
 }
 
 .stream-deck-background-tools strong {
@@ -723,7 +734,7 @@
 .stream-deck-background-tools__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: flex-end;
 }
 
@@ -743,9 +754,9 @@
 }
 
 .stream-deck-focal-grid button {
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-bg-surface-1) 78%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   color: var(--color-text-secondary);
   cursor: pointer;
   font-size: 11px;
@@ -765,7 +776,7 @@
 .stream-deck-color-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .stream-deck-style-label {
@@ -815,7 +826,7 @@
 .stream-deck-builder__header-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: flex-end;
 }
 
