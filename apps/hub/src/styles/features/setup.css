@@ -220,4 +220,31 @@
   .setup-progress-card {
     position: static;
   }
+
+  .setup-step-card__header {
+    grid-template-columns: 1fr;
+  }
+
+  .setup-command-security-item {
+    flex-direction: column;
+  }
+
+  .setup-step-card__action {
+    justify-content: stretch;
+  }
+
+  .setup-step-card__action .ui-button {
+    flex: 1 1 150px;
+  }
+}
+
+@media (width <= 560px) {
+  .setup-complete-burst,
+  .setup-command-security-item {
+    display: grid;
+  }
+
+  .setup-command-security-item {
+    justify-items: start;
+  }
 }

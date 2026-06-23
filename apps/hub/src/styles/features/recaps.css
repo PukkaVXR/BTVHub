@@ -74,3 +74,34 @@
   resize: vertical;
   white-space: pre;
 }
+
+@media (width <= 1100px) {
+  .stream-recap-stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .stream-recap-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width <= 720px) {
+  .stream-recap-picker,
+  .stream-recap-stat-grid,
+  .stream-recap-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stream-recap-actions {
+    justify-content: stretch;
+  }
+
+  .stream-recap-actions .ui-button {
+    flex: 1 1 150px;
+  }
+
+  .stream-recap-markdown {
+    min-height: 260px;
+    white-space: pre-wrap;
+  }
+}
