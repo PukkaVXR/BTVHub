@@ -5,7 +5,7 @@
 
 .mobile-control-page {
   display: grid;
-  gap: 16px;
+  gap: var(--space-4);
   margin-inline: auto;
   max-width: 980px;
 }
@@ -14,21 +14,25 @@
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .mobile-control-emergency {
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--color-status-danger) 14%, transparent), transparent 34%),
+    color-mix(in srgb, var(--color-bg-surface-2) 94%, transparent);
   border-color: rgb(255 90 103 / 45%);
+  box-shadow: inset 0 1px 0 var(--color-surface-topline), 0 20px 48px rgb(0 0 0 / 22%);
   position: sticky;
-  top: 0;
+  top: var(--space-3);
   z-index: 18;
 }
 
 .mobile-control-button-grid {
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 
 .mobile-control-button-grid--emergency {
@@ -36,17 +40,20 @@
 }
 
 .mobile-control-button {
-  background-color: var(--color-surface-muted);
+  background:
+    radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--color-accent) 7%, transparent), transparent 34%),
+    color-mix(in srgb, var(--color-bg-surface-2) 84%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 1px 0 var(--color-surface-topline);
   color: var(--color-text-primary);
   cursor: pointer;
   display: grid;
-  gap: 7px;
+  gap: var(--space-2);
   min-height: 86px;
-  padding: 14px;
+  padding: var(--space-4);
   text-align: left;
-  transition: background-color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+  transition: var(--transition-fast);
 }
 
 .mobile-control-button strong {
@@ -61,9 +68,11 @@
 }
 
 .mobile-control-button:not(:disabled):hover {
-  background-color: var(--color-bg-surface-3);
-  border-color: var(--color-border-strong);
-  box-shadow: 0 14px 32px rgb(0 0 0 / 18%);
+  background:
+    radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 34%),
+    color-mix(in srgb, var(--color-bg-surface-3) 88%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 38%, var(--color-border-strong));
+  box-shadow: inset 0 1px 0 var(--color-surface-topline), 0 14px 32px rgb(0 0 0 / 18%);
   transform: translateY(-1px);
 }
 
@@ -74,27 +83,38 @@
 
 .mobile-control-button--active {
   border-color: color-mix(in srgb, var(--color-status-success) 72%, var(--color-border-subtle));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-status-success) 24%, transparent);
+  box-shadow:
+    inset 0 1px 0 var(--color-surface-topline),
+    0 0 0 1px color-mix(in srgb, var(--color-status-success) 24%, transparent),
+    0 16px 34px color-mix(in srgb, var(--color-status-success) 10%, transparent);
 }
 
 .mobile-control-button--info {
+  background:
+    radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--color-status-info) 12%, transparent), transparent 34%),
+    color-mix(in srgb, var(--color-bg-surface-2) 84%, transparent);
   border-color: color-mix(in srgb, var(--color-status-info) 42%, var(--color-border-subtle));
 }
 
 .mobile-control-button--warning {
+  background:
+    radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--color-status-warning) 12%, transparent), transparent 34%),
+    color-mix(in srgb, var(--color-bg-surface-2) 84%, transparent);
   border-color: color-mix(in srgb, var(--color-status-warning) 48%, var(--color-border-subtle));
 }
 
 .mobile-control-button--danger {
-  background-color: color-mix(in srgb, var(--color-status-danger) 18%, var(--color-surface-muted));
+  background:
+    radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--color-status-danger) 24%, transparent), transparent 34%),
+    color-mix(in srgb, var(--color-status-danger) 18%, var(--color-bg-surface-2));
   border-color: color-mix(in srgb, var(--color-status-danger) 54%, var(--color-border-subtle));
 }
 
 .mobile-control-session {
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
   grid-template-columns: minmax(0, 1fr) auto;
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 
 .mobile-control-session input {
@@ -103,18 +123,22 @@
 }
 
 .mobile-control-empty {
+  background: color-mix(in srgb, var(--color-bg-surface-2) 72%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   color: var(--color-text-secondary);
-  margin-top: 12px;
+  margin-top: var(--space-3);
+  padding: var(--space-3);
 }
 
 @media (width <= 860px) {
   .mobile-control-page {
-    gap: 12px;
+    gap: var(--space-3);
     max-width: none;
   }
 
   .mobile-control-emergency {
-    top: 10px;
+    top: var(--space-2);
   }
 
   .mobile-control-button-grid,
