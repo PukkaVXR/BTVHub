@@ -1,38 +1,43 @@
 .soundboard-header-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: flex-end;
 }
 
 .soundboard-page {
   display: grid;
-  gap: 16px;
+  gap: var(--space-5);
   grid-template-columns: minmax(260px, 0.38fr) minmax(420px, 1fr);
 }
 
 .soundboard-list {
   display: grid;
-  gap: 10px;
+  gap: var(--space-2);
 }
 
 .soundboard-list-item {
-  background-color: var(--color-surface-muted);
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--color-accent) 7%, transparent), transparent 34%),
+    color-mix(in srgb, var(--color-bg-surface-2) 82%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 1px 0 var(--color-surface-topline);
   color: var(--color-text-primary);
   cursor: pointer;
   display: grid;
   gap: 5px;
-  padding: 12px;
+  padding: var(--space-3);
   text-align: left;
-  transition: background-color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+  transition: var(--transition-fast);
 }
 
 .soundboard-list-item:hover,
 .soundboard-list-item.active {
-  background-color: var(--color-surface-subtle);
-  border-color: var(--color-accent);
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 34%),
+    color-mix(in srgb, var(--color-bg-surface-3) 84%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 58%, var(--color-border-subtle));
 }
 
 .soundboard-list-item:active {
@@ -58,7 +63,7 @@
 
 .soundboard-editor {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -73,7 +78,7 @@
 
 .soundboard-editor__wide {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   grid-column: 1 / -1;
 }
 
@@ -81,8 +86,8 @@
   border-top: 1px solid var(--color-border-subtle);
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
-  padding-top: 14px;
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
 }
 
 @media (width <= 1100px) {
