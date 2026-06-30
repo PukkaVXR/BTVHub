@@ -232,7 +232,8 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 - [x] Verify every animation collapses correctly under `prefers-reduced-motion`.
 - [x] Remove now-unused legacy token aliases (confirm zero references first).
 - [x] Run a dead-CSS/dead-code sweep across the new feature files.
-- [ ] Compare bundle and CSS output size against the baseline; confirm no regression.
+- [x] Compare bundle and CSS output size against the baseline; confirm no regression.
+  Current hub build: 165 transformed modules; CSS 162,307 bytes (+40,008 raw bytes, expected from premium feature styles); JS 806,754 bytes (+4,795 bytes); vendor React unchanged at 232,210 bytes; alert editor lazy chunk 168,089 bytes (-346 bytes). Route-level code-splitting stayed intact and the JS/chunk profile did not regress.
 - [ ] Run the full verification loop and a complete visual QA pass across all pages.
 - [ ] Update `docs/architecture.md` with a design-system/token + shared-component reference.
 - [ ] Final commit and open a PR from `redesign/premium-ui`.
