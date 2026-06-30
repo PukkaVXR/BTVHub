@@ -342,7 +342,7 @@ Goal: make BTV extensible.
 - [x] BTV Doctor.
 - [x] Alert editor.
 - [x] Basic automations.
-- [ ] Import/export config.
+- [x] Import/export config.
 - [ ] Crash-safe startup.
 
 ### Public Beta

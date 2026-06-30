@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { api, type IntegrationsInfo, type LocalCommandRequest, type LocalCommandSecurityResponse, type PreflightInfo } from "../api";
+import { api, type ConfigProfileExport, type IntegrationsInfo, type LocalCommandRequest, type LocalCommandSecurityResponse, type PreflightInfo } from "../api";
+import { downloadJsonFile, safeDownloadName } from "../lib/browserDownloads";
 import { useToast } from "../hooks/useToast";
 import { setupReadinessSteps, type SetupReadinessStep } from "../lib/readiness";
 import { readSetupCompleted, writeSetupCompleted } from "../lib/setupCompletion";
@@ -54,6 +55,7 @@ export default function SetupPage() {
 
   const runStepAction = (step: SetupReadinessStep) => {
     if (step.actionId === "test-follow") void testFollow();
+    if (step.actionId === "export-backup") void exportConfigBackup();
   };
 
   const approveCommand = async (command: LocalCommandRequest) => {
@@ -71,6 +73,29 @@ export default function SetupPage() {
     await api.revokeLocalCommand(id);
     toast({ message: "Local command approval revoked", tone: "info" });
     load();
+  };
+
+  const exportConfigBackup = async () => {
+    try {
+      const backup = await api.exportConfigProfile();
+      const filename = `${safeDownloadName(`btv-config-${new Date().toISOString().slice(0, 10)}`, "btv-config")}.btv-config.json`;
+      downloadJsonFile(filename, backup);
+      toast({ message: "Config backup downloaded", tone: "success" });
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Could not export config backup");
+    }
+  };
+
+  const importConfigBackup = async (file: File) => {
+    try {
+      const profile = JSON.parse(await file.text()) as ConfigProfileExport;
+      if (!window.confirm("Import this BTV config backup? Current config, alerts, widgets, macros, automations, and webhooks will be replaced.")) return;
+      await api.importConfigProfile(profile);
+      toast({ message: "Config backup imported", tone: "success" });
+      load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Could not import config backup");
+    }
   };
 
   useEffect(() => {
@@ -203,6 +228,38 @@ export default function SetupPage() {
               </div>
             </details>
           ) : null}
+        </Card>
+
+        <Card className="setup-command-security-card" hideableId="setup-backup-restore" hideableTitle="Backup and Restore">
+          <div className="setup-step-card__header">
+            <span className="setup-step-card__number">7</span>
+            <div>
+              <h2>Backup and Restore</h2>
+              <p>Download a restore-ready BTV config backup, or import one to replace the current local setup.</p>
+            </div>
+            <span className="badge badge-ok">Ready</span>
+          </div>
+          <Callout tone="warning" title="Treat backup files as sensitive">
+            Config backups include restorable local settings and secrets. Store them like credentials.
+          </Callout>
+          <div className="actions" style={{ marginTop: 16 }}>
+            <Button type="button" variant="secondary" size="sm" onClick={() => void exportConfigBackup()}>
+              Download backup
+            </Button>
+            <label className="ui-button ui-button--secondary ui-button--sm">
+              Import backup
+              <input
+                type="file"
+                accept=".json,.btv-config.json,application/json"
+                hidden
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (file) void importConfigBackup(file);
+                }}
+              />
+            </label>
+          </div>
         </Card>
 
         <div className="setup-step-list">

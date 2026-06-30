@@ -26,13 +26,17 @@ export function createSettingsRepository({ getDb, encrypt, decrypt }: SettingsRe
 
   function getSettingsSnapshot(): Array<{ key: string; value: string }> {
     const secretPattern = /(secret|password|token|oauth_state)/i;
-    return (getDb().prepare("SELECT key, value FROM settings ORDER BY key").all() as Array<{
-      key: string;
-      value: string;
-    }>).map((row) => ({
+    return getRawSettingsSnapshot().map((row) => ({
       key: row.key,
       value: secretPattern.test(row.key) ? "[redacted]" : row.value,
     }));
+  }
+
+  function getRawSettingsSnapshot(): Array<{ key: string; value: string }> {
+    return getDb().prepare("SELECT key, value FROM settings ORDER BY key").all() as Array<{
+      key: string;
+      value: string;
+    }>;
   }
 
   function getEncryptedSetting(key: string): string | null {
@@ -54,6 +58,7 @@ export function createSettingsRepository({ getDb, encrypt, decrypt }: SettingsRe
     setSetting,
     deleteSetting,
     getSettingsSnapshot,
+    getRawSettingsSnapshot,
     getEncryptedSetting,
     setEncryptedSetting,
   };

@@ -187,6 +187,15 @@ export const api = {
       body: JSON.stringify({ pack }),
     }),
 
+  exportConfigProfile: () =>
+    request<ConfigProfileExport>("/config/export"),
+
+  importConfigProfile: (profile: ConfigProfileExport | unknown) =>
+    request<{ ok: boolean }>("/config/import", {
+      method: "POST",
+      body: JSON.stringify({ profile }),
+    }),
+
   deleteOverlayPack: (id: string) =>
     request<{ ok: boolean }>(`/overlay-packs/${encodeURIComponent(id)}`, { method: "DELETE" }),
 
@@ -1329,6 +1338,32 @@ export interface OverlayPackExport {
     createdAt: string;
     updatedAt: string;
     snapshot: unknown;
+  };
+}
+
+export interface ConfigProfileExport {
+  format: "btv.config-profile";
+  version: 1;
+  exportedAt: string;
+  profile: {
+    settings: Array<{ key: string; value: string }>;
+    themes: import("@btv/shared").Theme[];
+    alertRules: import("@btv/shared").AlertRule[];
+    alertProjects: import("@btv/shared").AlertProject[];
+    widgets: import("@btv/shared").WidgetConfig[];
+    goals: Array<{
+      id: string;
+      label: string;
+      type: string;
+      current_count: number;
+      target_count: number;
+    }>;
+    effects: import("@btv/shared").Effect[];
+    macros: MacroConfig[];
+    automations: AutomationConfig[];
+    automationRules: import("@btv/shared").AutomationRule[];
+    sourceGroups: SourceGroup[];
+    webhooks: import("@btv/shared").WebhookHook[];
   };
 }
 
