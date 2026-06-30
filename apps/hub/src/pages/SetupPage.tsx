@@ -180,7 +180,7 @@ export default function SetupPage() {
               ))}
             </div>
           ) : (
-            <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 12 }}>
+            <p style={{ color: "var(--color-text-secondary)", fontSize: 13, marginTop: 12 }}>
               No macros or effects currently request local command execution.
             </p>
           )}

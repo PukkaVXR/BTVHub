@@ -33,7 +33,7 @@ export function AutomationRunHistory({ rules, runs }: AutomationRunHistoryProps)
           ))}
         </tbody>
       </table>
-      {!runs.length && <p style={{ color: "var(--muted)", padding: 12 }}>No automation runs yet.</p>}
+      {!runs.length && <p style={{ color: "var(--color-text-secondary)", padding: 12 }}>No automation runs yet.</p>}
     </div>
   );
 }

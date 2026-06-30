@@ -90,27 +90,4 @@
   --transition-colors: color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
   --transition-interactive: var(--transition-colors), box-shadow var(--duration-normal) var(--ease-standard), transform var(--duration-normal) var(--ease-emphasized);
 
-  /* Temporary compatibility aliases */
-  --bg: var(--color-bg-canvas);
-  --bg-elevated: var(--color-bg-surface-1);
-  --surface: var(--color-surface);
-  --surface2: var(--color-bg-surface-3);
-  --surface3: var(--color-bg-surface-4);
-  --border: var(--color-border-subtle);
-  --border-strong: var(--color-border-strong);
-  --text: var(--color-text-primary);
-  --muted: var(--color-text-secondary);
-  --muted2: var(--color-text-tertiary);
-  --accent: var(--color-accent);
-  --primary: var(--color-accent);
-  --accent-hover: var(--color-accent-hover);
-  --accent-soft: var(--color-accent-soft);
-  --success: var(--color-status-success);
-  --success-soft: #3ddc9726;
-  --danger: var(--color-status-danger);
-  --danger-hover: #ff7c89;
-  --danger-soft: #ff667524;
-  --warning: var(--color-status-warning);
-  --radius: 8px;
-  --shadow: var(--shadow-elevation-2);
 }
