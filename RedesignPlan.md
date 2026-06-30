@@ -231,7 +231,7 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 - [x] Add subtle entrance/stagger animations for cards/lists; refine hover/focus/active states.
 - [x] Verify every animation collapses correctly under `prefers-reduced-motion`.
 - [x] Remove now-unused legacy token aliases (confirm zero references first).
-- [ ] Run a dead-CSS/dead-code sweep across the new feature files.
+- [x] Run a dead-CSS/dead-code sweep across the new feature files.
 - [ ] Compare bundle and CSS output size against the baseline; confirm no regression.
 - [ ] Run the full verification loop and a complete visual QA pass across all pages.
 - [ ] Update `docs/architecture.md` with a design-system/token + shared-component reference.
