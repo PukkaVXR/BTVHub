@@ -228,8 +228,8 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 
 ### Stage 7 - Motion, cleanup, and final verification
 
-- [ ] Add subtle entrance/stagger animations for cards/lists; refine hover/focus/active states.
-- [ ] Verify every animation collapses correctly under `prefers-reduced-motion`.
+- [x] Add subtle entrance/stagger animations for cards/lists; refine hover/focus/active states.
+- [x] Verify every animation collapses correctly under `prefers-reduced-motion`.
 - [ ] Remove now-unused legacy token aliases (confirm zero references first).
 - [ ] Run a dead-CSS/dead-code sweep across the new feature files.
 - [ ] Compare bundle and CSS output size against the baseline; confirm no regression.
