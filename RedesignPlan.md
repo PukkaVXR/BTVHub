@@ -237,5 +237,5 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 - [x] Run the full verification loop and a complete visual QA pass across all pages.
   Final QA: `typecheck`, `lint`, `format:check`, `test`, `stylelint`, and `build` passed. Route screenshot baselines were refreshed after the final simple-page polish, then `tests/visual/routes.visual.spec.ts` passed 24/24. Motion and responsive visual checks passed 74/74, covering the remaining visual suite checks without viewport overflow regressions. Added `.gitattributes` so Biome's LF formatting expectation stays stable on Windows checkouts.
 - [x] Update `docs/architecture.md` with a design-system/token + shared-component reference.
-- [ ] Final commit and open a PR from `redesign/premium-ui`.
+- [x] Final commit and open a PR from `redesign/premium-ui`.
 - Existing tooling: Biome (`lint`, `format:check`), Vitest (`test`), `typecheck`, `build`. No CSS lint or visual regression yet (added in Stage 0).
