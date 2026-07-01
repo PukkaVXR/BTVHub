@@ -1,18 +1,26 @@
 .widgets-workspace {
   align-items: start;
-  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: var(--space-5);
   margin-bottom: 0;
 }
 
 .widgets-sidebar {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   position: sticky;
-  top: 18px;
+  top: var(--space-5);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg-surface-2) 90%, transparent), transparent),
+    color-mix(in srgb, var(--color-bg-surface-1) 74%, transparent);
+  box-shadow: inset 0 1px 0 var(--color-surface-topline), var(--shadow-elevation-1);
 }
 
 .widgets-sidebar button {
-  background: color-mix(in srgb, var(--color-bg-surface-2) 72%, transparent);
+  background: color-mix(in srgb, var(--color-bg-surface-2) 68%, transparent);
   border: 1px solid var(--color-border-subtle);
   border-radius: calc(var(--radius-md) - 2px);
   color: var(--color-text-primary);
@@ -21,6 +29,7 @@
   gap: 3px;
   padding: 11px 12px;
   text-align: left;
+  transition: var(--transition-fast);
   width: 100%;
 }
 
@@ -28,6 +37,7 @@
 .widgets-sidebar button.active {
   background: color-mix(in srgb, var(--color-accent) 16%, transparent);
   border-color: color-mix(in srgb, var(--color-accent) 72%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
 .widgets-sidebar span {
@@ -41,20 +51,52 @@
 
 .widgets-detail {
   display: grid;
-  gap: 16px;
+  gap: var(--space-4);
   min-width: 0;
 }
 
 .widget-config-card {
   display: grid;
-  gap: 14px;
+  gap: var(--space-4);
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 34%),
+    color-mix(in srgb, var(--color-bg-surface-2) 94%, transparent);
 }
 
 .widget-config-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: flex-end;
+}
+
+.grid.widget-control-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.widget-check-field {
+  align-self: center;
+  margin-top: var(--space-4);
+}
+
+.widget-actions-topless {
+  margin-top: 0;
+}
+
+.widget-actions-spaced {
+  margin-bottom: var(--space-3);
+}
+
+.widget-goal-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: end;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg-surface-1) 76%, transparent);
 }
 
 @media (width <= 920px) {

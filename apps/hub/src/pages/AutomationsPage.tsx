@@ -235,7 +235,7 @@ export default function AutomationsPage() {
             <p className="subtitle">
               Trigger actions from Twitch/chat/manual events with cooldowns. This is the Phase 1 foundation.
             </p>
-            <div className="actions" style={{ marginBottom: 16 }}>
+            <div className="actions automation-rule-actions">
               <Button
                 type="button"
                 variant="primary"
@@ -275,7 +275,7 @@ export default function AutomationsPage() {
               }
               detail={
                 editingRule ? (
-                  <div className="card automation-builder-card" style={{ marginBottom: 16 }}>
+                  <div className="card automation-builder-card">
                     <h2>{editingRule.id.startsWith("rule-") ? "Edit event rule" : editingRule.name}</h2>
                     <div className="grid">
                       <div>
@@ -301,7 +301,7 @@ export default function AutomationsPage() {
                       </div>
                     </div>
 
-                    <label style={{ display: "block", marginBottom: 12 }}>
+                    <label className="automation-rule-enabled">
                       <input
                         type="checkbox"
                         checked={editingRule.enabled}

@@ -326,7 +326,7 @@ export default function OverlaysPage() {
           <>
             Add these URLs as Browser Sources in OBS and use the layout editor to place, size, and shape them.
             {wsOk != null && (
-              <span style={{ marginLeft: 8 }}>
+              <span className="overlay-server-status">
                 Server: {wsOk ? (
                   <span className="badge badge-ok">online</span>
                 ) : (
@@ -339,20 +339,20 @@ export default function OverlaysPage() {
           </>
         }
       />
-      <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 16 }}>
+      <p className="overlay-chat-note">
         Live chat requires <code>{overlayUrl("/o/chat.html")}</code> and Twitch reconnect with{" "}
         <code>user:read:chat</code>.
       </p>
 
-      <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+      <div className="card overlay-install-card">
+        <div className="overlay-install-header">
           <div>
-            <h2 style={{ marginBottom: 6 }}>OBS Install Helper</h2>
-            <p style={{ color: "var(--muted)", fontSize: 13 }}>
+            <h2>OBS Install Helper</h2>
+            <p>
               Create or repair BTV browser sources in OBS, then apply your saved layout to the selected scene.
             </p>
           </div>
-          <div className="actions" style={{ marginTop: 0 }}>
+          <div className="actions overlay-actions-topless">
             <Button type="button" variant="secondary" size="sm" onClick={() => void installBrowserSources()} disabled={installing || !obsScenes.length}>
               {installing ? "Installing..." : "Install / repair in OBS"}
             </Button>
@@ -361,7 +361,7 @@ export default function OverlaysPage() {
             </Button>
           </div>
         </div>
-        <div className="grid" style={{ gridTemplateColumns: "minmax(220px, 360px) minmax(0, 1fr)", marginTop: 12 }}>
+        <div className="grid overlay-install-grid">
           <div>
             <label>Target OBS scene</label>
             <select value={selectedScene} onChange={(e) => setSelectedScene(e.target.value)} disabled={!obsScenes.length}>
@@ -417,7 +417,7 @@ export default function OverlaysPage() {
                   {pack.counts.widgets} widgets, {pack.counts.browserSourceLayouts} source layouts
                   {pack.counts.overlayTheme ? ", theme included" : ""}
                 </p>
-                <div className="actions" style={{ marginTop: 0 }}>
+                <div className="actions overlay-actions-topless">
                   <button
                     type="button"
                     className="ui-button ui-button--secondary ui-button--sm"
@@ -661,7 +661,7 @@ export default function OverlaysPage() {
                 </div>
               </>
             ) : (
-              <p style={{ color: "var(--muted)" }}>No browser source layouts are available yet.</p>
+              <p className="overlay-muted-copy">No browser source layouts are available yet.</p>
             )}
           </div>
         </div>

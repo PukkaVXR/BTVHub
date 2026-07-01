@@ -1,7 +1,10 @@
 .live-readiness-strip {
   display: grid;
-  gap: 14px;
-  margin-bottom: 16px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  background:
+    radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 34%),
+    color-mix(in srgb, var(--color-bg-surface-2) 94%, transparent);
 }
 
 .live-readiness-strip__checks,
@@ -9,7 +12,7 @@
 .live-stat-grid,
 .live-shortcut-grid {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .live-readiness-strip__checks {
@@ -17,14 +20,14 @@
 }
 
 .live-dashboard-grid {
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 .live-checklist {
   display: grid;
-  gap: 10px;
-  margin-top: 14px;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 
 .live-checklist__item,
@@ -32,7 +35,7 @@
 .live-session-start {
   align-items: center;
   display: flex;
-  gap: 10px;
+  gap: var(--space-3);
   justify-content: space-between;
 }
 
@@ -40,7 +43,7 @@
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: flex-end;
 }
 
@@ -57,7 +60,7 @@
 .live-stat-grid,
 .live-shortcut-grid {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 
 .dashboard-deck-card {
@@ -70,16 +73,16 @@
 
 .dashboard-deck-tabs {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 
 .dashboard-deck-tab {
   align-items: center;
-  background: var(--color-surface-muted);
+  background: color-mix(in srgb, var(--color-bg-surface-2) 78%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   color: var(--color-text-primary);
   cursor: pointer;
   display: flex;
@@ -87,6 +90,11 @@
   min-height: 42px;
   padding: 9px 11px;
   text-align: left;
+  transition: var(--transition-fast);
+}
+
+.dashboard-deck-tab:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 34%, var(--color-border-subtle));
 }
 
 .dashboard-deck-tab span {
@@ -99,7 +107,7 @@
 }
 
 .dashboard-deck-tab--active {
-  background: color-mix(in srgb, var(--color-accent) 16%, var(--color-surface-muted));
+  background: color-mix(in srgb, var(--color-accent) 16%, var(--color-bg-surface-2));
   border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border-subtle));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 18%, transparent);
 }
@@ -114,26 +122,26 @@
 
 .live-session-scenes {
   display: grid;
-  gap: 8px;
-  margin-top: 14px;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 
 .live-session-scenes > div {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .live-panel-footer {
   display: flex;
   justify-content: flex-end;
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 
 .live-shortcut-title {
   align-items: flex-start;
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   justify-content: space-between;
 }
 
@@ -144,15 +152,19 @@
 }
 
 .live-shortcut {
+  background: color-mix(in srgb, var(--color-bg-surface-2) 84%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 12px;
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 1px 0 var(--color-surface-topline);
+  padding: var(--space-3);
 }
 
 .dashboard-deck-button {
-  background: linear-gradient(145deg, color-mix(in srgb, var(--color-surface-muted) 88%, transparent), var(--color-surface));
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--color-accent) 7%, transparent), transparent 34%),
+    linear-gradient(145deg, color-mix(in srgb, var(--color-bg-surface-2) 92%, transparent), var(--color-bg-surface-1));
   min-height: 126px;
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  transition: var(--transition-fast);
 }
 
 .dashboard-deck-button:hover {
@@ -172,14 +184,21 @@
 
 .dashboard-deck-emergency {
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 12%);
   color: var(--color-text-primary);
   cursor: pointer;
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   min-height: 118px;
-  padding: 16px;
+  padding: var(--space-4);
   text-align: left;
+  transition: var(--transition-fast);
+}
+
+.dashboard-deck-emergency:hover {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 16%), 0 16px 38px rgb(0 0 0 / 20%);
+  transform: translateY(-1px);
 }
 
 .dashboard-deck-emergency strong {
@@ -207,18 +226,18 @@
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: flex-end;
 }
 
 .live-shortcut__steps {
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 .live-shortcut-picker {
   border-top: 1px solid var(--color-border-subtle);
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
 }
 
 .live-shortcut-picker summary {
@@ -229,17 +248,18 @@
 
 .live-shortcut-picker__grid {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 
 .live-shortcut-picker__group {
+  background: color-mix(in srgb, var(--color-bg-surface-1) 72%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   display: grid;
-  gap: 8px;
-  padding: 10px;
+  gap: var(--space-2);
+  padding: var(--space-3);
 }
 
 .live-shortcut-picker__group h3 {
@@ -276,24 +296,27 @@
 
 .live-stream-deck-card {
   align-items: center;
+  background:
+    radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 34%),
+    color-mix(in srgb, var(--color-bg-surface-2) 92%, transparent);
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-3);
   justify-content: space-between;
 }
 
 .live-obs-grid,
 .live-source-group-grid {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 
 .live-activity-layouts {
   border-top: 1px solid var(--color-border-subtle);
-  margin-top: 18px;
-  padding-top: 16px;
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
 }
 
 .live-activity-layouts h2 {
@@ -309,7 +332,7 @@
 }
 
 .live-activity-layouts > p {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .live-actions-tight {
@@ -317,11 +340,14 @@
 }
 
 .live-source-picker {
+  background: color-mix(in srgb, var(--color-bg-surface-1) 72%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   display: grid;
   gap: 6px;
   max-height: 190px;
   overflow: auto;
-  padding-right: 4px;
+  padding: var(--space-2);
 }
 
 .live-source-picker label {
@@ -329,9 +355,11 @@
 }
 
 .live-source-group {
+  background: color-mix(in srgb, var(--color-bg-surface-2) 82%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 12px;
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 1px 0 var(--color-surface-topline);
+  padding: var(--space-3);
 }
 
 .live-source-group--active {
@@ -342,7 +370,7 @@
 .live-source-group__header {
   align-items: center;
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: space-between;
 }
 
@@ -351,25 +379,25 @@
 }
 
 .live-obs-sources-table {
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 
 .live-panel-table {
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 
 .live-badge-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
 }
 
 .live-repair-block {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   justify-items: start;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .live-repair-block p {
@@ -379,7 +407,7 @@
 
 .live-obs-url-grid {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
@@ -390,5 +418,5 @@
 }
 
 .live-muted-copy {
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }

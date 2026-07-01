@@ -89,7 +89,7 @@ export function AlertCanvasWorkspace({
     <section className="card alert-preview-card">
       <div className="alert-editor-panel-title">
         <h2>Live Preview</h2>
-        <div className="actions" style={{ marginTop: 0 }}>
+        <div className="actions alert-actions-topless">
           <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => onPlayingChange(!playing)}>
             {playing ? "Pause" : "Play"}
           </button>

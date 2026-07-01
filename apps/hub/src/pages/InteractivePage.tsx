@@ -108,8 +108,8 @@ function MotionPathEditor({
           aspectRatio: "16 / 9",
           width: "100%",
           maxWidth: 720,
-          border: "1px solid var(--border)",
-          borderRadius: "var(--radius)",
+          border: "1px solid var(--color-border-subtle)",
+          borderRadius: "var(--radius-md)",
           background: "linear-gradient(135deg, #10141a, #161d27)",
           overflow: "hidden",
           cursor: "crosshair",
@@ -123,7 +123,7 @@ function MotionPathEditor({
             <polyline
               points={points.map((point) => `${point.x},${point.y}`).join(" ")}
               fill="none"
-              stroke="var(--accent)"
+              stroke="var(--color-accent)"
               strokeWidth="8"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -131,7 +131,7 @@ function MotionPathEditor({
           )}
           {points.map((point, index) => (
             <g key={`${point.x}-${point.y}-${index}`}>
-              <circle cx={point.x} cy={point.y} r="20" fill="var(--accent-hover)" />
+              <circle cx={point.x} cy={point.y} r="20" fill="var(--color-accent-hover)" />
               <text x={point.x + 28} y={point.y + 8} fill="white" fontSize="42" fontWeight="700">
                 {index + 1}
               </text>
@@ -333,7 +333,7 @@ export default function InteractivePage() {
                   <option value="contains">Contains command</option>
                 </select>
               </div>
-              <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>
+              <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 8 }}>
                 Use <code>{"{args}"}</code> in messages for text after the command.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
@@ -448,7 +448,7 @@ export default function InteractivePage() {
                   onChange={(e) => setAction({ color: e.target.value })}
                 />
               </div>
-              <p style={{ fontSize: 12, color: "var(--muted)" }}>
+              <p style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
                 Variables: <code>{"{user}"}</code>, <code>{"{login}"}</code>, <code>{"{args}"}</code>
               </p>
             </>

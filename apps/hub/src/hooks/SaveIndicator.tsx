@@ -9,6 +9,6 @@ export function SaveIndicator({ status, label = "Changes" }: { status: SaveStatu
   if (status === "idle") return null;
   const text = status === "saving" ? "Saving..." : status === "saved" ? "Saved" : "Save failed";
   return (
-    <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: 8 }}>{text}</span>
+    <span style={{ fontSize: 12, color: "var(--color-text-secondary)", marginLeft: 8 }}>{text}</span>
   );
 }

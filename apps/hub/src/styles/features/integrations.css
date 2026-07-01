@@ -1,14 +1,14 @@
 .integrations-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 
 .integrations-callouts {
   display: grid;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 
 .integrations-grid {
@@ -17,7 +17,10 @@
 
 .integration-card {
   display: grid;
-  gap: 16px;
+  gap: var(--space-4);
+  background:
+    radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--color-accent) 7%, transparent), transparent 34%),
+    color-mix(in srgb, var(--color-bg-surface-2) 94%, transparent);
 }
 
 .integration-card--twitch {
@@ -26,13 +29,13 @@
 
 .integration-card__body {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .integration-chat-status {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .integration-card__actions,
@@ -40,7 +43,7 @@
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .integration-card__footer {

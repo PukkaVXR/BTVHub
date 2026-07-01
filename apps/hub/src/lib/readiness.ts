@@ -7,7 +7,7 @@ export interface SetupReadinessStep {
   complete: boolean;
   actionLabel: string;
   actionTo?: string;
-  actionId?: "test-follow";
+  actionId?: "test-follow" | "export-backup";
 }
 
 export interface GoLiveChecklistItem {
@@ -127,10 +127,10 @@ export function setupReadinessSteps(
     {
       id: "backup",
       title: "Config backup available",
-      detail: "Download a redacted snapshot of settings, widgets, alerts, effects, macros, automations, and layouts.",
+      detail: "Download or restore the full local config backup from Setup. Backup files include restorable local settings.",
       complete: true,
       actionLabel: "Download Backup",
-      actionTo: "/api/config/export",
+      actionId: "export-backup",
     },
   ];
 }

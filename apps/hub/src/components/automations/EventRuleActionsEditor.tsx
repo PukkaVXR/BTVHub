@@ -314,7 +314,7 @@ export function EventRuleActionsEditor({
                   </div>
                 )}
                 {action.type === "clear_alerts" && (
-                  <p style={{ color: "var(--muted)", fontSize: 13 }}>Clears the active alert queue when this rule runs.</p>
+                  <p style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>Clears the active alert queue when this rule runs.</p>
                 )}
                 {action.type === "twitch_chat" && (
                   <div className="form-row">
@@ -418,7 +418,7 @@ export function EventRuleActionsEditor({
                   </div>
                 )}
                 {(action.type === "branch" || action.type === "random_choice") && (
-                  <p style={{ color: "var(--muted)", fontSize: 13 }}>
+                  <p style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>
                     Advanced action saved with its default JSON shape. Edit the saved rule JSON later when the advanced editor lands.
                   </p>
                 )}

@@ -41,6 +41,7 @@ test.beforeEach(async ({ page }) => {
 async function waitForRouteContent(page: Page, routeName: (typeof routes)[number]["name"]) {
   if (routeName === "dashboard") {
     await page.getByRole("heading", { name: "Dashboard", exact: true }).waitFor({ state: "visible" });
+    await page.locator(".live-readiness-strip .ui-status-pill").nth(9).waitFor({ state: "visible" });
   }
 
   if (routeName === "activity") {
@@ -48,7 +49,8 @@ async function waitForRouteContent(page: Page, routeName: (typeof routes)[number
   }
 
   if (routeName === "alert-editor") {
-    await page.locator(".alert-preview-canvas img").first().waitFor({ state: "visible" });
+    await page.getByRole("heading", { name: "Visual Alert Editor", exact: true }).waitFor({ state: "visible" });
+    await page.getByRole("heading", { name: "Live Preview", exact: true }).waitFor({ state: "visible" });
   }
 }
 

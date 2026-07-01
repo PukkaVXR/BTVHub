@@ -47,6 +47,8 @@
 .ui-status-pill--info .ui-status-pill__dot { background: var(--color-status-info); }
 
 .ui-card {
+  animation: ui-content-enter var(--duration-slow) var(--ease-emphasized) both;
+  animation-delay: var(--ui-stagger-delay, 0ms);
   background: color-mix(in srgb, var(--color-bg-surface-2) 94%, transparent);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
@@ -55,6 +57,10 @@
   transition:
     border-color var(--duration-normal) var(--ease-standard),
     box-shadow var(--duration-normal) var(--ease-standard);
+}
+
+.ui-card:is(:focus-visible, :focus-within) {
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border-strong));
 }
 
 @media (hover: hover) {
@@ -97,6 +103,7 @@
 
 .ui-card-hidden-placeholder {
   align-items: center;
+  animation: ui-content-enter var(--duration-normal) var(--ease-standard) both;
   background: color-mix(in srgb, var(--color-bg-surface-1) 68%, transparent);
   border: 1px dashed var(--color-border-subtle);
   border-radius: var(--radius-lg);
@@ -111,6 +118,27 @@
 .ui-card-hidden-placeholder span {
   font-size: var(--font-size-xs);
   font-weight: 850;
+}
+
+.ui-card:nth-child(2),
+.ui-card-grid > :nth-child(2),
+.ui-page-grid > :nth-child(2),
+.ui-split-workspace > :nth-child(2) {
+  --ui-stagger-delay: 35ms;
+}
+
+.ui-card:nth-child(3),
+.ui-card-grid > :nth-child(3),
+.ui-page-grid > :nth-child(3),
+.ui-split-workspace > :nth-child(3) {
+  --ui-stagger-delay: 70ms;
+}
+
+.ui-card:nth-child(n + 4),
+.ui-card-grid > :nth-child(n + 4),
+.ui-page-grid > :nth-child(n + 4),
+.ui-split-workspace > :nth-child(n + 4) {
+  --ui-stagger-delay: 105ms;
 }
 
 .ui-card-section + .ui-card-section {
@@ -206,6 +234,12 @@
 
 .ui-button:hover { text-decoration: none; }
 
+.ui-button:focus-visible,
+:is(.ui-card-hide-button, .ui-card-hidden-placeholder button):focus-visible {
+  border-color: color-mix(in srgb, var(--color-accent) 58%, var(--color-border-strong));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 30%, transparent), var(--shadow-elevation-1);
+}
+
 .ui-button:not(:disabled):hover {
   border-color: color-mix(in srgb, var(--color-accent) 46%, var(--color-border-strong));
   box-shadow: var(--shadow-elevation-1), 0 8px 24px color-mix(in srgb, var(--color-accent-glow) 46%, transparent);
@@ -232,6 +266,7 @@
 }
 
 .ui-callout {
+  animation: ui-content-enter var(--duration-normal) var(--ease-standard) both;
   background: color-mix(in srgb, var(--color-status-info) 8%, var(--color-bg-surface-2));
   border: 1px solid var(--color-border-subtle);
   border-left: 3px solid var(--color-status-info);
@@ -279,6 +314,7 @@
 }
 
 .ui-empty-state {
+  animation: ui-content-enter var(--duration-normal) var(--ease-standard) both;
   background: color-mix(in srgb, var(--color-bg-surface-1) 52%, transparent);
   border: 1px dashed var(--color-border-strong);
   border-radius: var(--radius-lg);
@@ -296,6 +332,7 @@
 }
 
 .ui-error-card {
+  animation: ui-content-enter var(--duration-slow) var(--ease-emphasized) both;
   border-color: color-mix(in srgb, var(--color-status-danger) 48%, var(--color-border-subtle));
   display: grid;
   gap: var(--space-3);
@@ -320,6 +357,7 @@
 }
 
 .ui-page-loading {
+  animation: ui-content-enter var(--duration-normal) var(--ease-standard) both;
   display: grid;
   gap: var(--space-3);
 }
@@ -333,6 +371,8 @@
 
 .ui-split-workspace__sidebar,
 .ui-split-workspace__detail {
+  animation: ui-content-enter var(--duration-slow) var(--ease-emphasized) both;
+  animation-delay: var(--ui-stagger-delay, 0ms);
   min-width: 0;
 }
 
@@ -424,6 +464,12 @@
   background: var(--color-bg-surface-4);
   border-color: var(--color-border-subtle);
   color: var(--color-text-primary);
+}
+
+.ui-tabs__tab:focus-visible,
+.ui-segmented-control__button:focus-visible {
+  border-color: color-mix(in srgb, var(--color-accent) 58%, var(--color-border-strong));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 30%, transparent), var(--shadow-elevation-1);
 }
 
 .ui-tabs--sm .ui-tabs__tab,
@@ -527,6 +573,17 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .ui-card,
+  .ui-card-hidden-placeholder,
+  .ui-callout,
+  .ui-empty-state,
+  .ui-error-card,
+  .ui-page-loading,
+  .ui-split-workspace__sidebar,
+  .ui-split-workspace__detail {
+    animation: none;
+  }
+
   .ui-button__spinner,
   .ui-skeleton {
     animation: none;

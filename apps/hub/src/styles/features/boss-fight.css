@@ -1,13 +1,13 @@
 .boss-page {
   display: grid;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .boss-form-grid,
 .boss-control-grid,
 .boss-fields {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .boss-form-grid {
@@ -30,12 +30,13 @@
 .boss-panel {
   background:
     radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--boss-color) 30%, transparent), transparent 34%),
-    var(--color-surface-muted);
+    color-mix(in srgb, var(--color-bg-surface-2) 88%, transparent);
   border: 1px solid color-mix(in srgb, var(--boss-color) 38%, var(--color-border-subtle));
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 1px 0 var(--color-surface-topline), 0 18px 42px color-mix(in srgb, var(--boss-color) 10%, transparent);
   display: grid;
-  gap: 14px;
-  padding: 14px;
+  gap: var(--space-4);
+  padding: var(--space-4);
 }
 
 .boss-health-meter {
@@ -56,7 +57,7 @@
 }
 
 .boss-quick-grid {
-  gap: 8px;
+  gap: var(--space-2);
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
@@ -67,8 +68,8 @@
 .boss-action-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 
 @media (width <= 920px) {

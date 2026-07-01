@@ -657,10 +657,10 @@ export default function MacrosPage() {
                     <summary>Advanced steps JSON</summary>
                     <FormField label="Steps JSON" error={parsedSteps.ok ? undefined : parsedSteps.error}>
                       <textarea
+                        className="macro-json-textarea"
                         rows={10}
                         value={stepsJson}
                         onChange={(e) => setStepsJson(e.target.value)}
-                        style={{ fontFamily: "monospace", lineHeight: 1.5 }}
                       />
                     </FormField>
                   </details>

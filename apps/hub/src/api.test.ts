@@ -119,4 +119,29 @@ describe("Hub API client", () => {
     await expect(getLocalApiToken()).resolves.toBe("token-3");
     expect(bootstrapHeaders.has("X-BTV-Token")).toBe(false);
   });
+
+  it("sends config profile imports as authenticated JSON writes", async () => {
+    const calls: FetchCall[] = [];
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
+      const url = String(input);
+      calls.push({ url, init });
+      if (url === "/api/auth/token") return jsonResponse({ token: "config-token" });
+      return jsonResponse({ ok: true });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { api } = await loadApi();
+    const profile = {
+      format: "btv.config-profile",
+      version: 1,
+      exportedAt: "2026-06-23T00:00:00.000Z",
+      profile: { settings: [] },
+    } as never;
+
+    await api.importConfigProfile(profile);
+
+    const write = calls.find((call) => call.url === "/api/config/import");
+    expect(write?.init.method).toBe("POST");
+    expect(new Headers(write?.init.headers).get("X-BTV-Token")).toBe("config-token");
+    expect(JSON.parse(String(write?.init.body))).toEqual({ profile });
+  });
 });

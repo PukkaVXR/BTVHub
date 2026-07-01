@@ -217,23 +217,25 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 
 ### Stage 6 - Page-level refinement
 
-- [ ] Refine Alert Editor layout and editor chrome; verify + commit.
-- [ ] Refine Overlays (layout editor + URL grids); verify + commit.
-- [ ] Refine Widgets workspace; verify + commit.
-- [ ] Refine Macros and Automations workspaces; verify + commit.
-- [ ] Refine Plugins and Stream Deck; verify + commit.
-- [ ] Refine Live Dashboard and Mobile Control; verify + commit.
-- [ ] Refine the simple pages (Integrations, Setup, Activity, Recaps, Commands, Channel Points, Soundboard, Boss/Chaos/Prediction/Tournament, Alert Projects, Alert Routing); verify + commit.
-- [ ] Confirm responsive `@media` behavior holds at the existing breakpoints.
+- [x] Refine Alert Editor layout and editor chrome; verify + commit.
+- [x] Refine Overlays (layout editor + URL grids); verify + commit.
+- [x] Refine Widgets workspace; verify + commit.
+- [x] Refine Macros and Automations workspaces; verify + commit.
+- [x] Refine Plugins and Stream Deck; verify + commit.
+- [x] Refine Live Dashboard and Mobile Control; verify + commit.
+- [x] Refine the simple pages (Integrations, Setup, Activity, Recaps, Commands, Channel Points, Soundboard, Boss/Chaos/Prediction/Tournament, Alert Projects, Alert Routing); verify + commit.
+- [x] Confirm responsive `@media` behavior holds at the existing breakpoints.
 
 ### Stage 7 - Motion, cleanup, and final verification
 
-- [ ] Add subtle entrance/stagger animations for cards/lists; refine hover/focus/active states.
-- [ ] Verify every animation collapses correctly under `prefers-reduced-motion`.
-- [ ] Remove now-unused legacy token aliases (confirm zero references first).
-- [ ] Run a dead-CSS/dead-code sweep across the new feature files.
-- [ ] Compare bundle and CSS output size against the baseline; confirm no regression.
-- [ ] Run the full verification loop and a complete visual QA pass across all pages.
-- [ ] Update `docs/architecture.md` with a design-system/token + shared-component reference.
-- [ ] Final commit and open a PR from `redesign/premium-ui`.
+- [x] Add subtle entrance/stagger animations for cards/lists; refine hover/focus/active states.
+- [x] Verify every animation collapses correctly under `prefers-reduced-motion`.
+- [x] Remove now-unused legacy token aliases (confirm zero references first).
+- [x] Run a dead-CSS/dead-code sweep across the new feature files.
+- [x] Compare bundle and CSS output size against the baseline; confirm no regression.
+  Current hub build: 165 transformed modules; CSS 162,307 bytes (+40,008 raw bytes, expected from premium feature styles); JS 806,754 bytes (+4,795 bytes); vendor React unchanged at 232,210 bytes; alert editor lazy chunk 168,089 bytes (-346 bytes). Route-level code-splitting stayed intact and the JS/chunk profile did not regress.
+- [x] Run the full verification loop and a complete visual QA pass across all pages.
+  Final QA: `typecheck`, `lint`, `format:check`, `test`, `stylelint`, and `build` passed. Route screenshot baselines were refreshed after the final simple-page polish, then `tests/visual/routes.visual.spec.ts` passed 24/24. Motion and responsive visual checks passed 74/74, covering the remaining visual suite checks without viewport overflow regressions. Added `.gitattributes` so Biome's LF formatting expectation stays stable on Windows checkouts.
+- [x] Update `docs/architecture.md` with a design-system/token + shared-component reference.
+- [x] Final commit and open a PR from `redesign/premium-ui`.
 - Existing tooling: Biome (`lint`, `format:check`), Vitest (`test`), `typecheck`, `build`. No CSS lint or visual regression yet (added in Stage 0).

@@ -167,7 +167,7 @@ export default function ActivityPage() {
             ))}
           </tbody>
         </table>
-        {logs.length === 0 && <p style={{ color: "var(--muted)", padding: 12 }}>No system logs yet.</p>}
+        {logs.length === 0 && <p style={{ color: "var(--color-text-secondary)", padding: 12 }}>No system logs yet.</p>}
       </div>
 
       <div className="card">
@@ -192,7 +192,7 @@ export default function ActivityPage() {
             ))}
           </tbody>
         </table>
-        {coreEvents.length === 0 && <p style={{ color: "var(--muted)", padding: 12 }}>No normalized events yet.</p>}
+        {coreEvents.length === 0 && <p style={{ color: "var(--color-text-secondary)", padding: 12 }}>No normalized events yet.</p>}
       </div>
 
       <div className="card">
@@ -224,7 +224,7 @@ export default function ActivityPage() {
             ))}
           </tbody>
         </table>
-        {sessions.length === 0 && <p style={{ color: "var(--muted)", padding: 12 }}>No sessions yet.</p>}
+        {sessions.length === 0 && <p style={{ color: "var(--color-text-secondary)", padding: 12 }}>No sessions yet.</p>}
       </div>
 
       {selected && selected.summary.session && (
@@ -232,27 +232,27 @@ export default function ActivityPage() {
           <h2>{selected.summary.session.title}</h2>
           <div className="grid" style={{ marginBottom: 16 }}>
             <div>
-              <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>Duration</p>
+              <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 6 }}>Duration</p>
               <strong>{formatDuration(selected.summary.durationMs)}</strong>
             </div>
             <div>
-              <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>Events</p>
+              <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 6 }}>Events</p>
               <strong>{selected.summary.totals.events}</strong>
             </div>
             <div>
-              <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>Follows</p>
+              <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 6 }}>Follows</p>
               <strong>{selected.summary.totals.follows}</strong>
             </div>
             <div>
-              <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>Subs</p>
+              <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 6 }}>Subs</p>
               <strong>{selected.summary.totals.subs}</strong>
             </div>
             <div>
-              <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>Bits</p>
+              <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 6 }}>Bits</p>
               <strong>{selected.summary.totals.cheers}</strong>
             </div>
             <div>
-              <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>Chat</p>
+              <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 6 }}>Chat</p>
               <strong>{selected.summary.totals.chatMessages}</strong>
             </div>
           </div>

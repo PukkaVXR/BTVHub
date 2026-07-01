@@ -20,6 +20,11 @@ import { createStreamSessionsRepository } from "./repositories/stream-sessions.r
 import { createViewerQueueRepository } from "./repositories/viewer-queue.repository.js";
 import { createWebhooksRepository } from "./repositories/webhooks.repository.js";
 import { createWidgetsRepository } from "./repositories/widgets.repository.js";
+import type { AlertProject, AlertRule, AutomationRule, Effect, Theme, WebhookHook, WidgetConfig } from "@btv/shared";
+import type { AutomationConfig } from "./repositories/automation.repository.js";
+import type { GoalRow } from "./repositories/goals.repository.js";
+import type { MacroConfig } from "./repositories/macros.repository.js";
+import type { SourceGroup } from "./repositories/source-groups.repository.js";
 
 export type { AlertRule } from "@btv/shared";
 export type { AlertProject, Theme } from "@btv/shared";
@@ -658,6 +663,80 @@ const widgetsRepository = createWidgetsRepository({
   parseRecord,
 });
 
+export interface ConfigProfileSnapshot {
+  settings: Array<{ key: string; value: string }>;
+  themes: Theme[];
+  alertRules: AlertRule[];
+  alertProjects: AlertProject[];
+  widgets: WidgetConfig[];
+  goals: GoalRow[];
+  effects: Effect[];
+  macros: MacroConfig[];
+  automations: AutomationConfig[];
+  automationRules: AutomationRule[];
+  sourceGroups: SourceGroup[];
+  webhooks: WebhookHook[];
+}
+
+const CONFIG_PROFILE_TABLES = [
+  "automation_runs",
+  "automation_state",
+  "automation_rules",
+  "automations",
+  "source_groups",
+  "webhooks",
+  "macros",
+  "effects",
+  "goals",
+  "widgets",
+  "alert_rules",
+  "alert_projects",
+  "themes",
+  "settings",
+] as const;
+
+export function getConfigProfileSnapshot(): ConfigProfileSnapshot {
+  return {
+    settings: settingsRepository.getRawSettingsSnapshot(),
+    themes: alertProjectsRepository.getThemes(),
+    alertRules: alertRulesRepository.getAlertRules(),
+    alertProjects: alertProjectsRepository.getAlertProjects(),
+    widgets: widgetsRepository.getWidgets(),
+    goals: goalsRepository.getGoals(),
+    effects: effectsRepository.getEffects(),
+    macros: macrosRepository.getMacros(),
+    automations: automationRepository.getAutomations(),
+    automationRules: automationRepository.getAutomationRules(),
+    sourceGroups: sourceGroupsRepository.getSourceGroups(),
+    webhooks: webhooksRepository.getWebhooks(),
+  };
+}
+
+export function replaceConfigProfileSnapshot(snapshot: ConfigProfileSnapshot): void {
+  withTransaction(() => {
+    for (const table of CONFIG_PROFILE_TABLES) {
+      db.prepare(`DELETE FROM ${table}`).run();
+    }
+
+    for (const setting of snapshot.settings) settingsRepository.setSetting(setting.key, setting.value);
+    for (const theme of snapshot.themes) alertProjectsRepository.upsertTheme(theme);
+    for (const project of snapshot.alertProjects) alertProjectsRepository.upsertAlertProject(project);
+    for (const rule of snapshot.alertRules) alertRulesRepository.upsertAlertRule(rule);
+    for (const widget of snapshot.widgets) widgetsRepository.upsertWidget(widget);
+    for (const goal of snapshot.goals) {
+      db.prepare(
+        `INSERT INTO goals (id, label, type, current_count, target_count) VALUES (?, ?, ?, ?, ?)`,
+      ).run(goal.id, goal.label, goal.type, goal.current_count, goal.target_count);
+    }
+    for (const effect of snapshot.effects) effectsRepository.upsertEffect(effect);
+    for (const macro of snapshot.macros) macrosRepository.upsertMacro(macro);
+    for (const automation of snapshot.automations) automationRepository.upsertAutomation(automation);
+    for (const rule of snapshot.automationRules) automationRepository.upsertAutomationRule(rule);
+    for (const group of snapshot.sourceGroups) sourceGroupsRepository.upsertSourceGroup(group);
+    for (const hook of snapshot.webhooks) webhooksRepository.upsertWebhook(hook);
+  });
+}
+
 export const logActivity = logsRepository.logActivity;
 export const getActivity = logsRepository.getActivity;
 export const getActivityById = logsRepository.getActivityById;
@@ -719,6 +798,7 @@ export const getSetting = settingsRepository.getSetting;
 export const setSetting = settingsRepository.setSetting;
 export const deleteSetting = settingsRepository.deleteSetting;
 export const getSettingsSnapshot = settingsRepository.getSettingsSnapshot;
+export const getRawSettingsSnapshot = settingsRepository.getRawSettingsSnapshot;
 export const getEncryptedSetting = settingsRepository.getEncryptedSetting;
 export const setEncryptedSetting = settingsRepository.setEncryptedSetting;
 export const getMacros = macrosRepository.getMacros;

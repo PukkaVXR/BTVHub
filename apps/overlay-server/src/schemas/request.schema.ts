@@ -108,6 +108,7 @@ export const CommandApprovalBodySchema = z.object({
 });
 
 export const ImportPackBodySchema = z.object({ pack: z.unknown().optional() });
+export const ImportProfileBodySchema = z.object({ profile: z.unknown().optional() });
 
 export const BossFightUpdateBodySchema = z.object({
   name: z.string().optional(),

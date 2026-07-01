@@ -1,9 +1,6 @@
 {
   "extends": ["stylelint-config-standard"],
-  "ignoreFiles": [
-    "apps/hub/src/styles/foundation.css",
-    "apps/hub/src/styles/workflows.css"
-  ],
+  "ignoreFiles": ["apps/hub/src/styles/foundation.css"],
   "reportDescriptionlessDisables": true,
   "reportInvalidScopeDisables": true,
   "reportNeedlessDisables": true,
