@@ -164,6 +164,11 @@ describe("registerConfigRoutes", () => {
       url: "/api/config/import",
       payload: { profile: { format: "btv.config-profile", version: 1, profile: { themes: [] } } },
     });
+    const missingProfileResponse = await app.inject({
+      method: "POST",
+      url: "/api/config/import",
+      payload: { profile: { format: "btv.config-profile", version: 1 } },
+    });
 
     expect(legacyResponse.statusCode).toBe(200);
     expect(db.replaceConfigProfileSnapshot).toHaveBeenCalledWith(expect.objectContaining({
@@ -171,6 +176,8 @@ describe("registerConfigRoutes", () => {
     }));
     expect(invalidResponse.statusCode).toBe(400);
     expect(invalidResponse.json()).toEqual({ error: "Valid BTV config profile export is required" });
+    expect(missingProfileResponse.statusCode).toBe(400);
+    expect(missingProfileResponse.json()).toEqual({ error: "Valid BTV config profile export is required" });
 
     await app.close();
   });

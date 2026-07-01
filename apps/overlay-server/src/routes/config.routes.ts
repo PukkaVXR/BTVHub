@@ -69,6 +69,7 @@ function normalizeImportedConfigProfile(input: unknown): ConfigProfileSnapshot |
   if (!input || typeof input !== "object") return null;
   const exported = input as Partial<ConfigProfileExport>;
   const raw = (exported.format === "btv.config-profile" ? exported.profile : input) as Partial<ConfigProfileSnapshot>;
+  if (!raw || typeof raw !== "object") return null;
   if (!Array.isArray(raw.settings)) return null;
   return {
     settings: raw.settings.flatMap((entry) =>
