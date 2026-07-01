@@ -223,7 +223,7 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
 - [x] Refine Macros and Automations workspaces; verify + commit.
 - [x] Refine Plugins and Stream Deck; verify + commit.
 - [x] Refine Live Dashboard and Mobile Control; verify + commit.
-- [ ] Refine the simple pages (Integrations, Setup, Activity, Recaps, Commands, Channel Points, Soundboard, Boss/Chaos/Prediction/Tournament, Alert Projects, Alert Routing); verify + commit.
+- [x] Refine the simple pages (Integrations, Setup, Activity, Recaps, Commands, Channel Points, Soundboard, Boss/Chaos/Prediction/Tournament, Alert Projects, Alert Routing); verify + commit.
 - [x] Confirm responsive `@media` behavior holds at the existing breakpoints.
 
 ### Stage 7 - Motion, cleanup, and final verification
@@ -236,6 +236,6 @@ Complex workspaces first (Alert Editor, Overlays, Widgets, Macros, Automations, 
   Current hub build: 165 transformed modules; CSS 162,307 bytes (+40,008 raw bytes, expected from premium feature styles); JS 806,754 bytes (+4,795 bytes); vendor React unchanged at 232,210 bytes; alert editor lazy chunk 168,089 bytes (-346 bytes). Route-level code-splitting stayed intact and the JS/chunk profile did not regress.
 - [ ] Run the full verification loop and a complete visual QA pass across all pages.
   QA attempt: `typecheck`, `lint`, `test`, `stylelint`, and `build` passed. `format:check` remains blocked by existing CRLF formatting drift in repo config/package/test files. Full `test:visual` ran 98 checks: 76 passed; the one responsive failure (`tablet interactive`) passed on isolated rerun, confirming a transient dev-server start flake. Route screenshot baselines need a deliberate refresh/review before this can be marked complete, especially `commands` (dynamic full-page height) and `setup` (currently affected by uncommitted backup/restore working-tree changes).
-- [ ] Update `docs/architecture.md` with a design-system/token + shared-component reference.
+- [x] Update `docs/architecture.md` with a design-system/token + shared-component reference.
 - [ ] Final commit and open a PR from `redesign/premium-ui`.
 - Existing tooling: Biome (`lint`, `format:check`), Vitest (`test`), `typecheck`, `build`. No CSS lint or visual regression yet (added in Stage 0).

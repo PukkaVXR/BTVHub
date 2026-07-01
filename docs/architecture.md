@@ -9,6 +9,21 @@ BTV is a local-first monorepo with two primary runtime apps:
 
 Shared contracts such as route payloads, event types, and runtime constants live in `packages/shared`. Overlay rendering helpers live in `packages/overlay-sdk`.
 
+## Hub design system
+
+The hub redesign is token-first and CSS-layered. `apps/hub/src/styles.css` declares the cascade order as `tokens`, `base`, `shell`, `components`, `features`, and `utilities`, then imports each stylesheet into the correct layer so feature overrides stay predictable.
+
+Canonical visual tokens live in `apps/hub/src/styles/tokens.css`. That file owns the dark canvas/surface ramps, accent and status colors, typography scales, spacing/radius primitives, elevation shadows, and motion/easing tokens. Feature styles should consume those canonical `--color-*`, `--space-*`, `--radius-*`, and `--shadow-*` variables directly rather than introducing local aliases or raw color values.
+
+The redesign split shared chrome and primitives away from route CSS:
+
+- `apps/hub/src/styles/shell.css` controls the premium sidebar, topbar, and global page rhythm.
+- `apps/hub/src/styles/components.css` styles reusable UI primitives such as buttons, cards, pills, callouts, form fields, empty states, and skeletons.
+- `apps/hub/src/styles/features/*.css` contains page-specific styling only.
+- `apps/hub/src/styles/keyframes.css` contains UI animation helpers, while `apps/hub/src/styles/overlay-animations.css` preserves functional overlay-output keyframes unchanged.
+
+Shared React layout primitives live under `apps/hub/src/ui`. `SplitWorkspace` standardizes master-detail workspaces, `PageGrid` and `CardGrid` handle repeatable grid layouts, `Tabs` and `SegmentedControl` unify page tab affordances, and `MeterBar` plus `ControlGrid` back the live control pages. New dashboard surfaces should prefer these shared primitives before adding one-off layout markup.
+
 ## Server composition
 
 `apps/overlay-server/src/index.ts` is the bootstrap entrypoint. It initializes the database, auth token state, TLS material, Fastify servers, and the core runtime services:

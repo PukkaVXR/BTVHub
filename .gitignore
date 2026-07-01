@@ -1,6 +1,8 @@
 node_modules/
 pnpm.exe
 dist/
+.tmp/
+.pnpm-store/
 data/
 !data/.gitkeep
 !data/certs/.gitkeep
